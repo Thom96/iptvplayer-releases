@@ -57,22 +57,13 @@ overal een champagne rand van 3 dp.
 
 ## Branches hernoemen na samenvoegen
 
-Zodra een werkbranch is samengevoegd met `main`, hernoem je hem naar een korte Nederlandse omschrijving van
-wat erin is gebouwd, in de vorm `claude/<omschrijving>`: kleine letters en koppeltekens, bijvoorbeeld
-`claude/inlogscherm`, `claude/taalkeuze` of `claude/vloeiend-scrollen`.
+Een samengevoegde werkbranch krijgt een korte Nederlandse omschrijving van wat erin is gebouwd, in de vorm
+`claude/<omschrijving>`: kleine letters en koppeltekens, bijvoorbeeld `claude/inlogscherm`, `claude/taalkeuze`
+of `claude/vloeiend-scrollen`.
 
-- Hernoemen: push de branch onder de nieuwe naam en verwijder daarna de oude naam.
-
-  ```bash
-  git push origin origin/<oude-naam>:refs/heads/claude/<omschrijving>
-  git push origin --delete <oude-naam>
-  ```
-
-  Vanuit een cloudsessie wordt het verwijderen geweigerd (HTTP 403). Probeer het dan niet opnieuw, maar maak
-  alleen de nieuwe naam aan en geef de eigenaar de lijst met oude namen om zelf te verwijderen op GitHub
-  (Branches → prullenbak-icoon).
-
-- Bestaat de naam al, voeg dan een volgnummer toe (`claude/inlogscherm-2`).
-- Hernoem alleen branches die echt in `main` zitten (`git merge-base --is-ancestor <branch> origin/main`).
-  Branches met werk dat nog niet op `main` staat laat je met rust.
-- Werk niet verder op een hernoemde branch: nieuw werk begint op een nieuwe branch vanaf de nieuwste `main`.
+- Zet in de beschrijving van de pull request een regel `Branchnaam: claude/<omschrijving>`. Na het samenvoegen
+  hernoemt de workflow `.github/workflows/branch-hernoemen.yml` de branch (echte rename, geen kopie). Bestaat de
+  naam al, dan krijgt hij een volgnummer (`claude/inlogscherm-2`).
+- Hernoem niet zelf met `git push` (nieuwe naam pushen + oude verwijderen): verwijderen wordt vanuit een
+  cloudsessie geweigerd (HTTP 403) en dan blijven er dubbele branches staan.
+- Werk niet verder op een samengevoegde branch: nieuw werk begint op een nieuwe branch vanaf de nieuwste `main`.

@@ -1,0 +1,41 @@
+# Hernoemt een werkbranch na het samenvoegen van zijn pull request, zodat er geen dubbele branches ontstaan.
+# Cloudsessies mogen zelf geen branches verwijderen (HTTP 403); GitHub's rename-functie hier wel.
+#
+# Gebruik: zet in de beschrijving van de pull request een regel
+#   Branchnaam: claude/<omschrijving>
+# Bestaat die naam al, dan komt er een volgnummer achter (claude/<omschrijving>-2).
+name: Branch hernoemen
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  hernoemen:
+    if: >-
+      github.event.pull_request.merged && github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hernoemen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OLD: ${{ github.event.pull_request.head.ref }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          NEW=$(printf '%s\n' "$BODY" | tr -d '\r' \
+            | sed -nE 's/^[[:space:]]*Branchnaam:[[:space:]]*`?(claude\/[a-z0-9-]+)`?[[:space:]]*$/\1/p' | head -n1)
+          if [ -z "$NEW" ]; then echo "::warning::Geen regel 'Branchnaam: claude/...' in de pull request; niet hernoemd."; exit 0; fi
+          if [ "$NEW" = "$OLD" ]; then echo "Branch heet al $NEW."; exit 0; fi
+          # Slashes in branchnamen moeten in de API-URL gecodeerd worden.
+          enc() { printf '%s' "${1//\//%2F}"; }
+          if ! gh api "repos/$GITHUB_REPOSITORY/branches/$(enc "$OLD")" --silent 2>/dev/null; then
+            echo "::warning::Branch $OLD bestaat niet meer; niet hernoemd."; exit 0
+          fi
+          BASE="$NEW"; N=2
+          while gh api "repos/$GITHUB_REPOSITORY/branches/$(enc "$NEW")" --silent 2>/dev/null; do NEW="$BASE-$N"; N=$((N+1)); done
+          gh api -X POST "repos/$GITHUB_REPOSITORY/branches/$(enc "$OLD")/rename" -f new_name="$NEW" --silent
+          echo "Hernoemd: $OLD -> $NEW"
