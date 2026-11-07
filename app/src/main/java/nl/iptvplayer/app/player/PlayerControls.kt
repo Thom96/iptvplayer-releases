@@ -219,6 +219,15 @@ fun PlayerControls(
     BackHandler(enabled = !visible && !introVisible) { onExit() }
     BackHandler(enabled = introVisible && panel == Panel.NONE) { onExit() }
 
+    // Spoelen en de getoonde tijden direct bijwerken (niet pas bij de volgende poll), zodat de
+    // resterende tijd meteen klopt.
+    fun seekBy(delta: Long) {
+        val max = if (duration > 0) duration else Long.MAX_VALUE
+        val target = (player.currentPosition + delta).coerceIn(0, max)
+        player.seekTo(target)
+        position = target
+    }
+
     fun togglePlay() = if (player.isPlaying) player.pause() else player.play()
 
     Box(
@@ -243,8 +252,8 @@ fun PlayerControls(
                 when (e.key) {
                     Key.DirectionUp, Key.ChannelUp -> if (isLive && queue.items.size > 1) player.seekToPreviousMediaItem() else show()
                     Key.DirectionDown, Key.ChannelDown -> if (isLive && queue.items.size > 1) player.seekToNextMediaItem() else show()
-                    Key.DirectionLeft -> if (!isLive) { player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0)); showAtSeekBar() }
-                    Key.DirectionRight -> if (!isLive) { player.seekTo(player.currentPosition + 10_000); showAtSeekBar() }
+                    Key.DirectionLeft -> if (!isLive) { seekBy(-10_000); showAtSeekBar() }
+                    Key.DirectionRight -> if (!isLive) { seekBy(10_000); showAtSeekBar() }
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> show()
                     else -> return@onPreviewKeyEvent false
                 }
@@ -298,9 +307,7 @@ fun PlayerControls(
                                 buffered = buffered,
                                 duration = duration,
                                 onSeek = { delta ->
-                                    val target = (player.currentPosition + delta).coerceIn(0, duration.coerceAtLeast(0))
-                                    player.seekTo(target)
-                                    position = target
+                                    seekBy(delta)
                                     interaction++
                                 },
                                 modifier = Modifier.weight(1f).focusRequester(seekFocus),
