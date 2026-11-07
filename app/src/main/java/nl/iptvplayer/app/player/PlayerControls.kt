@@ -7,6 +7,7 @@ import nl.iptvplayer.app.i18n.AppLanguage
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.animateColorAsState
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -525,29 +527,33 @@ private fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Uni
     }
 }
 
-/** Grote ronde afspeelknop: crème met donker icoon, met een gele rand bij focus. */
+/**
+ * Afspeelknop in dezelfde stijl als de andere ronde knoppen, maar groter: zonder focus een
+ * doorschijnende cirkel met wit icoon, met focus helemaal gevuld met een donker icoon. Het
+ * afspeel-icoon schuift iets naar rechts zodat de driehoek optisch in het midden staat, en
+ * pauze/afspelen wisselen met een korte overgang.
+ */
 @Composable
 private fun PlayPauseButton(isPlaying: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
-        modifier = modifier.size(60.dp).tapToClick(onClick),
+        modifier = modifier.size(56.dp).tapToClick(onClick),
         shape = ClickableSurfaceDefaults.shape(CircleShape),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Palette.text,
-            contentColor = Palette.background,
+            containerColor = Color(0x33FFFFFF),
+            contentColor = Color.White,
             focusedContainerColor = Palette.text,
             focusedContentColor = Palette.background,
         ),
-        border = ClickableSurfaceDefaults.border(
-            focusedBorder = androidx.tv.material3.Border(BorderStroke(4.dp, Palette.accent), shape = CircleShape),
-        ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.1f),
     ) {
-        Icon(
-            if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            if (isPlaying) S.pause else S.play,
-            Modifier.align(Alignment.Center).size(34.dp),
-        )
+        Crossfade(isPlaying, Modifier.align(Alignment.Center), label = "playPause") { playing ->
+            Icon(
+                if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                if (playing) S.pause else S.play,
+                Modifier.size(32.dp).offset(x = if (playing) 0.dp else 2.dp),
+            )
+        }
     }
 }
 
