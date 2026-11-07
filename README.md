@@ -42,6 +42,24 @@ De code wijst naar de nieuwste versie op GitHub
 (`https://github.com/Thom96/iptvplayer-releases/releases/latest/download/IPTVPlayer.apk`),
 dus hij hoeft nooit aangepast te worden. Daarna werkt de app zichzelf bij.
 
+## Publiceren via GitHub (zonder pc)
+
+De workflow `.github/workflows/publiceren.yml` bouwt de app, ondertekent hem met de eigen sleutel en zet
+hem als release online. De knop **Controleren op updates** in de app ziet hem daarna meteen.
+
+Eenmalig instellen, onder **Settings → Secrets and variables → Actions** van deze repository:
+
+| Secret | Waarde |
+|---|---|
+| `KEYSTORE_BASE64` | `release.jks` als base64 (PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.jks")) \| Set-Clipboard`) |
+| `KEYSTORE_PASSWORD` | `storePassword` uit `keystore.properties` |
+| `KEY_ALIAS` | `keyAlias` uit `keystore.properties` |
+| `KEY_PASSWORD` | `keyPassword` uit `keystore.properties` |
+
+Starten: een tag `publish-...` pushen (de tekst van de tag wordt "wat is er nieuw"), of via
+**Actions → Publiceren → Run workflow** zodra de workflow op `main` staat. Zonder de secrets stopt de
+workflow in plaats van een APK met een andere sleutel te publiceren.
+
 ## Updates
 
 Een nieuwe versie installeer je met hetzelfde script; dat werkt de app bij en laat login, favorieten en
