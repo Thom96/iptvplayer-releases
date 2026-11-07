@@ -106,6 +106,7 @@ import nl.iptvplayer.app.data.Library
 import nl.iptvplayer.app.data.MediaItem
 import nl.iptvplayer.app.data.TextMatch
 import nl.iptvplayer.app.player.PlaybackSession
+import nl.iptvplayer.app.player.StreamRecovery
 import nl.iptvplayer.app.player.fastStartLoadControl
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -179,8 +180,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
             .build()
     }
     var playError by remember { mutableStateOf(false) }
-    var usedFallback by remember { mutableStateOf(false) }
-    var retries by remember { mutableIntStateOf(0) }
+    val recovery = remember { StreamRecovery() }
     var retryJob by remember { mutableStateOf<Job?>(null) }
     val currentPlaying by rememberUpdatedState(playing)
 
@@ -194,8 +194,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         if (playingKey == ch.key && player.playbackState != Player.STATE_IDLE && !playError) return
         playingKey = ch.key
         playError = false
-        usedFallback = false
-        retries = 0
+        recovery.reset(ch.key)
         startedAt = SystemClock.elapsedRealtime()
         player.setMediaItem(exoItem(vm.liveUrl(ch.id)))
         player.prepare()
@@ -209,30 +208,31 @@ fun LiveTab(vm: AppViewModel, library: Library) {
             }
 
             override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_READY) retries = 0
+                if (state == Player.STATE_READY) recovery.onPlaying()
             }
 
             override fun onPlayerError(error: PlaybackException) {
                 val ch = currentPlaying ?: return
-                // Werkt het gekozen formaat niet, probeer dan het andere (ts <-> m3u8).
-                if (!usedFallback) {
-                    usedFallback = true
-                    player.setMediaItem(exoItem(vm.liveUrl(ch.id, alternative = true)))
-                    player.prepare()
-                    player.play()
-                } else if (retries < 3) {
+                when (val action = recovery.onError(ch.key, vm.liveUrl(ch.id, alternative = true), live = true, error.errorCode)) {
+                    // Werkt het gekozen formaat niet, probeer dan het andere (ts <-> m3u8).
+                    is StreamRecovery.Action.UseFallback -> {
+                        player.setMediaItem(exoItem(action.url))
+                        player.prepare()
+                        player.play()
+                    }
                     // Netwerkhapering: even wachten en dezelfde zender opnieuw starten.
-                    retries++
-                    val key = ch.key
-                    retryJob = scope.launch {
-                        delay(2_000L * retries)
-                        if (playingKey == key && !playError) {
-                            player.prepare()
-                            player.play()
+                    is StreamRecovery.Action.Retry -> {
+                        val key = ch.key
+                        retryJob = scope.launch {
+                            delay(action.delayMs)
+                            if (playingKey == key && !playError) {
+                                if (action.toLiveEdge) player.seekToDefaultPosition()
+                                player.prepare()
+                                player.play()
+                            }
                         }
                     }
-                } else {
-                    playError = true
+                    StreamRecovery.Action.GiveUp -> playError = true
                 }
             }
         }
