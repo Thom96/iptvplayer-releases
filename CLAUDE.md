@@ -64,6 +64,10 @@ wat erin is gebouwd, in de vorm `claude/<omschrijving>`: kleine letters en koppe
   git push origin --delete <oude-naam>
   ```
 
+  Vanuit een cloudsessie wordt het verwijderen geweigerd (HTTP 403). Probeer het dan niet opnieuw, maar maak
+  alleen de nieuwe naam aan en geef de eigenaar de lijst met oude namen om zelf te verwijderen op GitHub
+  (Branches → prullenbak-icoon).
+
 - Bestaat de naam al, voeg dan een volgnummer toe (`claude/inlogscherm-2`).
 - Hernoem alleen branches die echt in `main` zitten (`git merge-base --is-ancestor <branch> origin/main`).
   Branches met werk dat nog niet op `main` staat laat je met rust.
