@@ -43,8 +43,11 @@ class XtreamClient(
 
     private val demo = creds.server == DEMO_SERVER
 
-    /** Formaat voor live-streams: m3u8 als de server dat toestaat, anders ts. */
-    var liveFormat: String = "m3u8"
+    /**
+     * Formaat voor live-streams dat de server aanbeveelt: ts, of m3u8 als ts niet mag. Wordt bij [authenticate]
+     * vastgesteld; tot dan de waarde van de vorige keer (AppViewModel zet die), anders ts.
+     */
+    var liveFormat: String = "ts"
 
     // ---------- Account ----------
 
@@ -236,7 +239,7 @@ class XtreamClient(
         return List(arr.length()) { i ->
             val o = arr.optJSONObject(i) ?: return@List null
             val id = o.optString("category_id").takeIf { it.isNotEmpty() } ?: return@List null
-            Category(id, o.optString("category_name", "Onbekend").trim())
+            Category(id, o.optString("category_name").trim().ifEmpty { S.unnamedCategory })
         }.filterNotNull()
     }
 

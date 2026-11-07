@@ -113,6 +113,11 @@ class Storage(context: Context) {
         prefs.edit().putString("liveFormat", format).apply()
     }
 
+    /** Live-formaat dat de server de vorige keer aanbeval ("ts" of "m3u8"), zodat zappen direct goed start. */
+    var serverLiveFormat: String?
+        get() = prefs.getString("serverLiveFormat", null)
+        set(value) { prefs.edit().putString("serverLiveFormat", value).apply() }
+
     // ---------- Taal van de app ----------
 
     /** Code van de gekozen app-taal (bijv. "en"); null zolang er bij de eerste start nog niet gekozen is. */

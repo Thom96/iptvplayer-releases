@@ -1,6 +1,6 @@
-# IPTV Player voor Chromecast met Google TV
+# Gallo: IPTV Player voor Chromecast met Google TV
 
-Eigen Android TV-app voor een Xtream Codes IPTV-abonnement, gericht op makkelijk zoeken in films en series.
+Gallo is een eigen Android TV-app voor een Xtream Codes IPTV-abonnement, gericht op makkelijk zoeken in films en series.
 
 ## Functies
 
@@ -56,15 +56,17 @@ Eenmalig instellen, onder **Settings → Secrets and variables → Actions** van
 | `KEY_ALIAS` | `keyAlias` uit `keystore.properties` |
 | `KEY_PASSWORD` | `keyPassword` uit `keystore.properties` |
 
-Starten: een commit pushen met in het bericht een regel `[publiceren] Wat is er nieuw` (de tekst na de
-markering komt in de app als "wat is er nieuw"), of via
-**Actions → Publiceren → Run workflow** zodra de workflow op `main` staat. Zonder de secrets stopt de
+Starten kan alleen vanaf `main`: via **Actions → Publiceren → Run workflow** (vul "Wat is er nieuw" in;
+die tekst komt in de app), of door een commit op `main` te pushen met in het bericht een regel
+`[publiceren] Wat is er nieuw`. Zonder de secrets stopt de
 workflow in plaats van een APK met een andere sleutel te publiceren.
 
 ## Updates
 
-Een nieuwe versie installeer je met hetzelfde script; dat werkt de app bij en laat login, favorieten en
-kijkgeschiedenis staan. Er is geen automatische update (de app staat niet in de Play Store).
+De app werkt zichzelf bij: kort na het opstarten kijkt hij of er een nieuwe versie op GitHub staat en
+vraagt dan of je wilt bijwerken. Handmatig kan via **Instellingen → Controleren op updates**. Login,
+favorieten en kijkgeschiedenis blijven staan. Met een pc kan een nieuwe versie ook nog met
+`installeren.ps1` worden geïnstalleerd.
 
 **Bewaar `release.jks` en `keystore.properties` goed.** Daarmee wordt elke versie ondertekend; zonder
 deze sleutel kan de geïnstalleerde app niet meer bijgewerkt worden en moet je hem eerst verwijderen
@@ -76,7 +78,7 @@ Vereist JDK 17+ en de Android SDK (`local.properties` wijst naar de SDK).
 
 ```powershell
 ./gradlew assembleRelease     # APK in %LOCALAPPDATA%\IPTVPlayer-build\app\outputs\apk\release
-./gradlew testDebugUnitTest   # tests van de zoekfunctie
+./gradlew testDebugUnitTest   # unit tests
 ```
 
 Build-uitvoer staat bewust buiten Google Drive (`%LOCALAPPDATA%\IPTVPlayer-build`).

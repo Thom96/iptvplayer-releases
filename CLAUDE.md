@@ -21,14 +21,19 @@ Android TV-app (Kotlin, Jetpack Compose for TV) voor een Xtream Codes IPTV-abonn
 De workflow `.github/workflows/publiceren.yml` bouwt, ondertekent (sleutel uit de repository secrets) en zet
 een release online. De knop "Controleren op updates" in de app leest `version.json` uit de nieuwste release.
 
-- Starten: push een commit waarvan het bericht een regel bevat die begint met `[publiceren] <wat is er nieuw>`.
-  De tekst na de markering ziet de gebruiker in de app. Of: Actions → Publiceren → Run workflow (vanaf `main`).
+- Publiceren kan alleen vanaf `main`. Zorg eerst dat de wijziging via een pull request op `main` staat.
+- Starten vanuit een cloudsessie: start de workflow "Publiceren" (`publiceren.yml`) op `main` via de GitHub-koppeling
+  (workflow_dispatch) met als invoer `notes` de tekst "wat is er nieuw"; die ziet de gebruiker in de app. Vanaf een
+  pc kan ook: een commit rechtstreeks op `main` pushen met een regel `[publiceren] <wat is er nieuw>` in het bericht.
 - Zet `[publiceren]` nooit in de titel of tekst van een merge commit of pull request: dan publiceert het
   samenvoegen nog een keer.
 - Controleer na afloop dat de run geslaagd is en dat `releases/latest/download/version.json` de nieuwe versie
   geeft.
 
 ## Bouwen en controleren
+
+- De workflow `.github/workflows/controleren.yml` bouwt en test elke pull request. Voeg pas samen als die
+  geslaagd is.
 
 - `bash ./gradlew assembleDebug testDebugUnitTest` (de omgeving "iptvplayer-releases" installeert de Android SDK
   via het setup-script; `local.properties` wijst naar `/opt/android-sdk`). Build-uitvoer staat in

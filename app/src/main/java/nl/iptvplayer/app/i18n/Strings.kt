@@ -108,6 +108,9 @@ abstract class Strings {
     abstract val loginFailed: String
     abstract val serverNotFound: String
     abstract val serverTimeout: String
+    abstract val serverUnreachable: String
+    abstract val secureConnectionFailed: String
+    abstract val unnamedCategory: String
     abstract val invalidServerUrl: String
     abstract val unexpectedResponse: String
     abstract val wrongCredentials: String
