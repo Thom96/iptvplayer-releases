@@ -5,7 +5,9 @@ import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
@@ -18,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -53,6 +54,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -119,6 +123,7 @@ fun PlayerControls(
     var tracks by remember { mutableStateOf(player.currentTracks) }
     var position by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(0L) }
+    var buffered by remember { mutableLongStateOf(0L) }
     var speed by remember { mutableFloatStateOf(player.playbackParameters.speed) }
 
     DisposableEffect(player) {
@@ -141,6 +146,7 @@ fun PlayerControls(
         while (true) {
             position = player.currentPosition.coerceAtLeast(0)
             duration = player.duration.takeIf { it != C.TIME_UNSET && it > 0 } ?: 0
+            buffered = player.bufferedPosition.coerceAtLeast(0)
             delay(500)
         }
     }
@@ -280,6 +286,7 @@ fun PlayerControls(
                             Text(formatTime(position), style = MaterialTheme.typography.titleMedium, color = Color.White, modifier = Modifier.width(96.dp))
                             SeekBar(
                                 position = position,
+                                buffered = buffered,
                                 duration = duration,
                                 onSeek = { delta ->
                                     val target = (player.currentPosition + delta).coerceIn(0, duration.coerceAtLeast(0))
@@ -538,16 +545,18 @@ private fun PlayPauseButton(isPlaying: Boolean, onClick: () -> Unit, modifier: M
 }
 
 /**
- * Tijdbalk: rood afgespeeld deel met een gele bol. Met focus wordt hij dikker en spoel je met
- * links/rechts 10 s (vasthouden = snel spoelen).
+ * Tijdbalk in één Canvas: grijze achtergrond, lichtere gebufferde strook, rood afgespeeld deel en
+ * een bol met vaste grootte. Zonder focus is het een dunne balk met een kleine bol; met focus wordt
+ * hij dikker en groeit de bol (geanimeerd). Links/rechts spoelt 10 s (vasthouden = snel spoelen).
  */
 @Composable
-private fun SeekBar(position: Long, duration: Long, onSeek: (Long) -> Unit, modifier: Modifier = Modifier) {
+private fun SeekBar(position: Long, buffered: Long, duration: Long, onSeek: (Long) -> Unit, modifier: Modifier = Modifier) {
     var focused by remember { mutableStateOf(false) }
     val fraction = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
-    val barHeight = if (focused) 8.dp else 5.dp
-    val thumb = if (focused) 22.dp else 14.dp
-    Box(
+    val bufferedFraction = if (duration > 0) (buffered.toFloat() / duration).coerceIn(fraction, 1f) else 0f
+    val barHeight by animateDpAsState(if (focused) 8.dp else 4.dp, label = "barHeight")
+    val thumbRadius by animateDpAsState(if (focused) 12.dp else 7.dp, label = "thumbRadius")
+    Canvas(
         modifier
             .height(40.dp)
             .onFocusChanged { focused = it.isFocused }
@@ -560,20 +569,24 @@ private fun SeekBar(position: Long, duration: Long, onSeek: (Long) -> Unit, modi
                 }
             }
             .focusable(),
-        contentAlignment = Alignment.CenterStart,
     ) {
-        Box(Modifier.fillMaxWidth().height(barHeight).background(Color(0x55FFFFFF), RoundedCornerShape(4.dp)))
-        Box(Modifier.fillMaxWidth(fraction).height(barHeight).background(Palette.brandRed, RoundedCornerShape(4.dp)))
-        // De bol staat op de positie in de balk.
-        Box(Modifier.fillMaxWidth(fraction), contentAlignment = Alignment.CenterEnd) {
-            Box(
-                Modifier
-                    .offset(x = thumb / 2)
-                    .size(thumb)
-                    .background(Palette.brandYellow, CircleShape)
-                    .then(if (focused) Modifier.border(2.dp, Color.White, CircleShape) else Modifier),
-            )
+        val r = thumbRadius.toPx()
+        val h = barHeight.toPx()
+        // Ruimte voor de halve bol aan beide kanten, zodat hij op 0:00 en aan het eind niet wordt afgesneden.
+        val left = r
+        val width = (size.width - 2 * r).coerceAtLeast(0f)
+        val cy = size.height / 2
+        val corner = CornerRadius(h / 2, h / 2)
+        fun bar(to: Float, color: Color) {
+            if (to <= 0f) return
+            drawRoundRect(color, topLeft = Offset(left, cy - h / 2), size = Size(width * to, h), cornerRadius = corner)
         }
+        bar(1f, Color(0x40FFFFFF))
+        bar(bufferedFraction, Color(0x66FFFFFF))
+        bar(fraction, Palette.brandRed)
+        val cx = left + width * fraction
+        if (focused) drawCircle(Color.White, radius = r + 2.dp.toPx(), center = Offset(cx, cy))
+        drawCircle(Palette.brandYellow, radius = r, center = Offset(cx, cy))
     }
 }
 
