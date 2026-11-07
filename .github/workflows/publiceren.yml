@@ -1,10 +1,10 @@
 # Bouwt de app, ondertekent hem met de eigen sleutel en zet hem online als GitHub-release.
 # De knop "Controleren op updates" in de app leest version.json uit de nieuwste release.
 #
-# Starten:
-#  - een commit pushen (op elke branch) met in het bericht een regel die begint met
-#    "[publiceren]"; de rest van die regel wordt de "wat is er nieuw"-tekst, of
-#  - Actions -> Publiceren -> Run workflow (als dit bestand op main staat).
+# Starten (alleen vanaf main, zodat er nooit een niet-samengevoegde versie op de tv komt):
+#  - Actions -> Publiceren -> Run workflow op main, met de "wat is er nieuw"-tekst, of
+#  - een commit op main pushen met in het bericht een regel die begint met "[publiceren]"; de rest van
+#    die regel wordt de "wat is er nieuw"-tekst.
 #
 # Nodig (Settings -> Secrets and variables -> Actions):
 #   KEYSTORE_BASE64    release.jks als base64
@@ -15,7 +15,7 @@ name: Publiceren
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   workflow_dispatch:
     inputs:
       notes:
@@ -32,7 +32,9 @@ concurrency:
 
 jobs:
   publiceren:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[publiceren]')
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[publiceren]'))
     runs-on: ubuntu-latest
     env:
       TZ: Europe/Amsterdam # versienaam bevat datum en tijd

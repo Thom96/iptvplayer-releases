@@ -38,7 +38,10 @@ import nl.iptvplayer.app.player.PlayItem
 import nl.iptvplayer.app.player.PlaybackQueue
 import nl.iptvplayer.app.player.SeriesIntro
 import nl.iptvplayer.app.player.PlayerActivity
+import java.net.ConnectException
+import java.net.NoRouteToHostException
 import java.net.SocketTimeoutException
+import javax.net.ssl.SSLException
 import java.net.UnknownHostException
 
 sealed interface AppState {
@@ -267,6 +270,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val c = XtreamClient(creds, app.http, app.cacheDir)
                 account = c.authenticate()
+                storage.serverLiveFormat = c.liveFormat
                 storage.credentials = creds
                 client = c
                 loadLibrary(c, forceDownload = true)
@@ -281,14 +285,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val c = XtreamClient(creds, app.http, app.cacheDir)
+                storage.serverLiveFormat?.let { c.liveFormat = it }
                 client = c
                 if (c.hasCache) {
                     loadLibrary(c, forceDownload = false)
-                    runCatching { account = c.authenticate() }
+                    runCatching { account = c.authenticate(); storage.serverLiveFormat = c.liveFormat }
                     if (c.cacheAgeMs > CACHE_MAX_AGE_MS) refreshInBackground()
                 } else {
                     state = AppState.Loading(S.connecting)
                     account = c.authenticate()
+                    storage.serverLiveFormat = c.liveFormat
                     loadLibrary(c, forceDownload = true)
                 }
             } catch (e: AuthException) {
@@ -347,6 +353,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         refreshJob = viewModelScope.launch {
             try {
                 val acc = c.authenticate()
+                storage.serverLiveFormat = c.liveFormat
                 val lib = c.loadLibrary(forceDownload = true)
                 if (client !== c) return@launch // intussen uitgelogd of ander account
                 account = acc
@@ -391,7 +398,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Formaat voor live-streams: de keuze uit Instellingen, of bij "auto" wat de server aanbeveelt. */
     val liveFormat: String
-        get() = storage.liveFormat.value.takeIf { it != "auto" } ?: client?.liveFormat ?: "m3u8"
+        get() = storage.liveFormat.value.takeIf { it != "auto" } ?: client?.liveFormat ?: "ts"
 
     /** Live-URL in het gekozen formaat; [alternative] = het andere formaat, als terugval. */
     fun liveUrl(streamId: Int, alternative: Boolean = false): String {
@@ -452,13 +459,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         return (episodes.getOrNull(last + 1) ?: episodes.first()) to null
     }
 
+    /** Ophalen van afleveringen voor [openSeries] of [resume]; zolang dat loopt, telt een tweede druk niet. */
+    private var openingJob: kotlinx.coroutines.Job? = null
+
     /**
      * Serie openen zoals Netflix: de volgende aflevering start direct, met links een paneel met info
      * en "Afleveringen en meer". Lukt het ophalen niet, dan de gewone seriepagina.
      */
     fun openSeries(context: Context, series: MediaItem) {
         val c = client ?: return
-        viewModelScope.launch {
+        if (openingJob?.isActive == true) return // nog bezig met ophalen: tweede druk op OK negeren
+        openingJob = viewModelScope.launch {
             val info = runCatching { c.seriesInfo(series.id) }.getOrNull()
             val episodes = info?.seasons?.flatMap { it.episodes }.orEmpty()
             val next = nextUpFor(series.id, episodes)
@@ -498,7 +509,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val c = client ?: return
         val seriesId = p.seriesId
         if (seriesId != null) {
-            viewModelScope.launch {
+            if (openingJob?.isActive == true) return
+            openingJob = viewModelScope.launch {
                 val episodes = runCatching { c.seriesInfo(seriesId) }.getOrNull()
                     ?.seasons?.flatMap { it.episodes }.orEmpty()
                 val index = episodes.indexOfFirst { it.key == p.key }
@@ -532,6 +544,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         is AuthException -> e.message ?: S.loginFailed
         is UnknownHostException -> S.serverNotFound
         is SocketTimeoutException -> S.serverTimeout
+        is ConnectException, is NoRouteToHostException -> S.serverUnreachable
+        is SSLException -> S.secureConnectionFailed
         else -> e.message ?: e.javaClass.simpleName
     }
 
