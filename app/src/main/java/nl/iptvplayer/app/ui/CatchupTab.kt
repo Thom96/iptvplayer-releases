@@ -1,5 +1,7 @@
 package nl.iptvplayer.app.ui
 
+import androidx.tv.material3.Border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -126,10 +128,13 @@ private fun ArchiveChannelRow(channel: MediaItem, selected: Boolean, onFocused: 
             .tapToClick(onFocused),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) Color.White.copy(alpha = 0.10f) else Color.Transparent,
+            containerColor = if (selected) Palette.surface else Color.Transparent,
             contentColor = Palette.text,
-            focusedContainerColor = Palette.text,
-            focusedContentColor = Palette.background,
+            focusedContainerColor = Palette.surfaceFocused,
+            focusedContentColor = Palette.text,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = RoundedCornerShape(12.dp)),
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.02f),
     ) {

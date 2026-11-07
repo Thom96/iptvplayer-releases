@@ -212,7 +212,7 @@ private fun ExpandingCard(
         modifier = modifier.tapToClick(onClick, onLongClick).width(width).height(CARD_HEIGHT),
         shape = CardDefaults.shape(cardShape),
         scale = CardDefaults.scale(focusedScale = 1f),
-        border = CardDefaults.border(focusedBorder = Border(BorderStroke(3.dp, Color.White), shape = cardShape)),
+        border = CardDefaults.border(focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = cardShape)),
         colors = CardDefaults.colors(containerColor = Palette.surface),
     ) {
         Box(Modifier.fillMaxSize()) {
