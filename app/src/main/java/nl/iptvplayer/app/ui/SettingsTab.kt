@@ -26,9 +26,12 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import nl.iptvplayer.app.AppViewModel
 import nl.iptvplayer.app.data.Library
+import nl.iptvplayer.app.i18n.AppLanguage
+import nl.iptvplayer.app.i18n.I18n
+import nl.iptvplayer.app.i18n.S
+import nl.iptvplayer.app.i18n.appLocale
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -37,23 +40,33 @@ fun SettingsTab(vm: AppViewModel, library: Library) {
     val account = vm.account
     val languages by vm.storage.languages.collectAsState()
     val visible = vm.visibleLibrary ?: library
-    val dateTime = SimpleDateFormat("d MMM yyyy, HH:mm", Locale("nl", "NL"))
-    val date = SimpleDateFormat("d MMMM yyyy", Locale("nl", "NL"))
+    val dateTime = SimpleDateFormat("d MMM yyyy, HH:mm", appLocale)
+    val date = SimpleDateFormat("d MMMM yyyy", appLocale)
     var confirmLogout by remember { mutableStateOf(false) }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 56.dp, end = 56.dp, top = 16.dp, bottom = 48.dp)) {
         item {
-            Heading("Talen")
+            Heading(S.appLanguage)
+            Text(S.appLanguageHint, style = MaterialTheme.typography.bodyMedium, color = Palette.textMuted)
+            Spacer(Modifier.height(14.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                AppLanguage.entries.forEach { lang ->
+                    ChipButton(text = lang.nativeName, selected = lang == I18n.language, onClick = { vm.setAppLanguage(lang) })
+                }
+            }
+        }
+
+        item {
+            Heading(S.contentLanguages)
             Text(
-                "Kies welke talen je wilt zien in Home, Films, Series, Live TV en bij het zoeken. " +
-                    "Niets gekozen = alles tonen.",
+                S.contentLanguagesHint,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Palette.textMuted,
             )
             Spacer(Modifier.height(14.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ChipButton(
-                    text = "Alle talen",
+                    text = S.allLanguages,
                     selected = languages.isEmpty(),
                     onClick = { languages.forEach(vm::toggleLanguage) },
                 )
@@ -68,8 +81,7 @@ fun SettingsTab(vm: AppViewModel, library: Library) {
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                "Zichtbaar: ${formatCount(visible.movies.size)} films · ${formatCount(visible.series.size)} series · " +
-                    "${formatCount(visible.live.size)} zenders",
+                S.visible(S.libraryCounts(formatCount(visible.movies.size), formatCount(visible.series.size), formatCount(visible.live.size))),
                 style = MaterialTheme.typography.bodySmall,
                 color = Palette.textMuted,
             )
@@ -77,53 +89,52 @@ fun SettingsTab(vm: AppViewModel, library: Library) {
 
         item {
             val format by vm.storage.liveFormat.collectAsState()
-            Heading("Afspelen")
+            Heading(S.playback)
             Text(
-                "Streamformaat voor live-tv. TS start bij de meeste IPTV-servers sneller; HLS is soms stabieler. " +
-                    "Werkt het ene niet, dan probeert de app automatisch het andere.",
+                S.playbackHint,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Palette.textMuted,
             )
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("auto" to "Automatisch", "ts" to "TS", "m3u8" to "HLS (m3u8)").forEach { (value, label) ->
+                listOf("auto" to S.formatAuto, "ts" to "TS", "m3u8" to "HLS (m3u8)").forEach { (value, label) ->
                     ChipButton(text = label, selected = format == value, onClick = { vm.storage.setLiveFormat(value) })
                 }
             }
         }
 
         item {
-            Heading("Updates")
+            Heading(S.updates)
             UpdateSection(vm)
         }
 
         item {
-            Heading("Account")
-            InfoLine("Server", creds?.server ?: "-")
-            InfoLine("Gebruiker", creds?.username ?: "-")
+            Heading(S.account)
+            InfoLine(S.server, creds?.server ?: "-")
+            InfoLine(S.user, creds?.username ?: "-")
             if (account != null) {
-                InfoLine("Status", account.status)
-                InfoLine("Verloopt op", account.expiresAt?.let { date.format(Date(it * 1000)) } ?: "Onbeperkt")
+                InfoLine(S.status, account.status)
+                InfoLine(S.expiresOn, account.expiresAt?.let { date.format(Date(it * 1000)) } ?: S.unlimited)
                 if (account.maxConnections != null) {
-                    InfoLine("Verbindingen", "${account.activeConnections ?: 0} van ${account.maxConnections} in gebruik")
+                    InfoLine(S.connections, S.connectionsInUse(account.activeConnections ?: 0, account.maxConnections))
                 }
             }
         }
 
         item {
-            Heading("Bibliotheek")
-            InfoLine("Totaal", "${formatCount(library.movies.size)} films · ${formatCount(library.series.size)} series · ${formatCount(library.live.size)} zenders")
-            InfoLine("Bijgewerkt", if (vm.refreshing) "Bezig met verversen…" else dateTime.format(Date(library.updatedAt)))
+            Heading(S.library)
+            InfoLine(S.total, S.libraryCounts(formatCount(library.movies.size), formatCount(library.series.size), formatCount(library.live.size)))
+            InfoLine(S.updated, if (vm.refreshing) S.refreshing else dateTime.format(Date(library.updatedAt)))
             Spacer(Modifier.height(20.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                ActionButton("Lijsten vernieuwen", Icons.Filled.Refresh, onClick = vm::refreshInBackground)
-                ActionButton("Uitloggen", Icons.AutoMirrored.Filled.Logout, onClick = { confirmLogout = true })
+                ActionButton(S.refreshLists, Icons.Filled.Refresh, onClick = vm::refreshInBackground)
+                ActionButton(S.logout, Icons.AutoMirrored.Filled.Logout, onClick = { confirmLogout = true })
             }
             if (confirmLogout) {
                 ConfirmRemoval(
-                    title = "Daarna moet je server, gebruikersnaam en wachtwoord opnieuw invullen.",
-                    question = "Uitloggen?",
-                    confirmLabel = "Uitloggen",
+                    title = S.logoutWarning,
+                    question = S.logoutQuestion,
+                    confirmLabel = S.logout,
                     confirmIcon = Icons.AutoMirrored.Filled.Logout,
                     onConfirm = { confirmLogout = false; vm.logout() },
                     onDismiss = { confirmLogout = false },
@@ -131,8 +142,7 @@ fun SettingsTab(vm: AppViewModel, library: Library) {
             }
             Spacer(Modifier.height(20.dp))
             Text(
-                "Lijsten worden automatisch elke 12 uur ververst. Tijdens het kijken: links/rechts spoelt 10 s terug of 30 s vooruit, " +
-                    "bij live-tv zap je met omhoog/omlaag door de zenders van de categorie.",
+                S.settingsFooter,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Palette.textMuted,
             )

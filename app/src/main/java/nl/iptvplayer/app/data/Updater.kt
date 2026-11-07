@@ -1,5 +1,6 @@
 package nl.iptvplayer.app.data
 
+import nl.iptvplayer.app.i18n.S
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -28,7 +29,7 @@ class Updater(private val context: Context, private val http: OkHttpClient) {
     /** Geeft de nieuwere versie terug, of null als je al de nieuwste hebt. */
     suspend fun check(): UpdateInfo? = withContext(Dispatchers.IO) {
         val json = http.newCall(Request.Builder().url(VERSION_URL).build()).execute().use { resp ->
-            if (!resp.isSuccessful) throw IOException("Updateserver gaf fout ${resp.code}")
+            if (!resp.isSuccessful) throw IOException(S.updateServerError(resp.code))
             JSONObject(resp.body?.string().orEmpty().trimStart('﻿'))
         }
         val info = UpdateInfo(
@@ -46,8 +47,8 @@ class Updater(private val context: Context, private val http: OkHttpClient) {
         dir.listFiles()?.forEach { it.delete() }
         val target = File(dir, "IPTVPlayer-${info.versionCode}.apk")
         http.newCall(Request.Builder().url(info.apkUrl).build()).execute().use { resp ->
-            if (!resp.isSuccessful) throw IOException("Download mislukt (fout ${resp.code})")
-            val body = resp.body ?: throw IOException("Lege download")
+            if (!resp.isSuccessful) throw IOException(S.downloadFailed(resp.code))
+            val body = resp.body ?: throw IOException(S.emptyDownload)
             val total = body.contentLength().takeIf { it > 0 }
             body.byteStream().use { input ->
                 target.outputStream().use { out ->

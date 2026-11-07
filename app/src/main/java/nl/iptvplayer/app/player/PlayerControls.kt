@@ -1,5 +1,9 @@
 package nl.iptvplayer.app.player
 
+import nl.iptvplayer.app.i18n.S
+import nl.iptvplayer.app.i18n.appLocale
+import nl.iptvplayer.app.i18n.I18n
+import nl.iptvplayer.app.i18n.AppLanguage
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
@@ -108,7 +112,7 @@ fun PlayerControls(
     onControlsVisible: (Boolean) -> Unit,
     /** Naar de volgende aflevering; de activity slaat de huidige eerst als uitgekeken op. */
     onNextEpisode: () -> Unit,
-    /** Serie-intro: "Afleveringen en meer" opent de seriepagina. */
+    /** Serie-intro: S.episodesAndMore opent de seriepagina. */
     onMoreEpisodes: () -> Unit = {},
     isFavorite: Boolean = false,
     onToggleFavorite: () -> Unit = {},
@@ -247,9 +251,9 @@ fun PlayerControls(
 
                 // Linksboven: terug, 10 s terug, volgende aflevering.
                 Row(Modifier.padding(start = 48.dp, top = 36.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    RoundIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Terug", onClick = onExit)
-                    if (!isLive) RoundIconButton(Icons.Filled.Replay10, "10 seconden terug", onClick = { player.seekBack() })
-                    if (hasNext) RoundIconButton(Icons.Filled.SkipNext, "Volgende aflevering", onClick = onNextEpisode)
+                    RoundIconButton(Icons.AutoMirrored.Filled.ArrowBack, S.back, onClick = onExit)
+                    if (!isLive) RoundIconButton(Icons.Filled.Replay10, S.rewind10, onClick = { player.seekBack() })
+                    if (hasNext) RoundIconButton(Icons.Filled.SkipNext, S.nextEpisode, onClick = onNextEpisode)
                 }
 
                 // Rechtsboven: titel en aflevering.
@@ -301,8 +305,8 @@ fun PlayerControls(
                     Spacer(Modifier.height(20.dp))
                     Row(Modifier.align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Pill(trackSummary(tracks), checked = true, onClick = { panel = Panel.TRACKS })
-                        Pill("Andere…", onClick = { panel = Panel.TRACKS })
-                        RoundIconButton(Icons.Outlined.Settings, "Afspeelsnelheid", small = true, onClick = { panel = Panel.SPEED })
+                        Pill(S.otherTracks, onClick = { panel = Panel.TRACKS })
+                        RoundIconButton(Icons.Outlined.Settings, S.playbackSpeed, small = true, onClick = { panel = Panel.SPEED })
                     }
                 }
             }
@@ -381,15 +385,15 @@ private fun SeriesIntroOverlay(
             }
             intro.cast?.let {
                 Spacer(Modifier.height(8.dp))
-                Text("Cast: $it", style = MaterialTheme.typography.bodySmall, color = Palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(S.cast(it), style = MaterialTheme.typography.bodySmall, color = Palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Spacer(Modifier.height(26.dp))
             IntroButton(Icons.Filled.PlayArrow, intro.playLabel, onPlay, Modifier.focusRequester(playFocus))
-            IntroButton(Icons.Outlined.VideoLibrary, "Afleveringen en meer", onEpisodes)
-            IntroButton(Icons.Outlined.Subtitles, "Audio en ondertiteling", onTracks)
+            IntroButton(Icons.Outlined.VideoLibrary, S.episodesAndMore, onEpisodes)
+            IntroButton(Icons.Outlined.Subtitles, S.audioAndSubtitles, onTracks)
             IntroButton(
                 if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                if (isFavorite) "In favorieten" else "Toevoegen aan favorieten",
+                if (isFavorite) S.inFavorites else S.addToFavorites,
                 onFavorite,
             )
         }
@@ -479,7 +483,7 @@ private fun NextEpisodePrompt(
                     Icon(Icons.Filled.PlayArrow, null, Modifier.size(30.dp))
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Volgende aflevering", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(S.nextEpisode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         next.subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     }
                     Text(if (counting) "${seconds}s" else "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -487,7 +491,7 @@ private fun NextEpisodePrompt(
             }
         }
         Spacer(Modifier.height(10.dp))
-        Pill("Aftiteling kijken", onClick = onDismiss)
+        Pill(S.watchCredits, onClick = onDismiss)
     }
 }
 
@@ -531,7 +535,7 @@ private fun PlayPauseButton(isPlaying: Boolean, onClick: () -> Unit, modifier: M
     ) {
         Icon(
             if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            if (isPlaying) "Pauzeren" else "Afspelen",
+            if (isPlaying) S.pause else S.play,
             Modifier.align(Alignment.Center).size(34.dp),
         )
     }
@@ -603,11 +607,10 @@ private fun Pill(text: String, onClick: () -> Unit, checked: Boolean = false) {
 
 // ---------- Audio en ondertiteling ----------
 
-private val nl = Locale("nl", "NL")
 
 private fun label(format: Format, fallback: String): String {
     val language = format.language?.takeIf { it.isNotBlank() && it != "und" }
-        ?.let { Locale.forLanguageTag(it).getDisplayLanguage(nl).replaceFirstChar { c -> c.uppercase() } }
+        ?.let { Locale.forLanguageTag(it).getDisplayLanguage(appLocale).replaceFirstChar { c -> c.uppercase(appLocale) } }
     return listOfNotNull(language, format.label?.takeIf { it.isNotBlank() && it != language })
         .joinToString(" · ")
         .ifEmpty { fallback }
@@ -625,16 +628,16 @@ private fun options(tracks: Tracks, type: Int, prefix: String): List<TrackOption
 
 /** Bijvoorbeeld "Engels met ondertiteling" of "Nederlands". */
 private fun trackSummary(tracks: Tracks): String {
-    val audio = options(tracks, C.TRACK_TYPE_AUDIO, "Audio").firstOrNull { it.selected }?.label ?: "Standaard audio"
-    val sub = options(tracks, C.TRACK_TYPE_TEXT, "Ondertiteling").firstOrNull { it.selected }
-    return if (sub != null) "$audio met ondertiteling (${sub.label})" else audio
+    val audio = options(tracks, C.TRACK_TYPE_AUDIO, S.audio).firstOrNull { it.selected }?.label ?: S.defaultAudio
+    val sub = options(tracks, C.TRACK_TYPE_TEXT, S.subtitles).firstOrNull { it.selected }
+    return if (sub != null) S.withSubtitles(audio, sub.label) else audio
 }
 
 @OptIn(UnstableApi::class)
 @Composable
 private fun TracksPanel(player: ExoPlayer, tracks: Tracks, onClose: () -> Unit) {
-    val audio = options(tracks, C.TRACK_TYPE_AUDIO, "Audio")
-    val subs = options(tracks, C.TRACK_TYPE_TEXT, "Ondertiteling")
+    val audio = options(tracks, C.TRACK_TYPE_AUDIO, S.audio)
+    val subs = options(tracks, C.TRACK_TYPE_TEXT, S.subtitles)
     val subsOff = subs.none { it.selected }
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) { first.requestSafely() }
@@ -650,8 +653,8 @@ private fun TracksPanel(player: ExoPlayer, tracks: Tracks, onClose: () -> Unit) 
     SidePanel {
         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
             Column(Modifier.weight(1f)) {
-                PanelHeading("Audio")
-                if (audio.isEmpty()) PanelNote("Geen keuze beschikbaar.")
+                PanelHeading(S.audio)
+                if (audio.isEmpty()) PanelNote(S.noChoice)
                 LazyColumn {
                     items(audio.size) { i ->
                         val o = audio[i]
@@ -660,11 +663,11 @@ private fun TracksPanel(player: ExoPlayer, tracks: Tracks, onClose: () -> Unit) 
                 }
             }
             Column(Modifier.weight(1f)) {
-                PanelHeading("Ondertiteling")
+                PanelHeading(S.subtitles)
                 LazyColumn {
                     item {
                         PanelOption(
-                            "Uit", subsOff,
+                            S.off, subsOff,
                             onClick = {
                                 player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
                                     .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()
@@ -685,9 +688,9 @@ private fun SpeedPanel(current: Float, onSelect: (Float) -> Unit) {
     LaunchedEffect(Unit) { first.requestSafely() }
     SidePanel(width = 360) {
         Column {
-            PanelHeading("Afspeelsnelheid")
+            PanelHeading(S.playbackSpeed)
             listOf(0.75f, 1f, 1.25f, 1.5f).forEachIndexed { i, s ->
-                val label = if (s == 1f) "Normaal" else "${s}x".replace('.', ',')
+                val label = if (s == 1f) S.normalSpeed else "${s}x".let { if (I18n.language == AppLanguage.EN) it else it.replace('.', ',') }
                 PanelOption(label, current == s, onClick = { onSelect(s) }, modifier = if (i == 1) Modifier.focusRequester(first) else Modifier)
             }
         }

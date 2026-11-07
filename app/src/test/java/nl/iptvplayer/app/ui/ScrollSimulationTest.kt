@@ -95,6 +95,8 @@ class ScrollSimulationTest {
         org.robolectric.Shadows.shadowOf(rule.activity.packageManager)
             .setSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK, true)
         val vm = ViewModelProvider(rule.activity)[AppViewModel::class.java]
+        // Taalkeuze van de eerste start overslaan.
+        rule.runOnUiThread { vm.setAppLanguage(nl.iptvplayer.app.i18n.AppLanguage.NL) }
         rule.runOnUiThread { vm.login("demo", "demo", "demo") }
         runCatching { rule.waitUntil(20_000) {
                 org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()

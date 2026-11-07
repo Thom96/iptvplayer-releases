@@ -1,5 +1,7 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
+import nl.iptvplayer.app.i18n.appLocale
 import androidx.tv.material3.Border
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -56,9 +58,8 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-private val nl = Locale("nl", "NL")
-private val timeFmt = SimpleDateFormat("HH:mm", nl)
-private val dayFmt = SimpleDateFormat("EEE d MMM", nl)
+private val timeFmt = SimpleDateFormat("HH:mm", Locale.ROOT)
+private val dayFmt get() = SimpleDateFormat("EEE d MMM", appLocale)
 
 /** Dagnummer (lokale tijd) om programma's per dag te groeperen. */
 private fun dayKey(ms: Long): Int = Calendar.getInstance().run {
@@ -67,9 +68,9 @@ private fun dayKey(ms: Long): Int = Calendar.getInstance().run {
 }
 
 private fun dayLabel(ms: Long, now: Long): String = when (dayKey(ms)) {
-    dayKey(now) -> "Vandaag"
-    dayKey(now - 24 * 3_600_000L) -> "Gisteren"
-    else -> dayFmt.format(Date(ms)).replaceFirstChar { it.uppercase() }
+    dayKey(now) -> S.today
+    dayKey(now - 24 * 3_600_000L) -> S.yesterday
+    else -> dayFmt.format(Date(ms)).replaceFirstChar { it.uppercase(appLocale) }
 }
 
 /**
@@ -84,8 +85,8 @@ fun CatchupTab(vm: AppViewModel, library: Library) {
     }
     if (channels.isEmpty()) {
         CenteredMessage(
-            "Geen zenders met terugkijken",
-            "Je provider biedt (in de gekozen talen) geen zenders aan waarvan je programma's kunt terugkijken.",
+            S.noCatchup,
+            S.noCatchupHint,
         )
         return
     }
@@ -146,7 +147,7 @@ private fun ArchiveChannelRow(channel: MediaItem, selected: Boolean, onFocused: 
             Column(Modifier.weight(1f)) {
                 Text(channel.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    "${channel.archiveDays} ${if (channel.archiveDays == 1) "dag" else "dagen"} terug",
+                    S.daysBack(channel.archiveDays),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.alpha(0.7f),
                 )
@@ -167,7 +168,7 @@ private fun ArchiveProgrammes(vm: AppViewModel, channel: MediaItem, onPlay: (Cat
         Spacer(Modifier.height(12.dp))
 
         if (entries == null) {
-            Text("Archief laden…", color = Palette.textMuted)
+            Text(S.loadingArchive, color = Palette.textMuted)
             return
         }
         // Alleen wat al begonnen is, binnen de archiefperiode; per dag, nieuwste dag eerst.
@@ -175,7 +176,7 @@ private fun ArchiveProgrammes(vm: AppViewModel, channel: MediaItem, onPlay: (Cat
         // distinctBy: sommige gidsen bevatten dubbele programma's; dubbele keys laten de lijst crashen.
         val past = entries.filter { it.start in oldest until now }.distinctBy { it.start }
         if (past.isEmpty()) {
-            Text("Geen programma's in het archief van deze zender.", color = Palette.textMuted)
+            Text(S.noArchive, color = Palette.textMuted)
             return
         }
         val days = past.groupBy { dayKey(it.start) }.toSortedMap(compareByDescending { it })
@@ -232,7 +233,7 @@ private fun ProgrammeRow(entry: CatchupEntry, now: Long, onPlay: (CatchupEntry) 
             Column(Modifier.width(110.dp)) {
                 Text(timeFmt.format(Date(entry.start)), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "tot ${timeFmt.format(Date(entry.end))}",
+                    S.until(timeFmt.format(Date(entry.end))),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.alpha(0.7f),
                 )
@@ -241,7 +242,7 @@ private fun ProgrammeRow(entry: CatchupEntry, now: Long, onPlay: (CatchupEntry) 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (live) {
                         Text(
-                            "NU",
+                            S.now,
                             style = MaterialTheme.typography.labelSmall,
                             color = Palette.background,
                             modifier = Modifier.background(Palette.accent, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
@@ -257,7 +258,7 @@ private fun ProgrammeRow(entry: CatchupEntry, now: Long, onPlay: (CatchupEntry) 
             }
             if (playable) {
                 Spacer(Modifier.width(12.dp))
-                Icon(Icons.Filled.PlayArrow, "Terugkijken", Modifier.size(24.dp))
+                Icon(Icons.Filled.PlayArrow, S.tabCatchup, Modifier.size(24.dp))
             }
         }
     }

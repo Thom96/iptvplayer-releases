@@ -1,5 +1,6 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
 import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
@@ -65,15 +66,26 @@ import nl.iptvplayer.app.R
 import nl.iptvplayer.app.data.Kind
 
 /** Volgorde = volgorde in de zijbalk, van boven naar beneden; instellingen staan los onderaan. */
-enum class HomeTab(val label: String, val icon: ImageVector) {
-    SEARCH("Zoeken", Icons.Outlined.Search),
-    HOME("Home", Icons.Outlined.Home),
-    LIVE("Live TV", Icons.Outlined.LiveTv),
-    SERIES("Series", Icons.Outlined.VideoLibrary),
-    MOVIES("Films", Icons.Outlined.Movie),
-    FAVORITES("Favorieten", Icons.Outlined.FavoriteBorder),
-    CATCHUP("Terugkijken", Icons.Outlined.History),
-    SETTINGS("Instellingen", Icons.Outlined.Settings),
+enum class HomeTab(val icon: ImageVector) {
+    SEARCH(Icons.Outlined.Search),
+    HOME(Icons.Outlined.Home),
+    LIVE(Icons.Outlined.LiveTv),
+    SERIES(Icons.Outlined.VideoLibrary),
+    MOVIES(Icons.Outlined.Movie),
+    FAVORITES(Icons.Outlined.FavoriteBorder),
+    CATCHUP(Icons.Outlined.History),
+    SETTINGS(Icons.Outlined.Settings);
+
+    val label: String get() = when (this) {
+        SEARCH -> S.tabSearch
+        HOME -> S.tabHome
+        LIVE -> S.tabLive
+        SERIES -> S.tabSeries
+        MOVIES -> S.tabMovies
+        FAVORITES -> S.tabFavorites
+        CATCHUP -> S.tabCatchup
+        SETTINGS -> S.tabSettings
+    }
 }
 
 /** Breedte van de ingeklapte zijbalk; de inhoud begint hier rechts van. */

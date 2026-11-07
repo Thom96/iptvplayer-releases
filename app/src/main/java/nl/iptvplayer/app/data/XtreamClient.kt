@@ -1,5 +1,6 @@
 package nl.iptvplayer.app.data
 
+import nl.iptvplayer.app.i18n.S
 import android.util.JsonReader
 import android.util.JsonToken
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +32,7 @@ class XtreamClient(
     cacheRoot: File,
 ) {
     private val base: HttpUrl = ("${creds.server}/player_api.php".toHttpUrlOrNull()
-        ?: throw IOException("Ongeldige server-URL"))
+        ?: throw IOException(S.invalidServerUrl))
         .newBuilder()
         .addQueryParameter("username", creds.username)
         .addQueryParameter("password", creds.password)
@@ -52,13 +53,13 @@ class XtreamClient(
         val root = try {
             JSONObject(body)
         } catch (e: Exception) {
-            throw AuthException("Onverwacht antwoord van de server. Klopt de URL?")
+            throw AuthException(S.unexpectedResponse)
         }
         val user = root.optJSONObject("user_info")
-            ?: throw AuthException("Gebruikersnaam of wachtwoord onjuist.")
-        if (user.optInt("auth", 1) == 0) throw AuthException("Gebruikersnaam of wachtwoord onjuist.")
+            ?: throw AuthException(S.wrongCredentials)
+        if (user.optInt("auth", 1) == 0) throw AuthException(S.wrongCredentials)
         val status = user.optString("status", "Active")
-        if (!status.equals("Active", ignoreCase = true)) throw AuthException("Account is niet actief (status: $status).")
+        if (!status.equals("Active", ignoreCase = true)) throw AuthException(S.accountInactive(status))
 
         val formats = user.optJSONArray("allowed_output_formats")?.let { arr ->
             List(arr.length()) { arr.optString(it) }
@@ -94,14 +95,14 @@ class XtreamClient(
         if (demo) return@coroutineScope DemoData.library()
         cacheDir.mkdirs()
         if (forceDownload || !hasCache) {
-            onProgress("Lijsten downloaden…")
+            onProgress(S.downloadingLists)
             LIST_ACTIONS.map { action -> async(Dispatchers.IO) { download(action) } }.forEach { it.await() }
         }
         // Snelle weg: de al verwerkte lijsten uit index.bin, zolang die nieuwer is dan de JSON-bestanden.
         if (indexIsFresh()) {
             withContext(Dispatchers.IO) { runCatching { readIndex() }.getOrNull() }?.let { return@coroutineScope it }
         }
-        onProgress("Films en series indexeren…")
+        onProgress(S.indexing)
         val library = withContext(Dispatchers.Default) {
             val liveCats = async { parseCategories(file("get_live_categories")) }
             val vodCats = async { parseCategories(file("get_vod_categories")) }
@@ -202,8 +203,8 @@ class XtreamClient(
         val target = file(action)
         val tmp = File(cacheDir, "$action.tmp")
         http.newCall(request(url)).execute().use { resp ->
-            if (!resp.isSuccessful) throw IOException("Server gaf fout ${resp.code} bij $action")
-            val body = resp.body ?: throw IOException("Leeg antwoord bij $action")
+            if (!resp.isSuccessful) throw IOException(S.serverError(resp.code) + " ($action)")
+            val body = resp.body ?: throw IOException(S.emptyResponse + " ($action)")
             tmp.outputStream().use { out -> body.byteStream().copyTo(out) }
         }
         if (!tmp.renameTo(target)) {
@@ -338,7 +339,7 @@ class XtreamClient(
                     id = e.optString("id").toIntOrNull() ?: return@mapNotNull null,
                     season = e.optString("season").toIntOrNull() ?: 1,
                     number = e.optString("episode_num").toIntOrNull() ?: (i + 1),
-                    title = e.text("title") ?: "Aflevering ${i + 1}",
+                    title = e.text("title") ?: S.episodeName(i + 1),
                     ext = e.text("container_extension") ?: "mp4",
                     image = eInfo.text("movie_image", "cover_big"),
                     plot = eInfo.text("plot"),
@@ -347,7 +348,7 @@ class XtreamClient(
             }
         }
         val seasons = episodes.groupBy { it.season }.toSortedMap().map { (nr, eps) ->
-            Season(nr, seasonNames[nr] ?: "Seizoen $nr", eps.sortedBy { it.number })
+            Season(nr, seasonNames[nr] ?: S.seasonName(nr), eps.sortedBy { it.number })
         }
 
         SeriesInfo(
@@ -379,7 +380,7 @@ class XtreamClient(
             val end = (o.optString("stop_timestamp").ifEmpty { o.optString("end_timestamp") }).toLongOrNull()
                 ?: return@mapNotNull null
             EpgEntry(
-                title = decodeBase64(o.optString("title")).ifBlank { "Onbekend programma" },
+                title = decodeBase64(o.optString("title")).ifBlank { S.unknownProgram },
                 description = decodeBase64(o.optString("description")).takeIf { it.isNotBlank() },
                 start = start * 1000,
                 end = end * 1000,
@@ -406,7 +407,7 @@ class XtreamClient(
                 ?: return@mapNotNull null
             val serverStart = o.optString("start").takeIf { it.length >= 16 } ?: return@mapNotNull null
             CatchupEntry(
-                title = decodeBase64(o.optString("title")).ifBlank { "Onbekend programma" },
+                title = decodeBase64(o.optString("title")).ifBlank { S.unknownProgram },
                 description = decodeBase64(o.optString("description")).takeIf { it.isNotBlank() },
                 start = start * 1000,
                 end = end * 1000,
@@ -455,8 +456,8 @@ class XtreamClient(
     private fun getString(url: HttpUrl): String =
         http.newCall(request(url)).execute().use { resp ->
             // Sommige providers gebruiken eigen codes (511/513) voor een ongeldige login.
-            if (resp.code in AUTH_ERROR_CODES) throw AuthException("Gebruikersnaam of wachtwoord onjuist.")
-            if (!resp.isSuccessful) throw IOException("Server gaf fout ${resp.code}")
+            if (resp.code in AUTH_ERROR_CODES) throw AuthException(S.wrongCredentials)
+            if (!resp.isSuccessful) throw IOException(S.serverError(resp.code))
             resp.body?.string() ?: ""
         }
 
