@@ -40,7 +40,8 @@ fun LanguageScreen(vm: AppViewModel) {
             Spacer(Modifier.height(20.dp))
             Text(focused.strings.chooseLanguage, style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(8.dp))
-            Text(focused.strings.chooseLanguageHint, style = MaterialTheme.typography.bodyLarge, color = Palette.textMuted)
+            // Twee regels vrijhouden, zodat het logo niet verspringt als een vertaling langer is.
+            Text(focused.strings.chooseLanguageHint, style = MaterialTheme.typography.bodyLarge, color = Palette.textMuted, minLines = 2)
         }
         Spacer(Modifier.width(64.dp))
         LanguageList(
