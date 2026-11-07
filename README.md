@@ -36,7 +36,7 @@ Werkt `adb connect` niet (bijvoorbeeld op de Google TV Streamer)? Gebruik dan
 2. Sta Downloader toe apps te installeren: Instellingen → Apps → Beveiliging en beperkingen → Onbekende bronnen.
 3. Open Downloader, typ code **3370517** en kies **Go**.
 4. Kies **Installeren** (bij een waarschuwing van Play Protect: *Toch installeren*).
-5. Open **PopcornTime** en log in met je eigen IPTV-gegevens.
+5. Open **Gallo** en log in met je eigen IPTV-gegevens.
 
 De code wijst naar de nieuwste versie op GitHub
 (`https://github.com/Thom96/iptvplayer-releases/releases/latest/download/IPTVPlayer.apk`),

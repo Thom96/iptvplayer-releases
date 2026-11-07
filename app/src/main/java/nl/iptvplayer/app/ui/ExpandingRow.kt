@@ -257,7 +257,7 @@ private fun ExpandingCard(
             }
             Row(Modifier.align(Alignment.TopEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (isWatched) Icon(Icons.Filled.CheckCircle, null, Modifier.size(16.dp), tint = Palette.accent)
-                if (isFavorite) Icon(Icons.Filled.Favorite, null, Modifier.size(16.dp), tint = Color(0xFFFF5A6E))
+                if (isFavorite) Icon(Icons.Filled.Favorite, null, Modifier.size(16.dp), tint = Palette.favorite)
             }
         }
     }

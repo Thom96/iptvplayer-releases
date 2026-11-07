@@ -526,11 +526,11 @@ private fun ChannelRow(
             }
             if (isFavorite) {
                 Spacer(Modifier.width(8.dp))
-                Icon(Icons.Filled.Favorite, null, Modifier.size(14.dp), tint = Color(0xFFFF5A6E))
+                Icon(Icons.Filled.Favorite, null, Modifier.size(14.dp), tint = Palette.favorite)
             }
             if (isPlaying) {
                 Spacer(Modifier.width(8.dp))
-                Box(Modifier.size(8.dp).background(Color(0xFFFF4D4D), RoundedCornerShape(50)))
+                Box(Modifier.size(8.dp).background(Palette.live, RoundedCornerShape(50)))
             }
         }
     }

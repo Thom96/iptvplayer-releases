@@ -135,7 +135,7 @@ fun Modifier.tapToClick(onClick: () -> Unit, onLongClick: (() -> Unit)? = null):
 
 @Composable
 private fun focusBorder() = CardDefaults.border(
-    focusedBorder = Border(BorderStroke(3.dp, Color.White), shape = CardShape),
+    focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = CardShape),
 )
 
 /** Poster voor een film of serie (2:3). Lang indrukken = favoriet aan/uit. */
@@ -173,7 +173,7 @@ fun PosterCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     if (isWatched) Badge(Icons.Filled.CheckCircle, Palette.accent)
-                    if (isFavorite) Badge(Icons.Filled.Favorite, Color(0xFFFF5A6E))
+                    if (isFavorite) Badge(Icons.Filled.Favorite, Palette.favorite)
                 }
                 if (item.rating > 0) {
                     Row(
@@ -262,7 +262,7 @@ fun ChannelCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            if (isFavorite) Icon(Icons.Filled.Favorite, null, Modifier.size(16.dp), tint = Color(0xFFFF5A6E))
+            if (isFavorite) Icon(Icons.Filled.Favorite, null, Modifier.size(16.dp), tint = Palette.favorite)
         }
     }
 }

@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import nl.iptvplayer.app.AppState
@@ -58,13 +59,7 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
 
     Row(Modifier.fillMaxSize().padding(horizontal = 96.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painterResource(R.drawable.logo), contentDescription = null, modifier = Modifier.size(88.dp))
-                Spacer(Modifier.width(8.dp))
-                // Kleuren van het logo: "Popcorn" crème, "Time" geel.
-                Text("Popcorn", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Color(0xFFFFF3E0))
-                Text("Time", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Color(0xFFFFC93C))
-            }
+            GalloLogo(size = 72.sp)
             Spacer(Modifier.height(12.dp))
             Text(
                 "Log in met de gegevens van je IPTV-provider (Xtream Codes). " +

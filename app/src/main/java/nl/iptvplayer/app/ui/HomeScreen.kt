@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
@@ -201,12 +202,8 @@ private fun NavIconItem(icon: ImageVector, label: String, selected: Boolean, onS
     }
 }
 
-/** Logo linksboven, zoals bij Netflix: tv-icoon + "PopcornTime" in de kleuren van de banner. */
+/** Logo linksboven: het Gallo-woordmerk uit het brandbook. */
 @Composable
 private fun NavLogo() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Image(painterResource(R.drawable.logo), contentDescription = null, modifier = Modifier.size(40.dp))
-        Text("Popcorn", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFFFF3E0))
-        Text("Time", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFFFC93C))
-    }
+    GalloWordmark(size = 30.sp)
 }
