@@ -70,6 +70,8 @@ object Fr : Strings() {
     override val emptyResponse = "Réponse vide du serveur"
     override fun seasonName(n: Int) = "Saison $n"
     override fun episodeName(n: Int) = "Épisode $n"
+    override fun seasonEpisode(season: Int, episode: Int) = "S$season É$episode"
+    override fun episodeShort(n: Int) = "É$n"
     override val unknownProgram = "Programme inconnu"
     override fun playbackFailed(reason: String) = "Échec de la lecture : $reason"
 

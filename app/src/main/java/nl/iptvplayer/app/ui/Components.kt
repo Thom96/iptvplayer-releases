@@ -83,7 +83,7 @@ import coil.compose.AsyncImage
 import nl.iptvplayer.app.data.MediaItem
 import nl.iptvplayer.app.data.Progress
 
-private val CardShape = RoundedCornerShape(10.dp)
+internal val CardShape = RoundedCornerShape(10.dp)
 private val SELECT_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)
 private const val LONG_PRESS_MS = 600L
 
@@ -137,7 +137,7 @@ fun Modifier.tapToClick(onClick: () -> Unit, onLongClick: (() -> Unit)? = null):
 }
 
 @Composable
-private fun focusBorder() = CardDefaults.border(
+internal fun focusBorder() = CardDefaults.border(
     focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = CardShape),
 )
 
@@ -183,13 +183,13 @@ fun PosterCard(
                         Modifier
                             .align(Alignment.BottomStart)
                             .padding(6.dp)
-                            .background(Color(0xCC000000), RoundedCornerShape(6.dp))
+                            .background(Palette.badge, RoundedCornerShape(6.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(Icons.Filled.Star, null, Modifier.size(12.dp), tint = Palette.gold)
                         Spacer(Modifier.width(3.dp))
-                        Text("%.1f".format(item.rating), fontSize = 11.sp, color = Color.White)
+                        Text("%.1f".format(item.rating), fontSize = 11.sp, color = Palette.text)
                     }
                 }
             }
@@ -211,7 +211,7 @@ fun PosterCard(
 @Composable
 private fun Badge(icon: ImageVector, tint: Color) {
     Box(
-        Modifier.background(Color(0xCC000000), RoundedCornerShape(50)).padding(4.dp),
+        Modifier.background(Palette.badge, RoundedCornerShape(50)).padding(4.dp),
     ) {
         Icon(icon, null, Modifier.size(14.dp), tint = tint)
     }

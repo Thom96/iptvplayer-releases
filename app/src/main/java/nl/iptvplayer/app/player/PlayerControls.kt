@@ -263,10 +263,10 @@ fun PlayerControls(
         AnimatedVisibility(visible, enter = fadeIn(), exit = fadeOut()) {
             Box(Modifier.fillMaxSize()) {
                 // Donkere verlopen boven en onder, zodat knoppen en tekst leesbaar blijven.
-                Box(Modifier.fillMaxWidth().height(200.dp).background(Brush.verticalGradient(listOf(Color(0xCC000000), Color.Transparent))))
+                Box(Modifier.fillMaxWidth().height(200.dp).background(Brush.verticalGradient(listOf(Palette.scrim, Color.Transparent))))
                 Box(
                     Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(320.dp)
-                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xE6000000)))),
+                        .background(Brush.verticalGradient(listOf(Color.Transparent, Palette.scrim))),
                 )
 
                 // Linksboven: terug, 10 s terug, volgende aflevering.
@@ -281,7 +281,7 @@ fun PlayerControls(
                     Modifier.align(Alignment.TopEnd).padding(end = 56.dp, top = 40.dp).widthIn(max = 640.dp),
                     horizontalAlignment = Alignment.End,
                 ) {
-                    Text(item?.title.orEmpty(), style = MaterialTheme.typography.headlineSmall, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(item?.title.orEmpty(), style = MaterialTheme.typography.headlineSmall, color = Palette.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     item?.subtitle?.let {
                         Text(it, style = MaterialTheme.typography.titleMedium, color = Palette.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
@@ -297,11 +297,11 @@ fun PlayerControls(
                                 "LIVE",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                color = Palette.text,
                                 modifier = Modifier.background(Palette.live, RoundedCornerShape(6.dp)).padding(horizontal = 12.dp, vertical = 4.dp),
                             )
                         } else {
-                            Text(formatTime(position), style = MaterialTheme.typography.titleMedium, color = Color.White, modifier = Modifier.width(96.dp))
+                            Text(formatTime(position), style = MaterialTheme.typography.titleMedium, color = Palette.text, modifier = Modifier.width(96.dp))
                             SeekBar(
                                 position = position,
                                 buffered = buffered,
@@ -315,7 +315,7 @@ fun PlayerControls(
                             Text(
                                 formatTime((duration - position).coerceAtLeast(0)),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color.White,
+                                color = Palette.text,
                                 textAlign = TextAlign.End,
                                 modifier = Modifier.width(96.dp),
                             )
@@ -400,7 +400,7 @@ private fun SeriesIntroOverlay(
             Text(intro.meta, style = MaterialTheme.typography.titleSmall, color = Palette.textMuted)
             intro.plot?.let {
                 Spacer(Modifier.height(14.dp))
-                Text(it, style = MaterialTheme.typography.bodyLarge, color = Color.White, maxLines = 4, overflow = TextOverflow.Ellipsis)
+                Text(it, style = MaterialTheme.typography.bodyLarge, color = Palette.text, maxLines = 4, overflow = TextOverflow.Ellipsis)
             }
             intro.cast?.let {
                 Spacer(Modifier.height(8.dp))
@@ -427,9 +427,12 @@ private fun IntroButton(icon: ImageVector, text: String, onClick: () -> Unit, mo
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
-            contentColor = Color.White,
+            contentColor = Palette.text,
             focusedContainerColor = Palette.text,
             focusedContentColor = Palette.background,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = androidx.tv.material3.Border(BorderStroke(3.dp, Palette.accent), shape = RoundedCornerShape(50)),
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
     ) {
@@ -524,9 +527,12 @@ private fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Uni
         shape = ClickableSurfaceDefaults.shape(CircleShape),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
-            contentColor = Color.White,
+            contentColor = Palette.text,
             focusedContainerColor = Palette.text,
             focusedContentColor = Palette.background,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = androidx.tv.material3.Border(BorderStroke(3.dp, Palette.accent), shape = CircleShape),
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.08f),
     ) {
@@ -547,10 +553,13 @@ private fun PlayPauseButton(isPlaying: Boolean, onClick: () -> Unit, modifier: M
         modifier = modifier.size(56.dp).tapToClick(onClick),
         shape = ClickableSurfaceDefaults.shape(CircleShape),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Color(0x33FFFFFF),
-            contentColor = Color.White,
+            containerColor = Palette.glass,
+            contentColor = Palette.text,
             focusedContainerColor = Palette.text,
             focusedContentColor = Palette.background,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = androidx.tv.material3.Border(BorderStroke(3.dp, Palette.accent), shape = CircleShape),
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.1f),
     ) {
@@ -577,9 +586,9 @@ private fun SeekBar(position: Long, buffered: Long, duration: Long, onSeek: (Lon
     val bufferedFraction = if (duration > 0) (buffered.toFloat() / duration).coerceIn(fraction, 1f) else 0f
     val barHeight by animateDpAsState(if (focused) 8.dp else 4.dp, label = "barHeight")
     val thumbRadius by animateDpAsState(if (focused) 12.dp else 7.dp, label = "thumbRadius")
-    val thumbColor by animateColorAsState(if (focused) Palette.accent else Color.White, label = "thumbColor")
+    val thumbColor by animateColorAsState(if (focused) Palette.accent else Palette.text, label = "thumbColor")
     val textMeasurer = rememberTextMeasurer()
-    val labelStyle = MaterialTheme.typography.labelLarge.copy(color = Color.White, fontWeight = FontWeight.SemiBold)
+    val labelStyle = MaterialTheme.typography.labelLarge.copy(color = Palette.text, fontWeight = FontWeight.SemiBold)
     Canvas(
         modifier
             .height(40.dp)
@@ -605,11 +614,11 @@ private fun SeekBar(position: Long, buffered: Long, duration: Long, onSeek: (Lon
             if (to <= 0f) return
             drawRoundRect(color, topLeft = Offset(left, cy - h / 2), size = Size(width * to, h), cornerRadius = corner)
         }
-        bar(1f, Color(0x40FFFFFF))
-        bar(bufferedFraction, Color(0x66FFFFFF))
+        bar(1f, Palette.track)
+        bar(bufferedFraction, Palette.trackBuffered)
         bar(fraction, Palette.accent)
         val cx = left + width * fraction
-        if (focused) drawCircle(Color.White, radius = r + 2.dp.toPx(), center = Offset(cx, cy))
+        if (focused) drawCircle(Palette.text, radius = r + 2.dp.toPx(), center = Offset(cx, cy))
         drawCircle(thumbColor, radius = r, center = Offset(cx, cy))
 
         // Tijd onder de bol tijdens het spoelen. Valt bewust buiten de Canvas (niet afgeknipt);
@@ -622,7 +631,7 @@ private fun SeekBar(position: Long, buffered: Long, duration: Long, onSeek: (Lon
             val bh = text.size.height + 2 * padY
             val x = (cx - w / 2).coerceIn(0f, (size.width - w).coerceAtLeast(0f))
             val y = cy + r + 8.dp.toPx()
-            drawRoundRect(Color(0xCC000000), topLeft = Offset(x, y), size = Size(w, bh), cornerRadius = CornerRadius(bh / 2, bh / 2))
+            drawRoundRect(Palette.badge, topLeft = Offset(x, y), size = Size(w, bh), cornerRadius = CornerRadius(bh / 2, bh / 2))
             drawText(text, topLeft = Offset(x + padX, y + padY))
         }
     }
@@ -645,10 +654,13 @@ private fun Pill(text: String, onClick: () -> Unit, checked: Boolean = false) {
         modifier = Modifier.tapToClick(onClick),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Color(0x33FFFFFF),
-            contentColor = Color.White,
+            containerColor = Palette.glass,
+            contentColor = Palette.text,
             focusedContainerColor = Palette.text,
             focusedContentColor = Palette.background,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = androidx.tv.material3.Border(BorderStroke(3.dp, Palette.accent), shape = RoundedCornerShape(50)),
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.04f),
     ) {
@@ -756,7 +768,7 @@ private fun SpeedPanel(current: Float, onSelect: (Float) -> Unit) {
 
 @Composable
 private fun SidePanel(width: Int = 720, content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().background(Color(0x99000000)), contentAlignment = Alignment.CenterEnd) {
+    Box(Modifier.fillMaxSize().background(Palette.scrimLight), contentAlignment = Alignment.CenterEnd) {
         Box(
             Modifier
                 .fillMaxHeight()
@@ -769,7 +781,7 @@ private fun SidePanel(width: Int = 720, content: @Composable () -> Unit) {
 
 @Composable
 private fun PanelHeading(text: String) {
-    Text(text, style = MaterialTheme.typography.headlineSmall, color = Color.White, modifier = Modifier.padding(bottom = 16.dp))
+    Text(text, style = MaterialTheme.typography.headlineSmall, color = Palette.text, modifier = Modifier.padding(bottom = 16.dp))
 }
 
 @Composable
@@ -785,9 +797,12 @@ private fun PanelOption(text: String, selected: Boolean, onClick: () -> Unit, mo
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
-            contentColor = if (selected) Color.White else Palette.textMuted,
+            contentColor = if (selected) Palette.text else Palette.textMuted,
             focusedContainerColor = Palette.text,
             focusedContentColor = Palette.background,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = androidx.tv.material3.Border(BorderStroke(3.dp, Palette.accent), shape = RoundedCornerShape(10.dp)),
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
     ) {

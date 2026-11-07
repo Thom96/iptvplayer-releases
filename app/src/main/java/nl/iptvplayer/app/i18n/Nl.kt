@@ -70,6 +70,8 @@ object Nl : Strings() {
     override val emptyResponse = "Leeg antwoord van de server"
     override fun seasonName(n: Int) = "Seizoen $n"
     override fun episodeName(n: Int) = "Aflevering $n"
+    override fun seasonEpisode(season: Int, episode: Int) = "S$season E$episode"
+    override fun episodeShort(n: Int) = "E$n"
     override val unknownProgram = "Onbekend programma"
     override fun playbackFailed(reason: String) = "Afspelen mislukt: $reason"
 
