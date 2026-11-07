@@ -6,6 +6,8 @@ Android TV-app (Kotlin, Jetpack Compose for TV) voor een Xtream Codes IPTV-abonn
 
 ## Afspraken met de eigenaar
 
+- **Eerst ideeën, dan bouwen.** Kom bij een nieuw verzoek altijd eerst zelf met een paar ideeën of varianten
+  (kort, met schets of schermafbeelding waar dat helpt) en laat de eigenaar kiezen voordat je iets doorvoert.
 - **Akkoord = naar main.** Als de eigenaar akkoord geeft op een update of wijziging, zet je die zonder verder
   te vragen op `main`: open een pull request van je werkbranch naar `main` en voeg hem samen (merge commit) via de
   GitHub-koppeling. Een apart akkoord voor de pull request of het samenvoegen is niet nodig. Rechtstreeks naar
@@ -31,6 +33,8 @@ een release online. De knop "Controleren op updates" in de app leest `version.js
 - `bash ./gradlew assembleDebug testDebugUnitTest` (de omgeving "iptvplayer-releases" installeert de Android SDK
   via het setup-script; `local.properties` wijst naar `/opt/android-sdk`). Build-uitvoer staat in
   `/tmp/IPTVPlayer-build`.
+- Geeft Maven Central "429 Too Many Requests", voeg dan `--init-script tools/maven-spiegel.gradle` toe aan het
+  gradlew-commando: dan komt alles van Google's kopie van Maven Central.
 - Demomodus: inloggen met server `demo` geeft een nepbibliotheek, handig voor schermafbeeldingen.
 - Doelscherm: 1920×1080 bij dichtheid 2, dus 960×540 dp. Alles moet daarbinnen passen.
 

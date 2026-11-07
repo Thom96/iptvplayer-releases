@@ -2,6 +2,7 @@ package nl.iptvplayer.app.ui
 
 import nl.iptvplayer.app.i18n.S
 import androidx.compose.foundation.Image
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -106,8 +107,23 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
 }
 
 @Composable
-fun LoadingScreen(message: String) {
-    CenteredMessage(message, S.firstLoadHint)
+fun LoadingScreen(message: String, progress: Float = 0f) {
+    Column(
+        Modifier.fillMaxSize().padding(48.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        LaadHaan(progress)
+        Spacer(Modifier.height(16.dp))
+        Text(message, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(10.dp))
+        Text(
+            S.firstLoadHint,
+            style = MaterialTheme.typography.bodyLarge,
+            color = Palette.textMuted,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
 @Composable

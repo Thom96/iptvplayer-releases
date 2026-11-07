@@ -43,7 +43,8 @@ import java.net.UnknownHostException
 
 sealed interface AppState {
     data class Login(val error: String? = null, val busy: Boolean = false) : AppState
-    data class Loading(val message: String) : AppState
+    /** [progress]: deel van de laadstappen dat klaar is (0..1); stuurt de haan op het laadscherm. */
+    data class Loading(val message: String, val progress: Float = 0f) : AppState
     data class Failed(val message: String) : AppState
     data object Ready : AppState
 }
@@ -300,7 +301,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun loadLibrary(c: XtreamClient, forceDownload: Boolean) {
         state = AppState.Loading(S.loading)
-        setLibrary(c.loadLibrary(forceDownload) { msg -> state = AppState.Loading(msg) })
+        setLibrary(
+            c.loadLibrary(forceDownload) { msg, fraction ->
+                // Vanaf achtergronddraden; de voortgang loopt alleen op, ook als stappen gelijktijdig klaar zijn.
+                synchronized(this) {
+                    val shown = (state as? AppState.Loading)?.progress ?: 0f
+                    state = AppState.Loading(msg, maxOf(shown, fraction))
+                }
+            },
+        )
         state = AppState.Ready
     }
 
