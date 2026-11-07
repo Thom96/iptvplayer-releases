@@ -70,6 +70,8 @@ object De : Strings() {
     override val emptyResponse = "Leere Antwort vom Server"
     override fun seasonName(n: Int) = "Staffel $n"
     override fun episodeName(n: Int) = "Folge $n"
+    override fun seasonEpisode(season: Int, episode: Int) = "S$season F$episode"
+    override fun episodeShort(n: Int) = "F$n"
     override val unknownProgram = "Unbekannte Sendung"
     override fun playbackFailed(reason: String) = "Wiedergabe fehlgeschlagen: $reason"
 

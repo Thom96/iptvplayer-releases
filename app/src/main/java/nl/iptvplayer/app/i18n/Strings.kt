@@ -116,6 +116,10 @@ abstract class Strings {
     abstract val emptyResponse: String
     abstract fun seasonName(n: Int): String
     abstract fun episodeName(n: Int): String
+    /** Kort: "S2 E4". */
+    abstract fun seasonEpisode(season: Int, episode: Int): String
+    /** Label op een afleveringskaart: "E4". */
+    abstract fun episodeShort(n: Int): String
     abstract val unknownProgram: String
     abstract fun playbackFailed(reason: String): String
 

@@ -234,13 +234,13 @@ private fun ExpandingCard(
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to Color(0xCC000000))),
+                        .background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to Palette.scrim)),
                 )
                 Text(
                     item.title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = Palette.text,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier

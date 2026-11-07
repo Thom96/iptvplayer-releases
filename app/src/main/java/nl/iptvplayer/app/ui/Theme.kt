@@ -48,6 +48,15 @@ object Palette {
     val comb = live
     val online = Color(0xFF8FD1A6) // gezien / verbonden
     val favorite = Color(0xFFE8907A)
+
+    // Over video en afbeeldingen: donker petrol in plaats van zwart, zilverwitte tekst erop.
+    val video = Color(0xFF000000) // achter het beeld zelf (zwarte balken blijven zwart)
+    val scrim = Color(0xE607131A) // verloop onder tekst over beeld
+    val scrimLight = Color(0x9907131A) // achter een zijpaneel
+    val badge = Color(0xCC07131A) // klein label op een poster of in de tijdbalk
+    val glass = Color(0x33EDF3F2) // knop over beeld zonder focus
+    val track = Color(0x40EDF3F2) // achtergrond van een tijdbalk
+    val trackBuffered = Color(0x66EDF3F2) // al geladen deel
 }
 
 val Outfit = FontFamily(

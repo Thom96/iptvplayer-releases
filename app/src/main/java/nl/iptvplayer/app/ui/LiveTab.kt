@@ -405,7 +405,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                     Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f)
-                        .background(Color.Black, RoundedCornerShape(12.dp))
+                        .background(Palette.video, RoundedCornerShape(12.dp))
                         .onGloballyPositioned { c -> rootCoords?.let { previewRect = it.localBoundingBoxOf(c) } },
                 )
                 val info = focused ?: playing
@@ -427,7 +427,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         }
         Box(
             layer
-                .background(Color.Black)
+                .background(Palette.video)
                 .pointerInput(Unit) {
                     detectTapGestures(onTap = {
                         if (vm.liveFullscreen) infoTick++ else currentPlaying?.let(::enterFullscreen)
@@ -544,7 +544,7 @@ private fun ChannelRow(
 
 @Composable
 private fun ThinProgress(fraction: Float) {
-    Box(Modifier.fillMaxWidth().height(3.dp).background(Color(0x33FFFFFF), RoundedCornerShape(2.dp))) {
+    Box(Modifier.fillMaxWidth().height(3.dp).background(Palette.track, RoundedCornerShape(2.dp))) {
         Box(Modifier.fillMaxWidth(fraction).height(3.dp).background(Palette.accent, RoundedCornerShape(2.dp)))
     }
 }
@@ -608,24 +608,24 @@ private fun FullscreenInfo(channel: MediaItem, epg: List<EpgEntry>, now: Long, i
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xE6000000))))
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Palette.scrim)))
                 .padding(start = 56.dp, end = 56.dp, top = 64.dp, bottom = 40.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 (if (channel.num > 0) channel.num else index + 1).toString(),
                 style = MaterialTheme.typography.displaySmall,
-                color = Color.White.copy(alpha = 0.7f),
+                color = Palette.textSoft,
             )
             Spacer(Modifier.width(28.dp))
             Column(Modifier.weight(1f)) {
-                Text(channel.title, style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                Text(channel.title, style = MaterialTheme.typography.headlineSmall, color = Palette.text)
                 if (current != null) {
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "${current.title}  ·  ${hhmm(current.start)} – ${hhmm(current.end)}",
                         style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
+                        color = Palette.text,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -634,10 +634,10 @@ private fun FullscreenInfo(channel: MediaItem, epg: List<EpgEntry>, now: Long, i
                 }
                 if (next != null) {
                     Spacer(Modifier.height(8.dp))
-                    Text(S.laterAt(hhmm(next.start), next.title), style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
+                    Text(S.laterAt(hhmm(next.start), next.title), style = MaterialTheme.typography.bodyMedium, color = Palette.textSoft)
                 }
             }
-            Text(S.zapHint, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
+            Text(S.zapHint, style = MaterialTheme.typography.labelMedium, color = Palette.textMuted)
         }
     }
 }
