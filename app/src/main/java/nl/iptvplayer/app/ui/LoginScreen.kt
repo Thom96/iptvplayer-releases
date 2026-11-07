@@ -114,11 +114,12 @@ fun LoadingScreen(message: String) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Kraaiende haan; de GIF is gemaakt met tools/haan_gif.py en kan door elke andere GIF vervangen worden.
+        // Haan die korrels oppikt en zo een laadbalk vult (herhalend filmpje, geen echte voortgang).
+        // Gemaakt met tools/haan_gif.py; kan door elke andere GIF vervangen worden.
         AsyncImage(
             model = R.raw.haan_laden,
             contentDescription = null,
-            modifier = Modifier.size(160.dp),
+            modifier = Modifier.size(width = 320.dp, height = 100.dp),
         )
         Spacer(Modifier.height(16.dp))
         Text(message, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)

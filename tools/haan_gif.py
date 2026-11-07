@@ -1,6 +1,6 @@
-"""Tekent de laadanimatie van Gallo: een haan die wiebelt, knippert en kraait.
+"""Tekent de laadanimatie van Gallo: een haan die korrels oppikt en zo een laadbalk vult, en kraait als hij klaar is.
 
-Uitvoer: app/src/main/res/raw/haan_laden.gif (320 x 320 px = 160 dp op het tv-scherm).
+Uitvoer: app/src/main/res/raw/haan_laden.gif (640 x 200 px = 320 x 100 dp op het tv-scherm).
 Opnieuw maken: python3 tools/haan_gif.py  (vereist Pillow)
 """
 import math
@@ -9,8 +9,7 @@ from PIL import Image, ImageDraw
 
 W = 320          # eindmaat in pixels
 S = 4            # supersampling voor zachte randen
-FRAMES = 36
-MS = 70          # per beeld; 36 x 70 ms = 2,5 s per lus
+MS = 70          # per beeld; 94 beelden = ruim 6,5 s per lus
 
 BG = (12, 28, 36)            # tussen Palette.background en backgroundTop, voor de randen
 CHAMPAGNE = (232, 204, 148)
@@ -95,65 +94,108 @@ def head_layer(beak_open, blink):
     return layer
 
 
-def frame(i):
-    t = i / FRAMES
-    crow = smooth(0.30, 0.42, t) * (1 - smooth(0.80, 0.92, t))
-    beak = smooth(0.42, 0.48, t) * (1 - smooth(0.76, 0.82, t))
-    beak *= 0.8 + 0.2 * math.sin(t * math.tau * 9)
-    bob = 3 * math.sin(t * math.tau * 2) * (1 - crow)
-    puff = -6 * crow
-    blink = 0.12 <= t < 0.16 or 0.95 <= t
-    flap = -28 * crow * (0.5 + 0.5 * math.sin(t * math.tau * 6))
+TRACK = (26, 46, 56)
 
-    img = Image.new("RGB", (W * S, W * S), BG)
+
+def rooster(head=0.0, beak=0.0, blink=False, flap=0.0, legs=(0.0, 0.0), tilt=0.0, bob=0.0):
+    """Haan op transparante laag (W*S), gekanteld rond de voeten."""
+    img = Image.new("RGBA", (W * S, W * S), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    ell(d, 160, 284, 86 - crow * 6, 10, SHADOW)
-    # Poten
-    for x in (148, 176):
-        d.line([p(x, 236), p(x, 278)], fill=BEAK_DARK, width=7 * S)
-        d.line([p(x, 278), p(x + 16, 280)], fill=BEAK_DARK, width=6 * S)
-        d.line([p(x, 278), p(x - 10, 281)], fill=BEAK_DARK, width=6 * S)
-
-    body = Image.new("RGBA", (W * S, W * S), (0, 0, 0, 0))
+    for x, a in zip((148, 176), legs):
+        r = math.radians(a)
+        fx, fy = x + 42 * math.sin(r), 236 + 42 * math.cos(r)
+        d.line([p(x, 236), p(fx, fy)], fill=BEAK_DARK, width=7 * S)
+        d.line([p(fx, fy), p(fx + 16, fy + 2)], fill=BEAK_DARK, width=6 * S)
+        d.line([p(fx, fy), p(fx - 10, fy + 3)], fill=BEAK_DARK, width=6 * S)
+    body = Image.new("RGBA", img.size, (0, 0, 0, 0))
     bd = ImageDraw.Draw(body)
     body.alpha_composite(tail())
     ell(bd, 160, 200, 62, 46, CHAMPAGNE)
-    ell(bd, 190, 188, 36, 40, CHAMPAGNE)  # borst
-    body.alpha_composite(head_layer(beak, blink) if crow == 0 else
-                         rotate_layer(head_layer(beak, blink), 28 * crow, 184, 168))
+    ell(bd, 190, 188, 36, 40, CHAMPAGNE)
+    body.alpha_composite(rotate_layer(head_layer(beak, blink), head, 184, 168))
     body.alpha_composite(wing_layer(flap))
-    body = body.transform(body.size, Image.AFFINE, (1, 0, 0, 0, 1, -(bob + puff) * S), resample=Image.BICUBIC)
-    img.paste(body, (0, 0), body)
+    body = body.transform(body.size, Image.AFFINE, (1, 0, 0, 0, 1, -bob * S), resample=Image.BICUBIC)
+    img.alpha_composite(body)
+    if tilt:
+        img = img.rotate(tilt, resample=Image.BICUBIC, center=p(160, 280))
+    return img
 
-    # Kraaigolven vanuit de snavel
-    if beak > 0.05:
+
+def place(canvas, layer, x, y, scale):
+    """Zet de haan met zijn voeten-midden (160,280) op (x,y) in het canvas (beide supersampled)."""
+    size = int(W * S * scale)
+    small = layer.resize((size, size), Image.LANCZOS)
+    canvas.alpha_composite(small, (int(x * S - 160 * S * scale), int(y * S - 280 * S * scale)))
+
+
+def save(frames, path, ms):
+    """Eén gedeeld palet voor alle beelden, met de achtergrondkleur als doorzichtige index."""
+    w, hgt = frames[0].size
+    sheet = Image.new("RGB", (w, hgt * len(frames)))
+    for i, f in enumerate(frames):
+        sheet.paste(f, (0, i * hgt))
+    pal = sheet.quantize(colors=255, method=Image.MEDIANCUT, dither=Image.NONE)
+    q = [f.quantize(palette=pal, dither=Image.NONE) for f in frames]
+    q[0].save(path, save_all=True, append_images=q[1:], duration=ms, loop=0,
+              transparency=q[0].getpixel((0, 0)), disposal=2)
+
+
+def bar(d, x0, x1, y, frac):
+    d.rounded_rectangle([p(x0, y - 4), p(x1, y + 4)], radius=4 * S, fill=TRACK)
+    if frac > 0:
+        d.rounded_rectangle([p(x0, y - 4), p(x0 + (x1 - x0) * frac, y + 4)], radius=4 * S, fill=CHAMPAGNE)
+
+
+CW, CH, SC = 640, 200, 0.5
+GROUND, BAR_Y = 168, 186
+GRAINS = [160 + i * 46 for i in range(10)]  # 160 .. 574
+BEAK_DX = (278 - 160) * SC  # snavelpunt bij het pikken, t.o.v. de voeten
+
+
+def pik_frames():
+    frames = []
+    per = 8
+    for k, gx in enumerate(GRAINS):
+        start = (GRAINS[k - 1] if k else 120) - BEAK_DX
+        end = gx - BEAK_DX
+        for j in range(per):
+            img = Image.new("RGBA", (CW * S, CH * S), BG + (255,))
+            d = ImageDraw.Draw(img)
+            if j < 4:  # lopen
+                t = (j + 1) / 4
+                x = start + (end - start) * t
+                legs = (22 * math.sin(t * math.pi * 2), -22 * math.sin(t * math.pi * 2))
+                pose = dict(legs=legs, bob=2 * abs(math.sin(t * math.pi * 2)))
+                eaten = k
+            else:  # pikken
+                x = end
+                t = (j - 4) / 3
+                down = math.sin(t * math.pi)
+                pose = dict(head=-68 * down, tilt=-14 * down)
+                eaten = k + (1 if j >= 6 else 0)
+            bar(d, 40, 600, BAR_Y, (GRAINS[eaten - 1] - 40) / 560 if eaten else 0)
+            for g in GRAINS[eaten:]:
+                ell(d, g, GROUND + 6, 5, 4, CHAMP_DARK)
+            ell(d, x, GROUND + 9, 40, 4, SHADOW + (255,))
+            place(img, rooster(**pose), x, GROUND + 8, SC)
+            frames.append(img.convert("RGB").resize((CW, CH), Image.LANCZOS))
+    # klaar: kraaien
+    for j in range(14):
+        img = Image.new("RGBA", (CW * S, CH * S), BG + (255,))
         d = ImageDraw.Draw(img)
-        th = math.radians(28 * crow)
-        rx, ry = 262 - 184, 104 - 168  # snavelpunt t.o.v. het halsscharnier
-        bx = 184 + rx * math.cos(th) + ry * math.sin(th)
-        by = 168 - rx * math.sin(th) + ry * math.cos(th) + bob + puff
-        for k in range(3):
-            phase = (t * 4 + k / 3) % 1
-            r = 8 + phase * 40
-            a = int(255 * (1 - phase) * beak)
-            col = tuple(int(BG[c] + (SILVER[c] - BG[c]) * a / 255) for c in range(3))
-            d.arc([p(bx - r, by - r), p(bx + r, by + r)], start=-55, end=15, fill=col, width=4 * S)
-    return img.resize((W, W), Image.LANCZOS)
+        bar(d, 40, 600, BAR_Y, 1)
+        c = math.sin(min(1, j / 4) * math.pi / 2) * (1 - smooth(10, 13, j))
+        x = GRAINS[-1] - BEAK_DX
+        ell(d, x, GROUND + 9, 40, 4, SHADOW + (255,))
+        place(img, rooster(head=28 * c, beak=c * (0.8 + 0.2 * math.sin(j)), flap=-25 * c * abs(math.sin(j))), x, GROUND + 8, SC)
+        frames.append(img.convert("RGB").resize((CW, CH), Image.LANCZOS))
+    return frames
 
 
 def main():
-    frames = [frame(i) for i in range(FRAMES)]
-    # Eén gedeeld palet, met de achtergrondkleur als doorzichtige index.
-    sheet = Image.new("RGB", (W, W * FRAMES))
-    for i, f in enumerate(frames):
-        sheet.paste(f, (0, i * W))
-    pal = sheet.quantize(colors=255, method=Image.MEDIANCUT, dither=Image.NONE)
-    quant = [f.quantize(palette=pal, dither=Image.NONE) for f in frames]
-    bg_index = quant[0].getpixel((0, 0))
     out = Path(__file__).resolve().parent.parent / "app/src/main/res/raw/haan_laden.gif"
     out.parent.mkdir(parents=True, exist_ok=True)
-    quant[0].save(out, save_all=True, append_images=quant[1:], duration=MS, loop=0,
-                  transparency=bg_index, disposal=2, optimize=False)
+    save(pik_frames(), out, MS)
     print(out, out.stat().st_size, "bytes")
 
 
