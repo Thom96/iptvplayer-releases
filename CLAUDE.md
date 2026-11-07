@@ -50,3 +50,21 @@ Brandbook en schermontwerpen staan in het Claude-artifact "Gallo — ontwerp". K
 (`Palette`): petrol-ondergrond, zilverwitte tekst, champagne `#E8CC94` voor focus, voortgang en sterren, en
 hanenkamrood `#BC3E2E` alleen voor LIVE en de kam in het logo. Koppen in Young Serif, tekst in Outfit. Focus is
 overal een champagne rand van 3 dp.
+
+## Branches hernoemen na samenvoegen
+
+Zodra een werkbranch is samengevoegd met `main`, hernoem je hem naar een korte Nederlandse omschrijving van
+wat erin is gebouwd, in de vorm `claude/<omschrijving>`: kleine letters en koppeltekens, bijvoorbeeld
+`claude/inlogscherm`, `claude/taalkeuze` of `claude/vloeiend-scrollen`.
+
+- Hernoemen: push de branch onder de nieuwe naam en verwijder daarna de oude naam.
+
+  ```bash
+  git push origin origin/<oude-naam>:refs/heads/claude/<omschrijving>
+  git push origin --delete <oude-naam>
+  ```
+
+- Bestaat de naam al, voeg dan een volgnummer toe (`claude/inlogscherm-2`).
+- Hernoem alleen branches die echt in `main` zitten (`git merge-base --is-ancestor <branch> origin/main`).
+  Branches met werk dat nog niet op `main` staat laat je met rust.
+- Werk niet verder op een hernoemde branch: nieuw werk begint op een nieuwe branch vanaf de nieuwste `main`.
