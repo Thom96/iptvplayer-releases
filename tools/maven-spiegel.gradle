@@ -1,0 +1,19 @@
+// Noodroute als Maven Central "429 Too Many Requests" geeft: alle downloads (ook die van Robolectric
+// tijdens de tests) via Google's kopie van Maven Central. Gebruik: ./gradlew --init-script tools/maven-spiegel.gradle …
+def MIRROR = "https://maven-central.storage-download.googleapis.com/maven2/"
+def redirect = { RepositoryHandler repos ->
+    repos.withType(MavenArtifactRepository).configureEach { r ->
+        if (r.url.toString().contains("repo.maven.apache.org") || r.url.toString().contains("repo1.maven.org")) r.url = MIRROR
+    }
+}
+settingsEvaluated { settings ->
+    redirect(settings.pluginManagement.repositories)
+    redirect(settings.dependencyResolutionManagement.repositories)
+}
+allprojects {
+    redirect(buildscript.repositories)
+    redirect(repositories)
+}
+allprojects {
+    tasks.withType(Test).configureEach { systemProperty "robolectric.dependency.repo.url", MIRROR }
+}

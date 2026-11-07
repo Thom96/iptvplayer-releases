@@ -21,6 +21,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStreamReader
+import java.util.concurrent.atomic.AtomicInteger
 
 class AuthException(message: String) : IOException(message)
 
@@ -89,26 +90,39 @@ class XtreamClient(
     /**
      * Laadt alle categorieën en streams. Met [forceDownload] = false worden aanwezige cachebestanden
      * gebruikt; anders wordt alles opnieuw gedownload.
+     *
+     * [onProgress] krijgt een tekst en het deel van de stappen dat klaar is (0..1): elke gedownloade lijst en
+     * elke verwerkte lijst telt als één stap. Wordt vanaf achtergronddraden aangeroepen.
      */
-    suspend fun loadLibrary(forceDownload: Boolean, onProgress: (String) -> Unit = {}): Library = coroutineScope {
+    suspend fun loadLibrary(
+        forceDownload: Boolean,
+        onProgress: (message: String, fraction: Float) -> Unit = { _, _ -> },
+    ): Library = coroutineScope {
         if (demo) return@coroutineScope DemoData.library()
         cacheDir.mkdirs()
-        if (forceDownload || !hasCache) {
-            onProgress("Lijsten downloaden…")
-            LIST_ACTIONS.map { action -> async(Dispatchers.IO) { download(action) } }.forEach { it.await() }
+        val downloading = forceDownload || !hasCache
+        val totalSteps = (if (downloading) 2 else 1) * LIST_ACTIONS.size
+        val doneSteps = AtomicInteger(0)
+        fun stepDone(message: String) = onProgress(message, doneSteps.incrementAndGet().toFloat() / totalSteps)
+        if (downloading) {
+            onProgress("Lijsten downloaden…", 0f)
+            LIST_ACTIONS.map { action ->
+                async(Dispatchers.IO) { download(action); stepDone("Lijsten downloaden…") }
+            }.forEach { it.await() }
         }
         // Snelle weg: de al verwerkte lijsten uit index.bin, zolang die nieuwer is dan de JSON-bestanden.
         if (indexIsFresh()) {
             withContext(Dispatchers.IO) { runCatching { readIndex() }.getOrNull() }?.let { return@coroutineScope it }
         }
-        onProgress("Films en series indexeren…")
+        val indexing = "Films en series indexeren…"
+        onProgress(indexing, doneSteps.get().toFloat() / totalSteps)
         val library = withContext(Dispatchers.Default) {
-            val liveCats = async { parseCategories(file("get_live_categories")) }
-            val vodCats = async { parseCategories(file("get_vod_categories")) }
-            val seriesCats = async { parseCategories(file("get_series_categories")) }
-            val live = async { parseItems(file("get_live_streams"), Kind.LIVE) }
-            val movies = async { parseItems(file("get_vod_streams"), Kind.MOVIE) }
-            val series = async { parseItems(file("get_series"), Kind.SERIES) }
+            val liveCats = async { parseCategories(file("get_live_categories")).also { stepDone(indexing) } }
+            val vodCats = async { parseCategories(file("get_vod_categories")).also { stepDone(indexing) } }
+            val seriesCats = async { parseCategories(file("get_series_categories")).also { stepDone(indexing) } }
+            val live = async { parseItems(file("get_live_streams"), Kind.LIVE).also { stepDone(indexing) } }
+            val movies = async { parseItems(file("get_vod_streams"), Kind.MOVIE).also { stepDone(indexing) } }
+            val series = async { parseItems(file("get_series"), Kind.SERIES).also { stepDone(indexing) } }
             Library(
                 liveCats.await(), vodCats.await(), seriesCats.await(),
                 live.await(), movies.await(), series.await(),

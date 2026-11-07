@@ -1,7 +1,6 @@
 package nl.iptvplayer.app.ui
 
 import androidx.compose.foundation.Image
-import coil.compose.AsyncImage
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.Color
@@ -108,19 +107,13 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
 }
 
 @Composable
-fun LoadingScreen(message: String) {
+fun LoadingScreen(message: String, progress: Float = 0f) {
     Column(
         Modifier.fillMaxSize().padding(48.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Haan die korrels oppikt en zo een laadbalk vult (herhalend filmpje, geen echte voortgang).
-        // Gemaakt met tools/haan_gif.py; kan door elke andere GIF vervangen worden.
-        AsyncImage(
-            model = R.raw.haan_laden,
-            contentDescription = null,
-            modifier = Modifier.size(width = 320.dp, height = 100.dp),
-        )
+        LaadHaan(progress)
         Spacer(Modifier.height(16.dp))
         Text(message, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
         Spacer(Modifier.height(10.dp))

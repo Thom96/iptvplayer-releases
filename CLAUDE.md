@@ -33,6 +33,8 @@ een release online. De knop "Controleren op updates" in de app leest `version.js
 - `bash ./gradlew assembleDebug testDebugUnitTest` (de omgeving "iptvplayer-releases" installeert de Android SDK
   via het setup-script; `local.properties` wijst naar `/opt/android-sdk`). Build-uitvoer staat in
   `/tmp/IPTVPlayer-build`.
+- Geeft Maven Central "429 Too Many Requests", voeg dan `--init-script tools/maven-spiegel.gradle` toe aan het
+  gradlew-commando: dan komt alles van Google's kopie van Maven Central.
 - Demomodus: inloggen met server `demo` geeft een nepbibliotheek, handig voor schermafbeeldingen.
 - Doelscherm: 1920×1080 bij dichtheid 2, dus 960×540 dp. Alles moet daarbinnen passen.
 

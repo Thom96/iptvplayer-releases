@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
             AppTheme {
                 when (val s = vm.state) {
                     is AppState.Login -> LoginScreen(vm, s)
-                    is AppState.Loading -> LoadingScreen(s.message)
+                    is AppState.Loading -> LoadingScreen(s.message, s.progress)
                     is AppState.Failed -> FailedScreen(s.message, onRetry = vm::retry, onLogout = vm::logout)
                     AppState.Ready -> Navigation(vm)
                 }
