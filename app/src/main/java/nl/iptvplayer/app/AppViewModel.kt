@@ -13,11 +13,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.runtime.mutableStateMapOf
 import nl.iptvplayer.app.data.CatchupEntry
 import nl.iptvplayer.app.data.ItemDetails
@@ -46,8 +48,17 @@ import java.net.UnknownHostException
 
 sealed interface AppState {
     data class Login(val error: String? = null, val busy: Boolean = false) : AppState
-    /** [progress]: deel van de laadstappen dat klaar is (0..1); stuurt de haan op het laadscherm. */
-    data class Loading(val message: String, val progress: Float = 0f) : AppState
+    /**
+     * [progress]: deel van de laadstappen dat klaar is (0..1); stuurt de haan op het laadscherm.
+     * [quick]: opstarten uit de bewaarde lijsten; dan geen korrelspel maar het logo met een kraaiende haan.
+     * [finished]: alles is binnen; het scherm wacht nog even tot de haan klaar is (zie [AppViewModel.loadingAnimationDone]).
+     */
+    data class Loading(
+        val message: String,
+        val progress: Float = 0f,
+        val quick: Boolean = false,
+        val finished: Boolean = false,
+    ) : AppState
     data class Failed(val message: String) : AppState
     data object Ready : AppState
 }
@@ -305,17 +316,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Wordt voltooid als de haan op het laadscherm zijn moment heeft gehad. */
+    private var haanDone = CompletableDeferred<Unit>()
+
+    /** Het laadscherm meldt dat de haan klaar is (alles opgegeten en gekraaid). */
+    fun loadingAnimationDone() {
+        haanDone.complete(Unit)
+    }
+
     private suspend fun loadLibrary(c: XtreamClient, forceDownload: Boolean) {
-        state = AppState.Loading(S.loading)
+        val quick = !forceDownload && c.hasCache
+        haanDone = CompletableDeferred()
+        state = AppState.Loading(S.loading, quick = quick)
         setLibrary(
             c.loadLibrary(forceDownload) { msg, fraction ->
                 // Vanaf achtergronddraden; de voortgang loopt alleen op, ook als stappen gelijktijdig klaar zijn.
                 synchronized(this) {
                     val shown = (state as? AppState.Loading)?.progress ?: 0f
-                    state = AppState.Loading(msg, maxOf(shown, fraction))
+                    state = AppState.Loading(msg, maxOf(shown, fraction), quick)
                 }
             },
         )
+        // De haan zijn laadscherm laten afmaken, maar nooit langer dan even laten wachten.
+        state = AppState.Loading(S.loading, 1f, quick, finished = true)
+        withTimeoutOrNull(if (quick) QUICK_FINISH_MAX_MS else FULL_FINISH_MAX_MS) { haanDone.await() }
         state = AppState.Ready
     }
 
@@ -551,5 +575,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private companion object {
         const val CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000L
+        /** Snelle start: hooguit zo lang op de kraai wachten. */
+        const val QUICK_FINISH_MAX_MS = 1_200L
+        /** Na het downloaden: hooguit zo lang wachten tot de haan de laatste korrels op heeft en kraait. */
+        const val FULL_FINISH_MAX_MS = 2_500L
     }
 }

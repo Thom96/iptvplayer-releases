@@ -106,23 +106,33 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
     }
 }
 
+/**
+ * Laadscherm. Bij het downloaden van de lijsten ([AppState.Loading.quick] = false) het korrelspel van de haan
+ * met uitleg; bij een snelle start uit de bewaarde lijsten alleen het logo en een haan die één keer kraait.
+ */
 @Composable
-fun LoadingScreen(message: String, progress: Float = 0f) {
+fun LoadingScreen(state: AppState.Loading, onHaanDone: () -> Unit = {}) {
     Column(
         Modifier.fillMaxSize().padding(48.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        LaadHaan(progress)
-        Spacer(Modifier.height(16.dp))
-        Text(message, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(10.dp))
-        Text(
-            S.firstLoadHint,
-            style = MaterialTheme.typography.bodyLarge,
-            color = Palette.textMuted,
-            textAlign = TextAlign.Center,
-        )
+        if (state.quick) {
+            GalloLogo(64.sp)
+            Spacer(Modifier.height(28.dp))
+            LaadHaan(state.progress, quick = true, finished = state.finished, onFinished = onHaanDone)
+        } else {
+            LaadHaan(state.progress, finished = state.finished, onFinished = onHaanDone)
+            Spacer(Modifier.height(16.dp))
+            Text(state.message, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(10.dp))
+            Text(
+                S.firstLoadHint,
+                style = MaterialTheme.typography.bodyLarge,
+                color = Palette.textMuted,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
