@@ -1,5 +1,9 @@
 package nl.iptvplayer.app.player
 
+import nl.iptvplayer.app.i18n.S
+import nl.iptvplayer.app.i18n.appLocale
+import nl.iptvplayer.app.i18n.I18n
+import nl.iptvplayer.app.i18n.AppLanguage
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
@@ -115,7 +119,7 @@ fun PlayerControls(
     onControlsVisible: (Boolean) -> Unit,
     /** Naar de volgende aflevering; de activity slaat de huidige eerst als uitgekeken op. */
     onNextEpisode: () -> Unit,
-    /** Serie-intro: "Afleveringen en meer" opent de seriepagina. */
+    /** Serie-intro: S.episodesAndMore opent de seriepagina. */
     onMoreEpisodes: () -> Unit = {},
     isFavorite: Boolean = false,
     onToggleFavorite: () -> Unit = {},
@@ -256,9 +260,9 @@ fun PlayerControls(
 
                 // Linksboven: terug, 10 s terug, volgende aflevering.
                 Row(Modifier.padding(start = 48.dp, top = 36.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    RoundIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Terug", onClick = onExit)
-                    if (!isLive) RoundIconButton(Icons.Filled.Replay10, "10 seconden terug", onClick = { player.seekBack() })
-                    if (hasNext) RoundIconButton(Icons.Filled.SkipNext, "Volgende aflevering", onClick = onNextEpisode)
+                    RoundIconButton(Icons.AutoMirrored.Filled.ArrowBack, S.back, onClick = onExit)
+                    if (!isLive) RoundIconButton(Icons.Filled.Replay10, S.rewind10, onClick = { player.seekBack() })
+                    if (hasNext) RoundIconButton(Icons.Filled.SkipNext, S.nextEpisode, onClick = onNextEpisode)
                 }
 
                 // Rechtsboven: titel en aflevering.
@@ -266,9 +270,9 @@ fun PlayerControls(
                     Modifier.align(Alignment.TopEnd).padding(end = 56.dp, top = 40.dp).widthIn(max = 640.dp),
                     horizontalAlignment = Alignment.End,
                 ) {
-                    Text(item?.title.orEmpty(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(item?.title.orEmpty(), style = MaterialTheme.typography.headlineSmall, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     item?.subtitle?.let {
-                        Text(it, style = MaterialTheme.typography.titleMedium, color = Palette.brandCream, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(it, style = MaterialTheme.typography.titleMedium, color = Palette.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
 
@@ -283,7 +287,7 @@ fun PlayerControls(
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
-                                modifier = Modifier.background(Palette.brandRed, RoundedCornerShape(6.dp)).padding(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.background(Palette.live, RoundedCornerShape(6.dp)).padding(horizontal = 12.dp, vertical = 4.dp),
                             )
                         } else {
                             Text(formatTime(position), style = MaterialTheme.typography.titleMedium, color = Color.White, modifier = Modifier.width(96.dp))
@@ -311,8 +315,8 @@ fun PlayerControls(
                     Spacer(Modifier.height(28.dp)) // ruimte voor het tijdlabel onder de bol
                     Row(Modifier.align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Pill(trackSummary(tracks), checked = true, onClick = { panel = Panel.TRACKS })
-                        Pill("Andere…", onClick = { panel = Panel.TRACKS })
-                        RoundIconButton(Icons.Outlined.Settings, "Afspeelsnelheid", small = true, onClick = { panel = Panel.SPEED })
+                        Pill(S.otherTracks, onClick = { panel = Panel.TRACKS })
+                        RoundIconButton(Icons.Outlined.Settings, S.playbackSpeed, small = true, onClick = { panel = Panel.SPEED })
                     }
                 }
             }
@@ -372,8 +376,8 @@ private fun SeriesIntroOverlay(
             .fillMaxSize()
             .background(
                 Brush.horizontalGradient(
-                    0f to Palette.brandNavy.copy(alpha = 0.96f),
-                    0.42f to Palette.brandNavy.copy(alpha = 0.85f),
+                    0f to Palette.background.copy(alpha = 0.96f),
+                    0.42f to Palette.background.copy(alpha = 0.85f),
                     0.72f to Color.Transparent,
                 ),
             ),
@@ -382,7 +386,7 @@ private fun SeriesIntroOverlay(
             Modifier.fillMaxHeight().width(640.dp).padding(start = 64.dp, top = 48.dp, bottom = 48.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(intro.title, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Palette.brandCream, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(intro.title, style = MaterialTheme.typography.displaySmall, color = Palette.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(10.dp))
             Text(intro.meta, style = MaterialTheme.typography.titleSmall, color = Palette.textMuted)
             intro.plot?.let {
@@ -391,15 +395,15 @@ private fun SeriesIntroOverlay(
             }
             intro.cast?.let {
                 Spacer(Modifier.height(8.dp))
-                Text("Cast: $it", style = MaterialTheme.typography.bodySmall, color = Palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(S.cast(it), style = MaterialTheme.typography.bodySmall, color = Palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Spacer(Modifier.height(26.dp))
             IntroButton(Icons.Filled.PlayArrow, intro.playLabel, onPlay, Modifier.focusRequester(playFocus))
-            IntroButton(Icons.Outlined.VideoLibrary, "Afleveringen en meer", onEpisodes)
-            IntroButton(Icons.Outlined.Subtitles, "Audio en ondertiteling", onTracks)
+            IntroButton(Icons.Outlined.VideoLibrary, S.episodesAndMore, onEpisodes)
+            IntroButton(Icons.Outlined.Subtitles, S.audioAndSubtitles, onTracks)
             IntroButton(
                 if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                if (isFavorite) "In favorieten" else "Toevoegen aan favorieten",
+                if (isFavorite) S.inFavorites else S.addToFavorites,
                 onFavorite,
             )
         }
@@ -415,8 +419,8 @@ private fun IntroButton(icon: ImageVector, text: String, onClick: () -> Unit, mo
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
             contentColor = Color.White,
-            focusedContainerColor = Palette.brandCream,
-            focusedContentColor = Palette.brandNavy,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
     ) {
@@ -467,13 +471,13 @@ private fun NextEpisodePrompt(
             modifier = Modifier.fillMaxWidth().focusRequester(playFocus).tapToClick(onPlay),
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
             colors = ClickableSurfaceDefaults.colors(
-                containerColor = Palette.brandCream,
-                contentColor = Palette.brandNavy,
-                focusedContainerColor = Palette.brandCream,
-                focusedContentColor = Palette.brandNavy,
+                containerColor = Palette.text,
+                contentColor = Palette.background,
+                focusedContainerColor = Palette.text,
+                focusedContentColor = Palette.background,
             ),
             border = ClickableSurfaceDefaults.border(
-                focusedBorder = androidx.tv.material3.Border(BorderStroke(3.dp, Palette.brandYellow), shape = RoundedCornerShape(12.dp)),
+                focusedBorder = androidx.tv.material3.Border(BorderStroke(3.dp, Palette.accent), shape = RoundedCornerShape(12.dp)),
             ),
             scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
         ) {
@@ -483,13 +487,13 @@ private fun NextEpisodePrompt(
                     Modifier
                         .matchParentSize()
                         .fillMaxWidth(elapsed.toFloat() / NEXT_COUNTDOWN_MS)
-                        .background(Palette.brandYellow.copy(alpha = 0.45f)),
+                        .background(Palette.accent.copy(alpha = 0.45f)),
                 )
                 Row(Modifier.padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.PlayArrow, null, Modifier.size(30.dp))
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Volgende aflevering", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(S.nextEpisode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         next.subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     }
                     Text(if (counting) "${seconds}s" else "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -497,7 +501,7 @@ private fun NextEpisodePrompt(
             }
         }
         Spacer(Modifier.height(10.dp))
-        Pill("Aftiteling kijken", onClick = onDismiss)
+        Pill(S.watchCredits, onClick = onDismiss)
     }
 }
 
@@ -512,8 +516,8 @@ private fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Uni
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
             contentColor = Color.White,
-            focusedContainerColor = Palette.brandCream,
-            focusedContentColor = Palette.brandNavy,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.08f),
     ) {
@@ -529,28 +533,28 @@ private fun PlayPauseButton(isPlaying: Boolean, onClick: () -> Unit, modifier: M
         modifier = modifier.size(60.dp).tapToClick(onClick),
         shape = ClickableSurfaceDefaults.shape(CircleShape),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Palette.brandCream,
-            contentColor = Palette.brandNavy,
-            focusedContainerColor = Palette.brandCream,
-            focusedContentColor = Palette.brandNavy,
+            containerColor = Palette.text,
+            contentColor = Palette.background,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
         ),
         border = ClickableSurfaceDefaults.border(
-            focusedBorder = androidx.tv.material3.Border(BorderStroke(4.dp, Palette.brandYellow), shape = CircleShape),
+            focusedBorder = androidx.tv.material3.Border(BorderStroke(4.dp, Palette.accent), shape = CircleShape),
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
     ) {
         Icon(
             if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            if (isPlaying) "Pauzeren" else "Afspelen",
+            if (isPlaying) S.pause else S.play,
             Modifier.align(Alignment.Center).size(34.dp),
         )
     }
 }
 
 /**
- * Tijdbalk in één Canvas: grijze achtergrond, lichtere gebufferde strook, rood afgespeeld deel en
+ * Tijdbalk in één Canvas: grijze achtergrond, lichtere gebufferde strook, afgespeeld deel in de accentkleur en
  * een bol met vaste grootte. Zonder focus is het een dunne balk met een kleine witte bol; met focus
- * wordt hij dikker, kleurt de bol geel en staat de tijd eronder. Links/rechts spoelt, en hoe langer
+ * wordt hij dikker, krijgt de bol de accentkleur en staat de tijd eronder. Links/rechts spoelt, en hoe langer
  * je de knop vasthoudt, hoe groter de stap (zie [seekStep]).
  */
 @Composable
@@ -560,7 +564,7 @@ private fun SeekBar(position: Long, buffered: Long, duration: Long, onSeek: (Lon
     val bufferedFraction = if (duration > 0) (buffered.toFloat() / duration).coerceIn(fraction, 1f) else 0f
     val barHeight by animateDpAsState(if (focused) 8.dp else 4.dp, label = "barHeight")
     val thumbRadius by animateDpAsState(if (focused) 12.dp else 7.dp, label = "thumbRadius")
-    val thumbColor by animateColorAsState(if (focused) Palette.brandYellow else Color.White, label = "thumbColor")
+    val thumbColor by animateColorAsState(if (focused) Palette.accent else Color.White, label = "thumbColor")
     val textMeasurer = rememberTextMeasurer()
     val labelStyle = MaterialTheme.typography.labelLarge.copy(color = Color.White, fontWeight = FontWeight.SemiBold)
     Canvas(
@@ -590,7 +594,7 @@ private fun SeekBar(position: Long, buffered: Long, duration: Long, onSeek: (Lon
         }
         bar(1f, Color(0x40FFFFFF))
         bar(bufferedFraction, Color(0x66FFFFFF))
-        bar(fraction, Palette.brandRed)
+        bar(fraction, Palette.accent)
         val cx = left + width * fraction
         if (focused) drawCircle(Color.White, radius = r + 2.dp.toPx(), center = Offset(cx, cy))
         drawCircle(thumbColor, radius = r, center = Offset(cx, cy))
@@ -630,8 +634,8 @@ private fun Pill(text: String, onClick: () -> Unit, checked: Boolean = false) {
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color(0x33FFFFFF),
             contentColor = Color.White,
-            focusedContainerColor = Palette.brandCream,
-            focusedContentColor = Palette.brandNavy,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.04f),
     ) {
@@ -647,11 +651,10 @@ private fun Pill(text: String, onClick: () -> Unit, checked: Boolean = false) {
 
 // ---------- Audio en ondertiteling ----------
 
-private val nl = Locale("nl", "NL")
 
 private fun label(format: Format, fallback: String): String {
     val language = format.language?.takeIf { it.isNotBlank() && it != "und" }
-        ?.let { Locale.forLanguageTag(it).getDisplayLanguage(nl).replaceFirstChar { c -> c.uppercase() } }
+        ?.let { Locale.forLanguageTag(it).getDisplayLanguage(appLocale).replaceFirstChar { c -> c.uppercase(appLocale) } }
     return listOfNotNull(language, format.label?.takeIf { it.isNotBlank() && it != language })
         .joinToString(" · ")
         .ifEmpty { fallback }
@@ -669,16 +672,16 @@ private fun options(tracks: Tracks, type: Int, prefix: String): List<TrackOption
 
 /** Bijvoorbeeld "Engels met ondertiteling" of "Nederlands". */
 private fun trackSummary(tracks: Tracks): String {
-    val audio = options(tracks, C.TRACK_TYPE_AUDIO, "Audio").firstOrNull { it.selected }?.label ?: "Standaard audio"
-    val sub = options(tracks, C.TRACK_TYPE_TEXT, "Ondertiteling").firstOrNull { it.selected }
-    return if (sub != null) "$audio met ondertiteling (${sub.label})" else audio
+    val audio = options(tracks, C.TRACK_TYPE_AUDIO, S.audio).firstOrNull { it.selected }?.label ?: S.defaultAudio
+    val sub = options(tracks, C.TRACK_TYPE_TEXT, S.subtitles).firstOrNull { it.selected }
+    return if (sub != null) S.withSubtitles(audio, sub.label) else audio
 }
 
 @OptIn(UnstableApi::class)
 @Composable
 private fun TracksPanel(player: ExoPlayer, tracks: Tracks, onClose: () -> Unit) {
-    val audio = options(tracks, C.TRACK_TYPE_AUDIO, "Audio")
-    val subs = options(tracks, C.TRACK_TYPE_TEXT, "Ondertiteling")
+    val audio = options(tracks, C.TRACK_TYPE_AUDIO, S.audio)
+    val subs = options(tracks, C.TRACK_TYPE_TEXT, S.subtitles)
     val subsOff = subs.none { it.selected }
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) { first.requestSafely() }
@@ -694,8 +697,8 @@ private fun TracksPanel(player: ExoPlayer, tracks: Tracks, onClose: () -> Unit) 
     SidePanel {
         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
             Column(Modifier.weight(1f)) {
-                PanelHeading("Audio")
-                if (audio.isEmpty()) PanelNote("Geen keuze beschikbaar.")
+                PanelHeading(S.audio)
+                if (audio.isEmpty()) PanelNote(S.noChoice)
                 LazyColumn {
                     items(audio.size) { i ->
                         val o = audio[i]
@@ -704,11 +707,11 @@ private fun TracksPanel(player: ExoPlayer, tracks: Tracks, onClose: () -> Unit) 
                 }
             }
             Column(Modifier.weight(1f)) {
-                PanelHeading("Ondertiteling")
+                PanelHeading(S.subtitles)
                 LazyColumn {
                     item {
                         PanelOption(
-                            "Uit", subsOff,
+                            S.off, subsOff,
                             onClick = {
                                 player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
                                     .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()
@@ -729,9 +732,9 @@ private fun SpeedPanel(current: Float, onSelect: (Float) -> Unit) {
     LaunchedEffect(Unit) { first.requestSafely() }
     SidePanel(width = 360) {
         Column {
-            PanelHeading("Afspeelsnelheid")
+            PanelHeading(S.playbackSpeed)
             listOf(0.75f, 1f, 1.25f, 1.5f).forEachIndexed { i, s ->
-                val label = if (s == 1f) "Normaal" else "${s}x".replace('.', ',')
+                val label = if (s == 1f) S.normalSpeed else "${s}x".let { if (I18n.language == AppLanguage.EN) it else it.replace('.', ',') }
                 PanelOption(label, current == s, onClick = { onSelect(s) }, modifier = if (i == 1) Modifier.focusRequester(first) else Modifier)
             }
         }
@@ -745,7 +748,7 @@ private fun SidePanel(width: Int = 720, content: @Composable () -> Unit) {
             Modifier
                 .fillMaxHeight()
                 .width(width.dp)
-                .background(Palette.brandNavy)
+                .background(Palette.background)
                 .padding(horizontal = 40.dp, vertical = 48.dp),
         ) { content() }
     }
@@ -770,14 +773,14 @@ private fun PanelOption(text: String, selected: Boolean, onClick: () -> Unit, mo
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
             contentColor = if (selected) Color.White else Palette.textMuted,
-            focusedContainerColor = Palette.brandCream,
-            focusedContentColor = Palette.brandNavy,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
     ) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(28.dp)) {
-                if (selected) Icon(Icons.Filled.Check, null, Modifier.size(20.dp), tint = Palette.brandYellow)
+                if (selected) Icon(Icons.Filled.Check, null, Modifier.size(20.dp), tint = Palette.accent)
             }
             Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
         }

@@ -1,5 +1,6 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,10 +45,10 @@ fun UpdatePrompt(vm: AppViewModel) {
                 .background(Palette.surface, RoundedCornerShape(24.dp))
                 .padding(32.dp),
         ) {
-            Text("Nieuwe versie beschikbaar", style = MaterialTheme.typography.headlineSmall)
+            Text(S.newVersionAvailable, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(8.dp))
             Text(
-                "Versie ${info.versionName} staat klaar. Je huidige versie is ${vm.updater.currentVersionName}.",
+                S.versionReady(info.versionName, vm.updater.currentVersionName),
                 style = MaterialTheme.typography.bodyLarge,
                 color = Palette.textMuted,
             )
@@ -67,7 +68,7 @@ fun UpdatePrompt(vm: AppViewModel) {
 fun UpdateSection(vm: AppViewModel) {
     val state = vm.update
     Text(
-        "Geïnstalleerde versie: ${vm.updater.currentVersionName}. De app kijkt bij elke start automatisch of er een nieuwe versie is.",
+        S.installedVersion(vm.updater.currentVersionName),
         style = MaterialTheme.typography.bodyMedium,
         color = Palette.textMuted,
     )
@@ -76,11 +77,11 @@ fun UpdateSection(vm: AppViewModel) {
     // valt de focus terug op het tabblad Home en opent dat vanzelf.
     UpdateActionButton(vm, state)
     val message = when (state) {
-        UpdateState.UpToDate -> "Je hebt de nieuwste versie."
-        is UpdateState.Failed -> "Controleren mislukt: ${state.message}"
-        is UpdateState.Available -> "Nieuwe versie beschikbaar: ${state.info.versionName}"
+        UpdateState.UpToDate -> S.upToDate
+        is UpdateState.Failed -> S.checkFailed(state.message)
+        is UpdateState.Available -> S.newVersionNamed(state.info.versionName)
         is UpdateState.NeedsPermission ->
-            "Sta eenmalig toe dat PopcornTime apps mag installeren (zet de schakelaar aan en ga terug). Daarna gaat het bijwerken vanzelf verder."
+            S.allowInstall
         else -> null
     }
     if (state is UpdateState.Downloading) {
@@ -97,11 +98,11 @@ fun UpdateSection(vm: AppViewModel) {
 @Composable
 private fun UpdateActionButton(vm: AppViewModel, state: UpdateState, modifier: Modifier = Modifier) {
     val (label, action) = when (state) {
-        UpdateState.Checking -> "Controleren…" to {}
-        is UpdateState.Available -> "Nu bijwerken" to vm::installUpdate
-        is UpdateState.Downloading -> "Downloaden… ${(state.progress * 100).toInt()}%" to {}
-        is UpdateState.NeedsPermission -> "Opnieuw proberen" to vm::retryAfterPermission
-        else -> "Controleren op updates" to { vm.checkForUpdates(manual = true) }
+        UpdateState.Checking -> S.checking to {}
+        is UpdateState.Available -> S.updateNow to vm::installUpdate
+        is UpdateState.Downloading -> S.downloading((state.progress * 100).toInt()) to {}
+        is UpdateState.NeedsPermission -> S.retry to vm::retryAfterPermission
+        else -> S.checkForUpdates to { vm.checkForUpdates(manual = true) }
     }
     ActionButton(label, Icons.Outlined.SystemUpdate, onClick = action, modifier = modifier)
 }
@@ -110,7 +111,7 @@ private fun UpdateActionButton(vm: AppViewModel, state: UpdateState, modifier: M
 private fun UpdateStatusOrButtons(vm: AppViewModel, state: UpdateState, focus: FocusRequester?, onLater: (() -> Unit)?) {
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         UpdateActionButton(vm, state, modifier = if (focus != null) Modifier.focusRequester(focus) else Modifier)
-        if (onLater != null && state !is UpdateState.Downloading) ActionButton("Later", null, onClick = onLater)
+        if (onLater != null && state !is UpdateState.Downloading) ActionButton(S.later, null, onClick = onLater)
     }
     if (state is UpdateState.Downloading) {
         Spacer(Modifier.height(12.dp))

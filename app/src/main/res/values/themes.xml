@@ -10,7 +10,7 @@
         <item name="android:windowFullscreen">true</item>
     </style>
 
-    <color name="background">#FF0E1116</color>
-    <color name="accent">#FF3D8BFD</color>
-    <color name="icon_background">#FF1E1B2E</color>
+    <color name="background">#FF0B1A22</color>
+    <color name="accent">#FFE8CC94</color>
+    <color name="icon_background">#FF0B1A22</color>
 </resources>

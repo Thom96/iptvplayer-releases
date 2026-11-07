@@ -1,5 +1,7 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
+import nl.iptvplayer.app.i18n.appLocale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,7 +9,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,6 +21,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,23 +32,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import coil.compose.AsyncImage
 import nl.iptvplayer.app.AppViewModel
 import nl.iptvplayer.app.data.Kind
 import nl.iptvplayer.app.data.Library
 import nl.iptvplayer.app.data.MediaItem
+import nl.iptvplayer.app.data.Progress
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-internal const val REMOVE_HINT = "Houd OK ingedrukt om te verwijderen"
+internal val REMOVE_HINT: String get() = S.removeHint
 
 /** Iets dat de gebruiker uit een lijst wil halen; wordt eerst bevestigd. */
 internal class Removal(val title: String, val remove: () -> Unit)
@@ -79,10 +92,19 @@ fun StartTab(vm: AppViewModel, library: Library) {
         firstRecentFocus.requestSafely()
     }
 
+    // Het laatst bekeken programma staat groot bovenaan, zoals in het brandbook.
+    val latest = remember(progress) { progress.maxByOrNull { it.updatedAt } }
+
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 40.dp)) {
+        latest?.let { p ->
+            item(key = "hero") {
+                ContinueHero(p, onPlay = { vm.resume(context, p) }, buttonModifier = Modifier.restoreFocus(restorer, "hero"))
+            }
+        }
+
         // 1. Live TV
-        if (recentLive.isNotEmpty()) groupHeader("Live TV")
-        section("Recent bekeken", recentLive, { it.key }, hint = REMOVE_HINT, id = "live-recent", subRow = true, rowState = recentRow) { i, ch ->
+        if (recentLive.isNotEmpty()) groupHeader(S.tabLive)
+        section(S.recentlyWatched, recentLive, { it.key }, hint = REMOVE_HINT, id = "live-recent", subRow = true, rowState = recentRow) { i, ch ->
             ChannelCard(
                 ch,
                 onClick = { vm.playLive(context, recentLive, i) },
@@ -95,8 +117,8 @@ fun StartTab(vm: AppViewModel, library: Library) {
         }
 
         // 2. Series
-        groupHeader("Series")
-        section("Kijk verder", seriesProgress, { it.key }, hint = REMOVE_HINT, id = "series-continue", subRow = true) { _, p ->
+        groupHeader(S.tabSeries)
+        section(S.keepWatching, seriesProgress, { it.key }, hint = REMOVE_HINT, id = "series-continue", subRow = true) { _, p ->
             ProgressCard(
                 p,
                 onClick = { vm.resume(context, p) },
@@ -104,11 +126,11 @@ fun StartTab(vm: AppViewModel, library: Library) {
                 modifier = Modifier.restoreFocus(restorer, "sp:${p.key}"),
             )
         }
-        expandingSection(vm, "Nieuwe series", "series-new", newSeries, restorer)
+        expandingSection(vm, S.newSeries, "series-new", newSeries, restorer)
 
         // 3. Films
-        groupHeader("Films")
-        section("Kijk verder", movieProgress, { it.key }, hint = REMOVE_HINT, id = "movies-continue", subRow = true) { _, p ->
+        groupHeader(S.tabMovies)
+        section(S.keepWatching, movieProgress, { it.key }, hint = REMOVE_HINT, id = "movies-continue", subRow = true) { _, p ->
             ProgressCard(
                 p,
                 onClick = { vm.resume(context, p) },
@@ -116,7 +138,7 @@ fun StartTab(vm: AppViewModel, library: Library) {
                 modifier = Modifier.restoreFocus(restorer, "mp:${p.key}"),
             )
         }
-        expandingSection(vm, "Nieuwe films", "movies-new", newMovies, restorer)
+        expandingSection(vm, S.newMovies, "movies-new", newMovies, restorer)
 
         item(key = "status") { StatusLine(vm) }
     }
@@ -126,13 +148,60 @@ fun StartTab(vm: AppViewModel, library: Library) {
     }
 }
 
+/** Grote kaart bovenaan Home: beeld rechts, titel en "Verder kijken" links. */
+@Composable
+private fun ContinueHero(p: Progress, onPlay: () -> Unit, buttonModifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(24.dp)
+    Box(Modifier.fillMaxWidth().height(250.dp).padding(start = 56.dp, end = 56.dp, top = 8.dp)) {
+        Box(Modifier.fillMaxSize().clip(shape).background(Palette.surface)) {
+            AsyncImage(
+                model = p.image,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxHeight().fillMaxWidth(0.62f).align(Alignment.CenterEnd),
+            )
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.horizontalGradient(
+                        0.35f to Palette.surface,
+                        0.6f to Palette.surface.copy(alpha = 0.6f),
+                        1f to Color.Transparent,
+                    ),
+                ),
+            )
+        }
+        Column(
+            Modifier.align(Alignment.CenterStart).padding(start = 36.dp).width(520.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                S.continueWatching.uppercase(appLocale),
+                style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 1.5.sp),
+                color = Palette.accent,
+            )
+            Text(p.title, style = MaterialTheme.typography.displaySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            val subtitle = when {
+                p.durationMs == 0L -> S.nextUp(p.subtitle.orEmpty())
+                p.subtitle != null -> "${p.subtitle} · ${S.timeLeft(formatRemaining(p))}"
+                else -> S.timeLeft(formatRemaining(p)).replaceFirstChar { it.uppercase(appLocale) }
+            }
+            Text(subtitle, style = MaterialTheme.typography.bodyLarge, color = Palette.textSoft, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                ActionButton(S.continueWatching, Icons.Filled.PlayArrow, onClick = onPlay, modifier = buttonModifier, primary = true)
+                if (p.durationMs > 0) ProgressBar(p.fraction, Modifier.width(220.dp))
+            }
+        }
+    }
+}
+
 @Composable
 internal fun ConfirmRemoval(
     title: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
-    question: String = "Verwijderen uit deze lijst?",
-    confirmLabel: String = "Verwijderen",
+    question: String = S.removeQuestion,
+    confirmLabel: String = S.remove,
     confirmIcon: ImageVector = Icons.Outlined.Delete,
 ) {
     val removeButton = remember { FocusRequester() }
@@ -149,7 +218,7 @@ internal fun ConfirmRemoval(
             Spacer(Modifier.height(28.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 ActionButton(confirmLabel, confirmIcon, onClick = onConfirm, modifier = Modifier.focusRequester(removeButton))
-                ActionButton("Annuleren", null, onClick = onDismiss)
+                ActionButton(S.cancel, null, onClick = onDismiss)
             }
         }
     }
@@ -160,13 +229,13 @@ internal fun ConfirmRemoval(
 private fun StatusLine(vm: AppViewModel) {
     val account = vm.account
     val expires = account?.expiresAt?.let {
-        " · abonnement tot " + SimpleDateFormat("d MMMM yyyy", Locale("nl", "NL")).format(Date(it * 1000))
+        " · " + S.subscriptionUntil(SimpleDateFormat("d MMMM yyyy", appLocale).format(Date(it * 1000)))
     } ?: ""
     Row(Modifier.padding(start = 56.dp, top = 32.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(8.dp).background(if (account != null) Palette.online else Palette.textMuted, CircleShape))
         Spacer(Modifier.width(10.dp))
         Text(
-            (if (account != null) "Verbonden" else "Offline – opgeslagen lijsten") + expires,
+            (if (account != null) S.connected else S.offline) + expires,
             style = MaterialTheme.typography.bodySmall,
             color = Palette.textMuted,
         )
@@ -186,27 +255,27 @@ fun FavoritesTab(vm: AppViewModel, library: Library) {
 
     if (items.isEmpty()) {
         CenteredMessage(
-            "Nog geen favorieten",
-            "Houd OK ingedrukt op een film, serie of zender om hem hier te bewaren.",
+            S.noFavorites,
+            S.noFavoritesHint,
         )
         return
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 40.dp)) {
-        section("Zenders", live, { it.key }) { i, ch ->
+        section(S.channels, live, { it.key }) { i, ch ->
             ChannelCard(
                 ch, onClick = { vm.playLive(context, live, i) }, isFavorite = true,
                 onLongClick = { vm.storage.toggleFavorite(ch.key) },
                 modifier = Modifier.width(280.dp).restoreFocus(restorer, ch.key),
             )
         }
-        section("Films", movies, { it.key }) { _, m ->
+        section(S.tabMovies, movies, { it.key }) { _, m ->
             PosterCard(
                 m, onClick = { vm.open(m, context) }, isFavorite = true, isWatched = m.key in watched,
                 onLongClick = { vm.storage.toggleFavorite(m.key) },
                 modifier = Modifier.restoreFocus(restorer, m.key),
             )
         }
-        section("Series", series, { it.key }) { _, s ->
+        section(S.tabSeries, series, { it.key }) { _, s ->
             PosterCard(
                 s, onClick = { vm.open(s, context) }, isFavorite = true,
                 onLongClick = { vm.storage.toggleFavorite(s.key) },

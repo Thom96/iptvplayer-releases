@@ -1,5 +1,6 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -63,7 +64,7 @@ fun SearchTab(vm: AppViewModel, library: Library) {
             TvTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = "Zoek films, series en zenders…",
+                placeholder = S.searchPlaceholder,
                 imeAction = ImeAction.Search,
                 onImeAction = {
                     keyboard?.hide()
@@ -77,16 +78,15 @@ fun SearchTab(vm: AppViewModel, library: Library) {
         when {
             query.isBlank() -> item(key = "hint") {
                 Hint(
-                    "Zoek op titel, ook met een deel van een woord (\"break bad\") of zonder accenten. " +
-                        "Kleine typfouten worden ook gevonden. Je kunt ook de microfoonknop van het toetsenbord gebruiken.",
+                    S.searchHint,
                 )
             }
-            r == null -> item(key = "busy") { Hint("Zoeken…") }
-            r.isEmpty -> item(key = "none") { Hint("Niets gevonden voor \"${r.query}\".") }
+            r == null -> item(key = "busy") { Hint(S.searching) }
+            r.isEmpty -> item(key = "none") { Hint(S.nothingFoundFor(r.query)) }
             else -> {
-                section("Films ${count(r.movies)}", r.movies, { it.key }) { _, m -> Poster(vm, m, favorites, watched, restorer, context) }
-                section("Series ${count(r.series)}", r.series, { it.key }) { _, s -> Poster(vm, s, favorites, watched, restorer, context) }
-                section("Zenders ${count(r.live)}", r.live, { it.key }) { i, ch ->
+                section("${S.tabMovies} ${count(r.movies)}", r.movies, { it.key }) { _, m -> Poster(vm, m, favorites, watched, restorer, context) }
+                section("${S.tabSeries} ${count(r.series)}", r.series, { it.key }) { _, s -> Poster(vm, s, favorites, watched, restorer, context) }
+                section("${S.channels} ${count(r.live)}", r.live, { it.key }) { i, ch ->
                     ChannelCard(
                         ch,
                         onClick = { vm.playLive(context, r.live, i) },

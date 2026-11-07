@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Voorgrond van het app-icoon: de o van het Gallo-logo, binnen de veilige zone van 66 dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.6"
+        android:scaleY="0.6"
+        android:translateX="17.4"
+        android:translateY="18.6">
+        <path
+            android:fillColor="#BC3E2E"
+            android:pathData="M41,22 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 z M52,17 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 z M65,22 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 z" />
+        <path
+            android:fillColor="#E8CC94"
+            android:fillType="evenOdd"
+            android:pathData="M20,68 a40,40 0 1,0 80,0 a40,40 0 1,0 -80,0 z M48.5,45.5 L87,68 L48.5,90.5 z" />
+    </group>
+</vector>

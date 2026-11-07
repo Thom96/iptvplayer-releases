@@ -1,5 +1,8 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
+import nl.iptvplayer.app.i18n.I18n
+import nl.iptvplayer.app.i18n.AppLanguage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,24 +21,33 @@ import androidx.tv.material3.Typography
 import androidx.tv.material3.darkColorScheme
 import nl.iptvplayer.app.R
 
-/** Google TV-achtig: neutraal donkergrijs, wit voor focus en één rustige accentkleur. */
+/**
+ * Gallo-brandbook, palet Nachtwacht: petrolblauwe lagen als ondergrond, zilverwit voor tekst,
+ * champagne (de gouden nekveren van een haan) voor focus, voortgang en sterren, en hanenkamrood
+ * alleen voor LIVE en de kam in het logo. Diepte komt van lichtere lagen, niet van schaduwen.
+ */
 object Palette {
-    val background = Color(0xFF111214)
-    val backgroundTop = Color(0xFF1B1D21)
-    val surface = Color(0xFF1F2125)
-    val surfaceFocused = Color(0xFF30333A)
-    val outline = Color(0x1FFFFFFF)
-    val accent = Color(0xFF8AB4F8)
-    val text = Color(0xFFE8EAED)
-    val textMuted = Color(0xFF9AA0A6)
-    val gold = Color(0xFFFDD663)
-    val online = Color(0xFF81C995)
+    // Oppervlakken, van donker naar licht.
+    val rail = Color(0xFF07131A)
+    val background = Color(0xFF0B1A22)
+    val backgroundTop = Color(0xFF10212A)
+    val surface = Color(0xFF14262F)
+    val surfaceFocused = Color(0xFF1A2E38)
+    val outline = Color(0x1FEDF3F2)
 
-    // Kleuren uit het logo (tv-icoon): rood, geel, crème en donkerblauw.
-    val brandRed = Color(0xFFE63B2E)
-    val brandYellow = Color(0xFFFFC93C)
-    val brandCream = Color(0xFFFFF3E0)
-    val brandNavy = Color(0xFF1E1B2E)
+    // Tekst (contrast op background).
+    val text = Color(0xFFEDF3F2) // zilverwit, 15,8:1
+    val textSoft = Color(0xFFCFDCDD) // 12,6:1
+    val textMuted = Color(0xFFA9BDC2) // 9,1:1
+    val textDisabled = Color(0xFF8197A0) // 5,8:1
+
+    // Accent en signalen.
+    val accent = Color(0xFFE8CC94) // champagne, 11,4:1: focusrand, voortgang, sterren, de o van het logo
+    val gold = accent
+    val live = Color(0xFFBC3E2E) // hanenkamrood: alleen als vlak (wit erop 5,4:1), nooit als tekstkleur
+    val comb = live
+    val online = Color(0xFF8FD1A6) // gezien / verbonden
+    val favorite = Color(0xFFE8907A)
 }
 
 val Outfit = FontFamily(
@@ -45,16 +57,20 @@ val Outfit = FontFamily(
     Font(R.font.outfit_700, FontWeight.Bold),
 )
 
+/** Koppen en het woordmerk. Young Serif heeft alleen een normaal gewicht. */
+val YoungSerif = FontFamily(Font(R.font.young_serif_400, FontWeight.Normal))
+
 private fun TextStyle.outfit(weight: FontWeight) = copy(fontFamily = Outfit, fontWeight = weight)
+private fun TextStyle.serif() = copy(fontFamily = YoungSerif, fontWeight = FontWeight.Normal)
 
 private val AppTypography = Typography().let { t ->
     Typography(
-        displayLarge = t.displayLarge.outfit(FontWeight.Medium),
-        displayMedium = t.displayMedium.outfit(FontWeight.Medium),
-        displaySmall = t.displaySmall.outfit(FontWeight.Medium),
-        headlineLarge = t.headlineLarge.outfit(FontWeight.Normal),
-        headlineMedium = t.headlineMedium.outfit(FontWeight.Normal),
-        headlineSmall = t.headlineSmall.outfit(FontWeight.Normal),
+        displayLarge = t.displayLarge.serif(),
+        displayMedium = t.displayMedium.serif(),
+        displaySmall = t.displaySmall.serif(),
+        headlineLarge = t.headlineLarge.serif(),
+        headlineMedium = t.headlineMedium.serif(),
+        headlineSmall = t.headlineSmall.serif(),
         titleLarge = t.titleLarge.outfit(FontWeight.Normal),
         titleMedium = t.titleMedium.outfit(FontWeight.Medium),
         titleSmall = t.titleSmall.outfit(FontWeight.Medium),
@@ -108,12 +124,13 @@ fun formatTime(ms: Long): String {
 fun formatDuration(secs: Int): String {
     val h = secs / 3600
     val m = (secs % 3600) / 60
-    return if (h > 0) "${h}u ${m}m" else "${m} min"
+    return if (h > 0) S.hoursMinutes(h, m) else S.minutes(m)
 }
 
 fun formatRemaining(p: nl.iptvplayer.app.data.Progress): String {
     val mins = ((p.durationMs - p.positionMs).coerceAtLeast(0) / 60_000).toInt()
-    return if (mins >= 60) "${mins / 60}u ${mins % 60}m" else "$mins min"
+    return if (mins >= 60) S.hoursMinutes(mins / 60, mins % 60) else S.minutes(mins)
 }
 
-fun formatCount(n: Int): String = "%,d".format(n).replace(',', '.')
+/** Duizendtallen met een punt, in het Engels met een komma. */
+fun formatCount(n: Int): String = "%,d".format(n).let { if (I18n.language == AppLanguage.EN) it else it.replace(',', '.') }

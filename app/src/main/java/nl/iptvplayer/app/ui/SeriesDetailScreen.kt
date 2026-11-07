@@ -1,5 +1,6 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -129,7 +130,7 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
                     Spacer(Modifier.height(8.dp))
                     val meta = listOfNotNull(
                         i?.releaseDate?.take(4) ?: item.year?.toString(),
-                        seasons.size.takeIf { it > 0 }?.let { if (it == 1) "1 seizoen" else "$it seizoenen" },
+                        seasons.size.takeIf { it > 0 }?.let { S.seasons(it) },
                         i?.genre,
                         (i?.rating ?: item.rating.takeIf { it > 0 })?.let { "★ %.1f".format(it) },
                     )
@@ -138,8 +139,8 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
                     Text(
                         when {
                             i?.plot != null -> i.plot
-                            error -> "Kon de serie-informatie niet laden."
-                            i == null -> "Afleveringen laden…"
+                            error -> S.seriesInfoFailed
+                            i == null -> S.loadingEpisodes
                             else -> ""
                         },
                         style = MaterialTheme.typography.bodyMedium,
@@ -149,7 +150,7 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
                     Spacer(Modifier.height(16.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         nextUp?.let { (ep, p) ->
-                            val label = (if (p != null) "Verder: " else "Afspelen: ") + "S${ep.season} E${ep.number}"
+                            val label = if (p != null) S.resumeEpisode(ep.season, ep.number) else S.playEpisode(ep.season, ep.number)
                             ActionButton(
                                 label, Icons.Filled.PlayArrow,
                                 onClick = { vm.playEpisodes(context, item, allEpisodes, allEpisodes.indexOf(ep)) },
@@ -158,7 +159,7 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
                         }
                         val fav = item.key in favorites
                         ActionButton(
-                            if (fav) "In favorieten" else "Favoriet",
+                            if (fav) S.inFavorites else S.favorite,
                             if (fav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                             onClick = { vm.storage.toggleFavorite(item.key) },
                         )
@@ -246,7 +247,7 @@ private fun EpisodeRow(ep: Episode, fallbackImage: String?, progress: Progress?,
             }
             if (isWatched) {
                 Spacer(Modifier.width(12.dp))
-                Icon(Icons.Filled.CheckCircle, "Gezien", Modifier.size(22.dp), tint = Palette.accent)
+                Icon(Icons.Filled.CheckCircle, S.watched, Modifier.size(22.dp), tint = Palette.accent)
             }
         }
     }

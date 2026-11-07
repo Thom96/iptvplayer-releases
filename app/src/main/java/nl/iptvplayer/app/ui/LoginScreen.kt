@@ -1,5 +1,6 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.Color
@@ -34,6 +35,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import nl.iptvplayer.app.AppState
@@ -58,17 +60,10 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
 
     Row(Modifier.fillMaxSize().padding(horizontal = 96.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painterResource(R.drawable.logo), contentDescription = null, modifier = Modifier.size(88.dp))
-                Spacer(Modifier.width(8.dp))
-                // Kleuren van het logo: "Popcorn" crème, "Time" geel.
-                Text("Popcorn", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Color(0xFFFFF3E0))
-                Text("Time", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Color(0xFFFFC93C))
-            }
+            GalloLogo(size = 72.sp)
             Spacer(Modifier.height(12.dp))
             Text(
-                "Log in met de gegevens van je IPTV-provider (Xtream Codes). " +
-                    "Druk op OK op een veld om het toetsenbord te openen.",
+                S.loginIntro,
                 style = MaterialTheme.typography.bodyLarge,
                 color = Palette.textMuted,
             )
@@ -78,7 +73,7 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
             TvTextField(
                 value = server,
                 onValueChange = { server = it },
-                placeholder = "Server-URL (bijv. provider.tv:8080)",
+                placeholder = S.serverPlaceholder,
                 keyboardType = KeyboardType.Uri,
                 onImeAction = { focus.moveFocus(FocusDirection.Down) },
                 modifier = Modifier.fillMaxWidth().focusRequester(first),
@@ -86,14 +81,14 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
             TvTextField(
                 value = username,
                 onValueChange = { username = it },
-                placeholder = "Gebruikersnaam",
+                placeholder = S.username,
                 onImeAction = { focus.moveFocus(FocusDirection.Down) },
                 modifier = Modifier.fillMaxWidth(),
             )
             TvTextField(
                 value = password,
                 onValueChange = { password = it },
-                placeholder = "Wachtwoord",
+                placeholder = S.password,
                 password = true,
                 imeAction = ImeAction.Done,
                 onImeAction = submit,
@@ -101,7 +96,7 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
             )
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             ActionButton(
-                text = if (state.busy) "Bezig met inloggen…" else "Inloggen",
+                text = if (state.busy) S.loggingIn else S.login,
                 icon = if (state.busy) Icons.Filled.Refresh else Icons.AutoMirrored.Filled.Login,
                 onClick = submit,
                 modifier = Modifier.focusRequester(loginButton),
@@ -112,17 +107,17 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
 
 @Composable
 fun LoadingScreen(message: String) {
-    CenteredMessage(message, "Bij de eerste keer kan dit even duren: de volledige film- en serielijst wordt opgehaald.")
+    CenteredMessage(message, S.firstLoadHint)
 }
 
 @Composable
 fun FailedScreen(message: String, onRetry: () -> Unit, onLogout: () -> Unit) {
     val retry = remember { FocusRequester() }
     LaunchedEffect(Unit) { retry.requestSafely() }
-    CenteredMessage("Kan niet verbinden", message) {
+    CenteredMessage(S.cannotConnect, message) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            ActionButton("Opnieuw proberen", Icons.Filled.Refresh, onRetry, Modifier.focusRequester(retry))
-            ActionButton("Andere login", Icons.AutoMirrored.Filled.Login, onLogout)
+            ActionButton(S.retry, Icons.Filled.Refresh, onRetry, Modifier.focusRequester(retry))
+            ActionButton(S.otherLogin, Icons.AutoMirrored.Filled.Login, onLogout)
         }
     }
 }

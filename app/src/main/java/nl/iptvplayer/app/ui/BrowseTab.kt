@@ -1,5 +1,6 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -46,12 +47,16 @@ import nl.iptvplayer.app.data.TextMatch
 const val ALL_CATEGORIES = "__all__"
 private const val ALL = ALL_CATEGORIES
 
-enum class SortOrder(val label: String) {
-    SERVER("Standaard"),
-    NEWEST("Nieuwst"),
-    AZ("A-Z"),
-    RATING("Beoordeling"),
-    YEAR("Jaar"),
+enum class SortOrder {
+    SERVER, NEWEST, AZ, RATING, YEAR;
+
+    val label: String get() = when (this) {
+        SERVER -> S.sortDefault
+        NEWEST -> S.sortNewest
+        AZ -> S.sortAz
+        RATING -> S.sortRating
+        YEAR -> S.sortYear
+    }
 }
 
 private fun sortOptions(kind: Kind) =
@@ -126,7 +131,7 @@ fun BrowseTab(vm: AppViewModel, library: Library, kind: Kind, initialCategory: S
         ) {
             item(key = ALL) {
                 ChipButton(
-                    text = if (kind == Kind.LIVE) "Alle zenders" else "Alles",
+                    text = if (kind == Kind.LIVE) S.allChannels else S.all,
                     selected = selected == ALL,
                     onClick = { select(ALL) },
                     trailing = all.size.toString(),
@@ -180,7 +185,7 @@ fun BrowseTab(vm: AppViewModel, library: Library, kind: Kind, initialCategory: S
                 }
                 Spacer(Modifier.weight(1f))
                 Text(
-                    "${items.size} ${if (kind == Kind.LIVE) "zenders" else "titels"}",
+                    formatCount(items.size).let { if (kind == Kind.LIVE) S.channelCount(it) else S.titleCount(it) },
                     style = MaterialTheme.typography.labelMedium,
                     color = Palette.textMuted,
                 )

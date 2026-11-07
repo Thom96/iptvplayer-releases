@@ -36,11 +36,30 @@ Werkt `adb connect` niet (bijvoorbeeld op de Google TV Streamer)? Gebruik dan
 2. Sta Downloader toe apps te installeren: Instellingen → Apps → Beveiliging en beperkingen → Onbekende bronnen.
 3. Open Downloader, typ code **3370517** en kies **Go**.
 4. Kies **Installeren** (bij een waarschuwing van Play Protect: *Toch installeren*).
-5. Open **PopcornTime** en log in met je eigen IPTV-gegevens.
+5. Open **Gallo** en log in met je eigen IPTV-gegevens.
 
 De code wijst naar de nieuwste versie op GitHub
 (`https://github.com/Thom96/iptvplayer-releases/releases/latest/download/IPTVPlayer.apk`),
 dus hij hoeft nooit aangepast te worden. Daarna werkt de app zichzelf bij.
+
+## Publiceren via GitHub (zonder pc)
+
+De workflow `.github/workflows/publiceren.yml` bouwt de app, ondertekent hem met de eigen sleutel en zet
+hem als release online. De knop **Controleren op updates** in de app ziet hem daarna meteen.
+
+Eenmalig instellen, onder **Settings → Secrets and variables → Actions** van deze repository:
+
+| Secret | Waarde |
+|---|---|
+| `KEYSTORE_BASE64` | `release.jks` als base64 (PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.jks")) \| Set-Clipboard`) |
+| `KEYSTORE_PASSWORD` | `storePassword` uit `keystore.properties` |
+| `KEY_ALIAS` | `keyAlias` uit `keystore.properties` |
+| `KEY_PASSWORD` | `keyPassword` uit `keystore.properties` |
+
+Starten: een commit pushen met in het bericht een regel `[publiceren] Wat is er nieuw` (de tekst na de
+markering komt in de app als "wat is er nieuw"), of via
+**Actions → Publiceren → Run workflow** zodra de workflow op `main` staat. Zonder de secrets stopt de
+workflow in plaats van een APK met een andere sleutel te publiceren.
 
 ## Updates
 

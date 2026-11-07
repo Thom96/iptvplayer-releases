@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- De o van het Gallo-logo: champagne cirkel met een uitgespaarde afspeelknop en een rode hanenkam.
+     Bijgesneden tot de vorm zelf, zodat hij direct naast "Gall" kan staan. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="41dp"
+    android:height="51dp"
+    android:viewportWidth="82"
+    android:viewportHeight="102">
+    <group
+        android:translateX="-20"
+        android:translateY="-8">
+        <path
+            android:fillColor="#BC3E2E"
+            android:pathData="M41,22 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 z M52,17 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 z M65,22 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 z" />
+        <path
+            android:fillColor="#E8CC94"
+            android:fillType="evenOdd"
+            android:pathData="M20,68 a40,40 0 1,0 80,0 a40,40 0 1,0 -80,0 z M48.5,45.5 L87,68 L48.5,90.5 z" />
+    </group>
+</vector>

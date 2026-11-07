@@ -1,0 +1,212 @@
+package nl.iptvplayer.app.i18n
+
+/** English (standaardtaal). Gebruik dit bestand als voorbeeld voor een nieuwe taal. */
+object En : Strings() {
+    override val chooseLanguage = "Choose your language"
+    override val chooseLanguageHint = "You can change this later in Settings."
+    override val appLanguage = "App language"
+    override val appLanguageHint = "The language of menus, buttons and messages."
+
+    override val tabSearch = "Search"
+    override val tabHome = "Home"
+    override val tabLive = "Live TV"
+    override val tabSeries = "Series"
+    override val tabMovies = "Movies"
+    override val tabFavorites = "Favorites"
+    override val tabCatchup = "Catch-up"
+    override val tabSettings = "Settings"
+
+    override val movie = "Movie"
+    override val series = "Series"
+    override val channels = "Channels"
+    override val play = "Play"
+    override val favorite = "Favorite"
+    override val inFavorites = "In favorites"
+    override val watched = "Watched"
+    override val cancel = "Cancel"
+    override val remove = "Remove"
+    override val removeQuestion = "Remove from this list?"
+    override val removeHint = "Hold OK to remove"
+    override val retry = "Try again"
+    override val later = "Later"
+    override val now = "NOW"
+    override val loadingInfo = "Loading information…"
+    override val noDescription = "No description available."
+    override val continueWatching = "Continue watching"
+    override val keepWatching = "Continue watching"
+    override val recentlyWatched = "Recently watched"
+    override fun nextUp(title: String) = "Up next: $title"
+    override fun timeLeft(time: String) = "$time left"
+    override fun hoursMinutes(h: Int, m: Int) = "${h}h ${m}m"
+    override fun minutes(m: Int) = "$m min"
+    override fun seasons(n: Int) = if (n == 1) "1 season" else "$n seasons"
+    override fun episodes(n: Int) = if (n == 1) "1 episode" else "$n episodes"
+    override fun libraryCounts(movies: String, series: String, channels: String) =
+        "$movies movies · $series series · $channels channels"
+
+    override val loginIntro = "Sign in with the details from your IPTV provider (Xtream Codes). " +
+        "Press OK on a field to open the keyboard."
+    override val serverPlaceholder = "Server URL (e.g. provider.tv:8080)"
+    override val username = "Username"
+    override val password = "Password"
+    override val loggingIn = "Signing in…"
+    override val login = "Sign in"
+    override val firstLoadHint = "The first time this can take a while: the full movie and series list is being downloaded."
+    override val cannotConnect = "Can't connect"
+    override val otherLogin = "Different login"
+    override val connecting = "Connecting to server…"
+    override val loading = "Loading…"
+    override val downloadingLists = "Downloading lists…"
+    override val indexing = "Indexing movies and series…"
+
+    override val loginFailed = "Sign-in failed."
+    override val serverNotFound = "Server not found. Check the URL and your internet connection."
+    override val serverTimeout = "The server isn't responding. Please try again later."
+    override val invalidServerUrl = "Invalid server URL"
+    override val unexpectedResponse = "Unexpected response from the server. Is the URL correct?"
+    override val wrongCredentials = "Incorrect username or password."
+    override fun accountInactive(status: String) = "Account is not active (status: $status)."
+    override fun serverError(code: Int) = "Server returned error $code"
+    override val emptyResponse = "Empty response from the server"
+    override fun seasonName(n: Int) = "Season $n"
+    override fun episodeName(n: Int) = "Episode $n"
+    override val unknownProgram = "Unknown program"
+    override fun playbackFailed(reason: String) = "Playback failed: $reason"
+
+    override val newSeries = "New series"
+    override val newMovies = "New movies"
+    override val connected = "Connected"
+    override val offline = "Offline – saved lists"
+    override fun subscriptionUntil(date: String) = "subscription until $date"
+    override val noFavorites = "No favorites yet"
+    override val noFavoritesHint = "Hold OK on a movie, series or channel to save it here."
+
+    override val sortDefault = "Default"
+    override val sortNewest = "Newest"
+    override val sortAz = "A-Z"
+    override val sortRating = "Rating"
+    override val sortYear = "Year"
+    override val allChannels = "All channels"
+    override val all = "All"
+    override fun channelCount(n: String) = "$n channels"
+    override fun titleCount(n: String) = "$n titles"
+    override val nothingFound = "Nothing found"
+    override val nothingFoundHint = "There are no titles in the selected languages. Change the language filter in Settings."
+    override val recentlyAdded = "Recently added"
+    override val seeAll = "See all"
+    override val genres = mapOf(
+        "comedy" to "Comedy",
+        "drama" to "Drama",
+        "crime" to "Crime",
+        "action & adventure" to "Action & adventure",
+        "sci-fi & fantasy" to "Sci-fi & fantasy",
+        "mystery" to "Mystery",
+        "documentary" to "Documentaries",
+        "reality" to "Reality",
+        "animation" to "Animation",
+        "kids" to "For kids",
+        "family" to "Family",
+        "war & politics" to "War & politics",
+        "romance" to "Romance",
+        "thriller" to "Thrillers",
+        "western" to "Westerns",
+        "history" to "History",
+        "talk" to "Talk shows",
+    )
+
+    override fun director(names: String) = "Director: $names"
+    override fun cast(names: String) = "Cast: $names"
+    override fun resumeAt(time: String) = "Continue watching ($time)"
+    override val fromStart = "From the start"
+    override val seriesInfoFailed = "Couldn't load the series information."
+    override val loadingEpisodes = "Loading episodes…"
+    override fun resumeEpisode(season: Int, episode: Int) = "Continue: S$season E$episode"
+    override fun playEpisode(season: Int, episode: Int) = "Play: S$season E$episode"
+    override fun resumeSeasonEpisode(season: Int, episode: Int) = "Continue watching: season $season, episode $episode"
+    override fun playSeasonEpisode(season: Int, episode: Int) = "Play season $season, episode $episode"
+
+    override val channelUnavailable = "This channel is currently unavailable"
+    override val previewHint = "Stay on a channel for a moment to see a preview"
+    override val loadingGuide = "Loading guide…"
+    override val noGuide = "No guide information for this channel."
+    override fun laterAt(time: String, title: String) = "Later $time: $title"
+    override val zapHint = "▲▼ zap  ·  Back = channel list"
+
+    override val today = "Today"
+    override val yesterday = "Yesterday"
+    override val noCatchup = "No catch-up channels"
+    override val noCatchupHint = "Your provider has no channels (in the selected languages) with programs you can watch back."
+    override fun daysBack(n: Int) = if (n == 1) "1 day back" else "$n days back"
+    override val loadingArchive = "Loading archive…"
+    override val noArchive = "No programs in this channel's archive."
+    override fun until(time: String) = "until $time"
+
+    override val searchPlaceholder = "Search movies, series and channels…"
+    override val searchHint = "Search by title, even with part of a word (\"break bad\") or without accents. " +
+        "Small typos are found too. You can also use the keyboard's microphone button."
+    override val searching = "Searching…"
+    override fun nothingFoundFor(query: String) = "Nothing found for \"$query\"."
+
+    override val newVersionAvailable = "New version available"
+    override fun versionReady(version: String, current: String) = "Version $version is ready. Your current version is $current."
+    override fun installedVersion(current: String) =
+        "Installed version: $current. The app automatically checks for a new version every time it starts."
+    override val upToDate = "You have the latest version."
+    override fun checkFailed(message: String) = "Check failed: $message"
+    override fun newVersionNamed(version: String) = "New version available: $version"
+    override val allowInstall = "Allow Gallo to install apps once (turn on the switch and go back). Updating will then continue automatically."
+    override val checking = "Checking…"
+    override val updateNow = "Update now"
+    override fun downloading(percent: Int) = "Downloading… $percent%"
+    override val checkForUpdates = "Check for updates"
+    override fun updateServerError(code: Int) = "Update server returned error $code"
+    override fun downloadFailed(code: Int) = "Download failed (error $code)"
+    override val emptyDownload = "Empty download"
+
+    override val contentLanguages = "Content languages"
+    override val contentLanguagesHint = "Choose which languages you want to see in Home, Movies, Series, Live TV and search. " +
+        "Nothing selected = show everything."
+    override val allLanguages = "All languages"
+    override fun visible(counts: String) = "Visible: $counts"
+    override val playback = "Playback"
+    override val playbackHint = "Stream format for live TV. TS starts faster on most IPTV servers; HLS is sometimes more stable. " +
+        "If one doesn't work, the app automatically tries the other."
+    override val formatAuto = "Automatic"
+    override val updates = "Updates"
+    override val account = "Account"
+    override val server = "Server"
+    override val user = "User"
+    override val status = "Status"
+    override val expiresOn = "Expires on"
+    override val unlimited = "Unlimited"
+    override val connections = "Connections"
+    override fun connectionsInUse(active: Int, max: Int) = "$active of $max in use"
+    override val library = "Library"
+    override val total = "Total"
+    override val updated = "Updated"
+    override val refreshing = "Refreshing…"
+    override val refreshLists = "Refresh lists"
+    override val logout = "Sign out"
+    override val logoutQuestion = "Sign out?"
+    override val logoutWarning = "You'll need to enter the server, username and password again."
+    override val settingsFooter = "Lists are refreshed automatically every 12 hours. While watching: left/right skips back 10 s or forward 30 s; " +
+        "on live TV, up/down zaps through the channels in the category."
+
+    override val back = "Back"
+    override val rewind10 = "Back 10 seconds"
+    override val nextEpisode = "Next episode"
+    override val otherTracks = "Other…"
+    override val playbackSpeed = "Playback speed"
+    override val episodesAndMore = "Episodes and more"
+    override val audioAndSubtitles = "Audio and subtitles"
+    override val addToFavorites = "Add to favorites"
+    override val watchCredits = "Watch credits"
+    override val pause = "Pause"
+    override val audio = "Audio"
+    override val subtitles = "Subtitles"
+    override val defaultAudio = "Default audio"
+    override fun withSubtitles(audio: String, subtitle: String) = "$audio with subtitles ($subtitle)"
+    override val noChoice = "No options available."
+    override val off = "Off"
+    override val normalSpeed = "Normal"
+}
