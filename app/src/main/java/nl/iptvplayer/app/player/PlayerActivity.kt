@@ -50,10 +50,8 @@ class PlayerActivity : ComponentActivity() {
     /** Scherm aan en mediasessie zolang er iets speelt. */
     private var session: PlaybackSession? = null
 
-    /** Items waarvoor de fallback-URL al geprobeerd is. */
-    private val usedFallback = HashSet<String>()
-    /** Live: aantal herstartpogingen sinds het laatste beeld (netwerkhapering). */
-    private var liveRetries = 0
+    /** Ander formaat proberen of opnieuw starten na een fout (zelfde regels als het voorbeeld in Live). */
+    private val recovery = StreamRecovery()
     private var resumeIndex = 0
     private var resumePosition = 0L
 
@@ -68,7 +66,10 @@ class PlayerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         app = application as App
-        queue = app.pendingQueue ?: run { finish(); return }
+        // Na het afsluiten door Android is het geheugen leeg: dan de bewaarde wachtrij terughalen.
+        queue = app.pendingQueue
+            ?: savedInstanceState?.let { restoreQueue() }?.also { app.pendingQueue = it }
+            ?: run { finish(); return }
         resumeIndex = savedInstanceState?.getInt("index") ?: queue.startIndex
         resumePosition = savedInstanceState?.getLong("position")
             ?: if (queue.isLive) C.TIME_UNSET else queue.startPositionMs
@@ -135,7 +136,19 @@ class PlayerActivity : ComponentActivity() {
         super.onSaveInstanceState(outState)
         outState.putInt("index", resumeIndex)
         outState.putLong("position", resumePosition)
+        if (::queue.isInitialized) runCatching { queueFile().writeText(queue.toJson()) }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Gewoon gesloten: de bewaarde wachtrij is niet meer nodig (bevat ook de stream-URL's).
+        if (isFinishing) queueFile().delete()
+    }
+
+    private fun queueFile() = java.io.File(cacheDir, "player-queue.json")
+
+    private fun restoreQueue(): PlaybackQueue? =
+        runCatching { playbackQueueFromJson(queueFile().readText()) }.getOrNull()
 
     private fun initPlayer() {
         val dataSource = OkHttpDataSource.Factory(app.http).setUserAgent(App.USER_AGENT)
@@ -156,7 +169,9 @@ class PlayerActivity : ComponentActivity() {
         exo.repeatMode = if (queue.isLive) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF
         exo.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                liveRetries = 0
+                // Alleen de pogingen opnieuw tellen; welke zenders het andere formaat al kregen, blijft bewaard
+                // (een vervangen item geeft ook een overgang, en mag dan niet nog eens terugvallen).
+                recovery.onPlaying()
                 // Automatisch door naar de volgende aflevering: de vorige is uitgekeken.
                 if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && !queue.isLive) {
                     finishItem(exo.currentMediaItemIndex - 1)
@@ -164,7 +179,7 @@ class PlayerActivity : ComponentActivity() {
             }
 
             override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_READY) liveRetries = 0
+                if (state == Player.STATE_READY) recovery.onPlaying()
                 if (state == Player.STATE_ENDED && !queue.isLive) {
                     saveProgress()
                     finish()
@@ -173,22 +188,25 @@ class PlayerActivity : ComponentActivity() {
 
             override fun onPlayerError(error: PlaybackException) {
                 val item = queue.items.getOrNull(exo.currentMediaItemIndex) ?: return
-                if (item.fallbackUrl != null && usedFallback.add(item.key)) {
-                    exo.replaceMediaItem(exo.currentMediaItemIndex, toMediaItem(item, item.fallbackUrl))
-                    exo.prepare()
-                    exo.play()
-                    return
-                }
-                // Live na een netwerkhapering: een paar keer opnieuw starten in plaats van stil te blijven staan.
-                if (queue.isLive && liveRetries < LIVE_RETRIES) {
-                    liveRetries++
-                    handler.postDelayed({
-                        if (player === exo) {
-                            exo.prepare()
-                            exo.play()
-                        }
-                    }, 2_000L * liveRetries)
-                    return
+                when (val action = recovery.onError(item.key, item.fallbackUrl, queue.isLive, error.errorCode)) {
+                    is StreamRecovery.Action.UseFallback -> {
+                        exo.replaceMediaItem(exo.currentMediaItemIndex, toMediaItem(item, action.url))
+                        exo.prepare()
+                        exo.play()
+                        return
+                    }
+                    // Netwerkhapering: even wachten en opnieuw; een film gaat verder waar hij was.
+                    is StreamRecovery.Action.Retry -> {
+                        handler.postDelayed({
+                            if (player === exo) {
+                                if (action.toLiveEdge) exo.seekToDefaultPosition()
+                                exo.prepare()
+                                exo.play()
+                            }
+                        }, action.delayMs)
+                        return
+                    }
+                    StreamRecovery.Action.GiveUp -> Unit
                 }
                 Toast.makeText(
                     this@PlayerActivity,
@@ -280,7 +298,4 @@ class PlayerActivity : ComponentActivity() {
         )
     }
 
-    private companion object {
-        const val LIVE_RETRIES = 3
-    }
 }
