@@ -1,6 +1,9 @@
 package nl.iptvplayer.app.ui
 
 import nl.iptvplayer.app.i18n.S
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.tv.material3.Border
 import androidx.compose.foundation.BorderStroke
 import android.os.SystemClock
@@ -102,6 +105,7 @@ import nl.iptvplayer.app.data.Kind
 import nl.iptvplayer.app.data.Library
 import nl.iptvplayer.app.data.MediaItem
 import nl.iptvplayer.app.data.TextMatch
+import nl.iptvplayer.app.player.PlaybackSession
 import nl.iptvplayer.app.player.fastStartLoadControl
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -233,8 +237,10 @@ fun LiveTab(vm: AppViewModel, library: Library) {
             }
         }
         player.addListener(listener)
+        val session = context.findActivity()?.let { PlaybackSession(it, player) }
         onDispose {
             player.removeListener(listener)
+            session?.release()
             player.release()
             vm.liveFullscreen = false
         }
@@ -441,7 +447,6 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                         this.player = player
                         resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                         setShutterBackgroundColor(android.graphics.Color.BLACK)
-                        keepScreenOn = true
                         isFocusable = false
                         descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
                     }
@@ -647,4 +652,10 @@ private fun CenterNote(text: String) {
     Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
         Text(text, style = MaterialTheme.typography.bodySmall, color = Palette.textMuted, textAlign = TextAlign.Center)
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

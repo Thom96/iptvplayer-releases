@@ -47,6 +47,8 @@ class PlayerActivity : ComponentActivity() {
     private lateinit var playerView: PlayerView
     /** De speler; Compose tekent de bediening zodra hij er is. */
     private var player by mutableStateOf<ExoPlayer?>(null)
+    /** Scherm aan en mediasessie zolang er iets speelt. */
+    private var session: PlaybackSession? = null
 
     /** Items waarvoor de fallback-URL al geprobeerd is. */
     private val usedFallback = HashSet<String>()
@@ -74,7 +76,6 @@ class PlayerActivity : ComponentActivity() {
         // Alleen het beeld en de ondertiteling; de bediening is eigen Compose-code (PlayerControls).
         playerView = PlayerView(this).apply {
             useController = false
-            keepScreenOn = true
             isFocusable = false
             descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
             setShutterBackgroundColor(Color.BLACK)
@@ -199,6 +200,7 @@ class PlayerActivity : ComponentActivity() {
         exo.playWhenReady = true
         exo.prepare()
         player = exo
+        session = PlaybackSession(this, exo)
         handler.postDelayed(saveTicker, 10_000)
     }
 
@@ -211,6 +213,8 @@ class PlayerActivity : ComponentActivity() {
         resumeIndex = exo.currentMediaItemIndex
         resumePosition = if (queue.isLive) C.TIME_UNSET else exo.currentPosition.coerceAtLeast(0)
         player = null
+        session?.release()
+        session = null
         playerView.player = null
         exo.release()
     }
