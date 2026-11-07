@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.Button
+import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.Card
 import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.ClickableSurfaceDefaults
@@ -135,7 +136,7 @@ fun Modifier.tapToClick(onClick: () -> Unit, onLongClick: (() -> Unit)? = null):
 
 @Composable
 private fun focusBorder() = CardDefaults.border(
-    focusedBorder = Border(BorderStroke(3.dp, Color.White), shape = CardShape),
+    focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = CardShape),
 )
 
 /** Poster voor een film of serie (2:3). Lang indrukken = favoriet aan/uit. */
@@ -173,7 +174,7 @@ fun PosterCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     if (isWatched) Badge(Icons.Filled.CheckCircle, Palette.accent)
-                    if (isFavorite) Badge(Icons.Filled.Favorite, Color(0xFFFF5A6E))
+                    if (isFavorite) Badge(Icons.Filled.Favorite, Palette.favorite)
                 }
                 if (item.rating > 0) {
                     Row(
@@ -262,7 +263,7 @@ fun ChannelCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            if (isFavorite) Icon(Icons.Filled.Favorite, null, Modifier.size(16.dp), tint = Color(0xFFFF5A6E))
+            if (isFavorite) Icon(Icons.Filled.Favorite, null, Modifier.size(16.dp), tint = Palette.favorite)
         }
     }
 }
@@ -305,12 +306,12 @@ fun ProgressCard(progress: Progress, onClick: () -> Unit, modifier: Modifier = M
 
 @Composable
 fun ProgressBar(fraction: Float, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(4.dp).background(Color(0x66FFFFFF))) {
-        Box(Modifier.fillMaxWidth(fraction).height(4.dp).background(Palette.text))
+    Box(modifier.fillMaxWidth().height(4.dp).background(Palette.text.copy(alpha = 0.2f))) {
+        Box(Modifier.fillMaxWidth(fraction).height(4.dp).background(Palette.accent))
     }
 }
 
-/** Selecteerbare knop voor categorieën, sorteringen en seizoenen. */
+/** Selecteerbare knop voor categorieën, sorteringen en seizoenen: actief = zilverwit, focus = champagne rand. */
 @Composable
 fun ChipButton(
     text: String,
@@ -323,12 +324,15 @@ fun ChipButton(
     Surface(
         onClick = onClick,
         modifier = modifier.tapToClick(onClick),
-        shape =ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) Palette.text.copy(alpha = 0.10f) else Color.Transparent,
-            contentColor = if (selected) Palette.text else Palette.textMuted,
-            focusedContainerColor = Palette.text,
-            focusedContentColor = Palette.background,
+            containerColor = if (selected) Palette.text else Color.Transparent,
+            contentColor = if (selected) Palette.background else Palette.textMuted,
+            focusedContainerColor = if (selected) Palette.text else Palette.surfaceFocused,
+            focusedContentColor = if (selected) Palette.background else Palette.text,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = RoundedCornerShape(12.dp)),
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
     ) {
@@ -355,8 +359,21 @@ fun ChipButton(
 }
 
 @Composable
-fun ActionButton(text: String, icon: ImageVector?, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Button(onClick = onClick, modifier = modifier.tapToClick(onClick)) {
+fun ActionButton(text: String, icon: ImageVector?, onClick: () -> Unit, modifier: Modifier = Modifier, primary: Boolean = false) {
+    // Brandbook: pil; primair = zilverwit, secundair = lichte laag; focus = champagne rand.
+    Button(
+        onClick = onClick,
+        modifier = modifier.tapToClick(onClick),
+        colors = ButtonDefaults.colors(
+            containerColor = if (primary) Palette.text else Palette.surfaceFocused,
+            contentColor = if (primary) Palette.background else Palette.text,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
+        ),
+        border = ButtonDefaults.border(
+            focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = RoundedCornerShape(50)),
+        ),
+    ) {
         if (icon != null) {
             Icon(icon, null, Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))

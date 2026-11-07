@@ -1,28 +1,34 @@
 package nl.iptvplayer.app.ui
 
 import android.app.Activity
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import nl.iptvplayer.app.R
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.LiveTv
+import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,38 +42,43 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.foundation.focusGroup
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import nl.iptvplayer.app.AppViewModel
+import nl.iptvplayer.app.R
 import nl.iptvplayer.app.data.Kind
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
-// Volgorde = volgorde in de balk, zoals Netflix: logo, tekstlinks, en rechts de iconen.
-enum class HomeTab(val label: String, val icon: ImageVector? = null) {
-    HOME("Home"),
-    LIVE("Live TV"),
-    SERIES("Series"),
-    MOVIES("Films"),
-    FAVORITES("Favorieten"),
-    CATCHUP("Terugkijken"),
+/** Volgorde = volgorde in de zijbalk, van boven naar beneden; instellingen staan los onderaan. */
+enum class HomeTab(val label: String, val icon: ImageVector) {
     SEARCH("Zoeken", Icons.Outlined.Search),
+    HOME("Home", Icons.Outlined.Home),
+    LIVE("Live TV", Icons.Outlined.LiveTv),
+    SERIES("Series", Icons.Outlined.VideoLibrary),
+    MOVIES("Films", Icons.Outlined.Movie),
+    FAVORITES("Favorieten", Icons.Outlined.FavoriteBorder),
+    CATCHUP("Terugkijken", Icons.Outlined.History),
     SETTINGS("Instellingen", Icons.Outlined.Settings),
 }
+
+/** Breedte van de ingeklapte zijbalk; de inhoud begint hier rechts van. */
+private val RailWidth = 76.dp
+private val RailExpandedWidth = 248.dp
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -94,7 +105,7 @@ fun HomeScreen(vm: AppViewModel) {
         }
     }
 
-    // Terug: eerst naar de navigatiebalk, dan naar Home, dan de app sluiten.
+    // Terug: eerst naar de zijbalk, dan naar Home, dan de app sluiten.
     BackHandler {
         when {
             !navFocused -> scope.launch { tabFocus.getValue(tab).requestSafely() }
@@ -103,40 +114,13 @@ fun HomeScreen(vm: AppViewModel) {
         }
     }
 
-    Column(Modifier.fillMaxSize()) {
-        if (!vm.liveFullscreen) {
-        Row(
-            Modifier.fillMaxWidth().padding(start = 56.dp, end = 56.dp, top = 24.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    val showRail = !vm.liveFullscreen
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(start = if (showRail) RailWidth else 0.dp, top = if (showRail) 16.dp else 0.dp),
         ) {
-            NavLogo()
-            Spacer(Modifier.width(20.dp))
-            Row(
-                Modifier
-                    .weight(1f)
-                    // Vanuit de inhoud altijd op het actieve tabblad uitkomen, niet op het tabblad dat er toevallig
-                    // boven ligt: focus = selecteren, dus dat zou meteen van tabblad wisselen.
-                    .focusProperties { enter = { tabFocus.getValue(tab) } }
-                    .focusGroup()
-                    .onFocusChanged { navFocused = it.hasFocus },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                HomeTab.entries.forEach { t ->
-                    val mod = Modifier.focusRequester(tabFocus.getValue(t))
-                    when {
-                        // Eerste icoon (zoeken) duwt de iconen naar rechts.
-                        t == HomeTab.SEARCH -> {
-                            Spacer(Modifier.weight(1f))
-                            NavIconItem(t.icon!!, t.label, selected = t == tab, onSelect = { tab = t }, modifier = mod)
-                        }
-                        t.icon != null -> NavIconItem(t.icon, t.label, selected = t == tab, onSelect = { tab = t }, modifier = mod)
-                        else -> NavTextItem(t.label, selected = t == tab, onSelect = { tab = t }, modifier = mod)
-                    }
-                }
-            }
-        }
-        }
-        Box(Modifier.weight(1f).fillMaxWidth()) {
             tabHolder.SaveableStateProvider(tab.name) {
                 when (tab) {
                     HomeTab.HOME -> StartTab(vm, library)
@@ -150,63 +134,105 @@ fun HomeScreen(vm: AppViewModel) {
                 }
             }
         }
+        if (showRail) {
+            NavRail(
+                current = tab,
+                expanded = navFocused,
+                tabFocus = tabFocus,
+                onSelect = { tab = it },
+                modifier = Modifier
+                    .zIndex(1f)
+                    // Vanuit de inhoud altijd op het actieve tabblad uitkomen, niet op het item dat er toevallig
+                    // naast ligt: focus = selecteren, dus dat zou meteen van tabblad wisselen.
+                    .focusProperties { enter = { tabFocus.getValue(tab) } }
+                    .focusGroup()
+                    .onFocusChanged { navFocused = it.hasFocus },
+            )
+        }
     }
 }
 
-/** Tabblad als pil, zoals Google TV: wit bij focus, licht grijs als het actief is. */
+/**
+ * Zijbalk uit het brandbook: iconen op de donkerste laag, klapt uit met labels zodra hij focus heeft.
+ * Uitgeklapt ligt hij over de inhoud heen, zodat die niet verspringt.
+ */
 @Composable
-private fun NavTextItem(label: String, selected: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier) {
+private fun NavRail(
+    current: HomeTab,
+    expanded: Boolean,
+    tabFocus: Map<HomeTab, FocusRequester>,
+    onSelect: (HomeTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val width by animateDpAsState(if (expanded) RailExpandedWidth else RailWidth, label = "rail")
+    Box(modifier.fillMaxHeight().width(width)) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Palette.rail),
+        )
+        Column(
+            // Past binnen 540 dp hoogte (Chromecast met Google TV: 1920×1080 bij dichtheid 2).
+            Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(Modifier.height(44.dp).padding(start = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Ingeklapt alleen de o, uitgeklapt het hele woordmerk.
+                if (expanded) {
+                    GalloWordmark(size = 30.sp)
+                } else {
+                    Image(painterResource(R.drawable.gallo_o), contentDescription = "Gallo", modifier = Modifier.size(width = 28.dp, height = 35.dp))
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            HomeTab.entries.forEach { t ->
+                if (t == HomeTab.SETTINGS) Spacer(Modifier.weight(1f))
+                RailItem(
+                    tab = t,
+                    selected = t == current,
+                    expanded = expanded,
+                    onSelect = { onSelect(t) },
+                    modifier = Modifier.focusRequester(tabFocus.getValue(t)),
+                )
+            }
+        }
+    }
+}
+
+/** Item in de zijbalk: actief = zilverwit vlak, focus = champagne rand (zoals overal in de app). */
+@Composable
+private fun RailItem(tab: HomeTab, selected: Boolean, expanded: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(12.dp)
     Surface(
         onClick = onSelect,
         modifier = modifier
-            .padding(horizontal = 3.dp)
+            .height(44.dp)
+            .fillMaxWidth()
             .onFocusChanged { if (it.isFocused) onSelect() }
             .tapToClick(onSelect),
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
+        shape = ClickableSurfaceDefaults.shape(shape),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) Color.White.copy(alpha = 0.12f) else Color.Transparent,
-            contentColor = if (selected) Palette.text else Palette.textMuted,
-            focusedContainerColor = Palette.text,
-            focusedContentColor = Palette.background,
+            containerColor = if (selected) Palette.text else Color.Transparent,
+            contentColor = if (selected) Palette.background else Palette.textMuted,
+            focusedContainerColor = if (selected) Palette.text else Palette.surfaceFocused,
+            focusedContentColor = if (selected) Palette.background else Palette.text,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = shape),
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
     ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 13.dp, vertical = 9.dp),
-        )
-    }
-}
-
-@Composable
-private fun NavIconItem(icon: ImageVector, label: String, selected: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        onClick = onSelect,
-        modifier = modifier
-            .padding(horizontal = 4.dp)
-            .size(48.dp)
-            .onFocusChanged { if (it.isFocused) onSelect() }
-            .tapToClick(onSelect),
-        shape = ClickableSurfaceDefaults.shape(CircleShape),
-        colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) Color.White.copy(alpha = 0.12f) else Color.Transparent,
-            contentColor = if (selected) Palette.text else Palette.textMuted,
-            focusedContainerColor = Palette.text,
-            focusedContentColor = Palette.background,
-        ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
-    ) {
-        Icon(icon, label, Modifier.align(Alignment.Center).size(24.dp))
-    }
-}
-
-/** Logo linksboven, zoals bij Netflix: tv-icoon + "PopcornTime" in de kleuren van de banner. */
-@Composable
-private fun NavLogo() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Image(painterResource(R.drawable.logo), contentDescription = null, modifier = Modifier.size(40.dp))
-        Text("Popcorn", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFFFF3E0))
-        Text("Time", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFFFC93C))
+        Row(Modifier.fillMaxSize().padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(tab.icon, tab.label, Modifier.size(24.dp))
+            if (expanded) {
+                Text(
+                    tab.label,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 16.dp),
+                )
+            }
+        }
     }
 }

@@ -257,9 +257,9 @@ fun PlayerControls(
                     Modifier.align(Alignment.TopEnd).padding(end = 56.dp, top = 40.dp).widthIn(max = 640.dp),
                     horizontalAlignment = Alignment.End,
                 ) {
-                    Text(item?.title.orEmpty(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(item?.title.orEmpty(), style = MaterialTheme.typography.headlineSmall, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     item?.subtitle?.let {
-                        Text(it, style = MaterialTheme.typography.titleMedium, color = Palette.brandCream, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(it, style = MaterialTheme.typography.titleMedium, color = Palette.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
 
@@ -274,7 +274,7 @@ fun PlayerControls(
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
-                                modifier = Modifier.background(Palette.brandRed, RoundedCornerShape(6.dp)).padding(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.background(Palette.live, RoundedCornerShape(6.dp)).padding(horizontal = 12.dp, vertical = 4.dp),
                             )
                         } else {
                             Text(formatTime(position), style = MaterialTheme.typography.titleMedium, color = Color.White, modifier = Modifier.width(96.dp))
@@ -362,8 +362,8 @@ private fun SeriesIntroOverlay(
             .fillMaxSize()
             .background(
                 Brush.horizontalGradient(
-                    0f to Palette.brandNavy.copy(alpha = 0.96f),
-                    0.42f to Palette.brandNavy.copy(alpha = 0.85f),
+                    0f to Palette.background.copy(alpha = 0.96f),
+                    0.42f to Palette.background.copy(alpha = 0.85f),
                     0.72f to Color.Transparent,
                 ),
             ),
@@ -372,7 +372,7 @@ private fun SeriesIntroOverlay(
             Modifier.fillMaxHeight().width(640.dp).padding(start = 64.dp, top = 48.dp, bottom = 48.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(intro.title, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Palette.brandCream, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(intro.title, style = MaterialTheme.typography.displaySmall, color = Palette.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(10.dp))
             Text(intro.meta, style = MaterialTheme.typography.titleSmall, color = Palette.textMuted)
             intro.plot?.let {
@@ -405,8 +405,8 @@ private fun IntroButton(icon: ImageVector, text: String, onClick: () -> Unit, mo
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
             contentColor = Color.White,
-            focusedContainerColor = Palette.brandCream,
-            focusedContentColor = Palette.brandNavy,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
     ) {
@@ -457,13 +457,13 @@ private fun NextEpisodePrompt(
             modifier = Modifier.fillMaxWidth().focusRequester(playFocus).tapToClick(onPlay),
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
             colors = ClickableSurfaceDefaults.colors(
-                containerColor = Palette.brandCream,
-                contentColor = Palette.brandNavy,
-                focusedContainerColor = Palette.brandCream,
-                focusedContentColor = Palette.brandNavy,
+                containerColor = Palette.text,
+                contentColor = Palette.background,
+                focusedContainerColor = Palette.text,
+                focusedContentColor = Palette.background,
             ),
             border = ClickableSurfaceDefaults.border(
-                focusedBorder = androidx.tv.material3.Border(BorderStroke(3.dp, Palette.brandYellow), shape = RoundedCornerShape(12.dp)),
+                focusedBorder = androidx.tv.material3.Border(BorderStroke(3.dp, Palette.accent), shape = RoundedCornerShape(12.dp)),
             ),
             scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
         ) {
@@ -473,7 +473,7 @@ private fun NextEpisodePrompt(
                     Modifier
                         .matchParentSize()
                         .fillMaxWidth(elapsed.toFloat() / NEXT_COUNTDOWN_MS)
-                        .background(Palette.brandYellow.copy(alpha = 0.45f)),
+                        .background(Palette.accent.copy(alpha = 0.45f)),
                 )
                 Row(Modifier.padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.PlayArrow, null, Modifier.size(30.dp))
@@ -502,8 +502,8 @@ private fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Uni
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
             contentColor = Color.White,
-            focusedContainerColor = Palette.brandCream,
-            focusedContentColor = Palette.brandNavy,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.08f),
     ) {
@@ -519,13 +519,13 @@ private fun PlayPauseButton(isPlaying: Boolean, onClick: () -> Unit, modifier: M
         modifier = modifier.size(60.dp).tapToClick(onClick),
         shape = ClickableSurfaceDefaults.shape(CircleShape),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Palette.brandCream,
-            contentColor = Palette.brandNavy,
-            focusedContainerColor = Palette.brandCream,
-            focusedContentColor = Palette.brandNavy,
+            containerColor = Palette.text,
+            contentColor = Palette.background,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
         ),
         border = ClickableSurfaceDefaults.border(
-            focusedBorder = androidx.tv.material3.Border(BorderStroke(4.dp, Palette.brandYellow), shape = CircleShape),
+            focusedBorder = androidx.tv.material3.Border(BorderStroke(4.dp, Palette.accent), shape = CircleShape),
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
     ) {
@@ -563,14 +563,14 @@ private fun SeekBar(position: Long, duration: Long, onSeek: (Long) -> Unit, modi
         contentAlignment = Alignment.CenterStart,
     ) {
         Box(Modifier.fillMaxWidth().height(barHeight).background(Color(0x55FFFFFF), RoundedCornerShape(4.dp)))
-        Box(Modifier.fillMaxWidth(fraction).height(barHeight).background(Palette.brandRed, RoundedCornerShape(4.dp)))
+        Box(Modifier.fillMaxWidth(fraction).height(barHeight).background(Palette.accent, RoundedCornerShape(4.dp)))
         // De bol staat op de positie in de balk.
         Box(Modifier.fillMaxWidth(fraction), contentAlignment = Alignment.CenterEnd) {
             Box(
                 Modifier
                     .offset(x = thumb / 2)
                     .size(thumb)
-                    .background(Palette.brandYellow, CircleShape)
+                    .background(Palette.accent, CircleShape)
                     .then(if (focused) Modifier.border(2.dp, Color.White, CircleShape) else Modifier),
             )
         }
@@ -586,8 +586,8 @@ private fun Pill(text: String, onClick: () -> Unit, checked: Boolean = false) {
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color(0x33FFFFFF),
             contentColor = Color.White,
-            focusedContainerColor = Palette.brandCream,
-            focusedContentColor = Palette.brandNavy,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.04f),
     ) {
@@ -701,7 +701,7 @@ private fun SidePanel(width: Int = 720, content: @Composable () -> Unit) {
             Modifier
                 .fillMaxHeight()
                 .width(width.dp)
-                .background(Palette.brandNavy)
+                .background(Palette.background)
                 .padding(horizontal = 40.dp, vertical = 48.dp),
         ) { content() }
     }
@@ -726,14 +726,14 @@ private fun PanelOption(text: String, selected: Boolean, onClick: () -> Unit, mo
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
             contentColor = if (selected) Color.White else Palette.textMuted,
-            focusedContainerColor = Palette.brandCream,
-            focusedContentColor = Palette.brandNavy,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
     ) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(28.dp)) {
-                if (selected) Icon(Icons.Filled.Check, null, Modifier.size(20.dp), tint = Palette.brandYellow)
+                if (selected) Icon(Icons.Filled.Check, null, Modifier.size(20.dp), tint = Palette.accent)
             }
             Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
         }

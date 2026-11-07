@@ -212,7 +212,7 @@ private fun ExpandingCard(
         modifier = modifier.tapToClick(onClick, onLongClick).width(width).height(CARD_HEIGHT),
         shape = CardDefaults.shape(cardShape),
         scale = CardDefaults.scale(focusedScale = 1f),
-        border = CardDefaults.border(focusedBorder = Border(BorderStroke(3.dp, Color.White), shape = cardShape)),
+        border = CardDefaults.border(focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = cardShape)),
         colors = CardDefaults.colors(containerColor = Palette.surface),
     ) {
         Box(Modifier.fillMaxSize()) {
@@ -257,7 +257,7 @@ private fun ExpandingCard(
             }
             Row(Modifier.align(Alignment.TopEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (isWatched) Icon(Icons.Filled.CheckCircle, null, Modifier.size(16.dp), tint = Palette.accent)
-                if (isFavorite) Icon(Icons.Filled.Favorite, null, Modifier.size(16.dp), tint = Color(0xFFFF5A6E))
+                if (isFavorite) Icon(Icons.Filled.Favorite, null, Modifier.size(16.dp), tint = Palette.favorite)
             }
         }
     }

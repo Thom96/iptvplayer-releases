@@ -1,0 +1,114 @@
+# Bouwt de app, ondertekent hem met de eigen sleutel en zet hem online als GitHub-release.
+# De knop "Controleren op updates" in de app leest version.json uit de nieuwste release.
+#
+# Starten:
+#  - een commit pushen (op elke branch) met in het bericht een regel die begint met
+#    "[publiceren]"; de rest van die regel wordt de "wat is er nieuw"-tekst, of
+#  - Actions -> Publiceren -> Run workflow (als dit bestand op main staat).
+#
+# Nodig (Settings -> Secrets and variables -> Actions):
+#   KEYSTORE_BASE64    release.jks als base64
+#   KEYSTORE_PASSWORD  storePassword uit keystore.properties
+#   KEY_ALIAS          keyAlias uit keystore.properties
+#   KEY_PASSWORD       keyPassword uit keystore.properties
+name: Publiceren
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "Wat is er nieuw"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publiceren
+  cancel-in-progress: false
+
+jobs:
+  publiceren:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[publiceren]')
+    runs-on: ubuntu-latest
+    env:
+      TZ: Europe/Amsterdam # versienaam bevat datum en tijd
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Zonder de eigen sleutel valt de build terug op een debugsleutel; zo'n APK kan niet over de
+      # geïnstalleerde app heen. Dan liever stoppen.
+      - name: Sleutel klaarzetten
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "::error::Secret $v ontbreekt"; exit 1; fi
+          done
+          echo "$KEYSTORE_BASE64" | base64 -d > release.jks
+          {
+            echo "storeFile=release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Bouwen
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          bash ./gradlew --no-daemon assembleRelease testReleaseUnitTest
+          # build.gradle.kts zet de build-uitvoer in java.io.tmpdir (/tmp) als LOCALAPPDATA ontbreekt.
+          cp /tmp/IPTVPlayer-build/app/outputs/apk/release/app-release.apk IPTVPlayer.apk
+
+      - name: Versie en handtekening controleren
+        id: versie
+        run: |
+          BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$BT/apksigner" verify --print-certs IPTVPlayer.apk | tee certs.txt
+          if grep -q "CN=Android Debug" certs.txt; then echo "::error::APK is met de debugsleutel ondertekend"; exit 1; fi
+          BADGING=$("$BT/aapt2" dump badging IPTVPlayer.apk | head -1)
+          CODE=$(echo "$BADGING" | sed -E "s/.*versionCode='([0-9]+)'.*/\1/")
+          NAME=$(echo "$BADGING" | sed -E "s/.*versionName='([^']*)'.*/\1/")
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Release maken
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODE: ${{ steps.versie.outputs.code }}
+          NAME: ${{ steps.versie.outputs.name }}
+          INPUT_NOTES: ${{ github.event.inputs.notes }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          NOTES="$INPUT_NOTES"
+          # Bij een push: de rest van de regel "[publiceren] ..." uit het commitbericht.
+          if [ -z "$NOTES" ]; then
+            NOTES=$(printf '%s\n' "$COMMIT_MESSAGE" | grep -m1 '^\[publiceren\]' | sed 's/^\[publiceren\][[:space:]]*//')
+          fi
+          TAG="v$CODE"
+          jq -n --argjson code "$CODE" --arg name "$NAME" --arg notes "$NOTES" \
+            --arg url "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/IPTVPlayer.apk" \
+            '{versionCode: $code, versionName: $name, apkUrl: $url, notes: $notes}' > version.json
+          cat version.json
+          gh release create "$TAG" IPTVPlayer.apk version.json \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Versie $NAME" --notes "${NOTES:-Versie $NAME}" --latest
+
+      - name: Sleutel weghalen
+        if: always()
+        run: rm -f release.jks keystore.properties

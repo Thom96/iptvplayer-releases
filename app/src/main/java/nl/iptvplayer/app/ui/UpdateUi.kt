@@ -80,7 +80,7 @@ fun UpdateSection(vm: AppViewModel) {
         is UpdateState.Failed -> "Controleren mislukt: ${state.message}"
         is UpdateState.Available -> "Nieuwe versie beschikbaar: ${state.info.versionName}"
         is UpdateState.NeedsPermission ->
-            "Sta eenmalig toe dat PopcornTime apps mag installeren (zet de schakelaar aan en ga terug). Daarna gaat het bijwerken vanzelf verder."
+            "Sta eenmalig toe dat Gallo apps mag installeren (zet de schakelaar aan en ga terug). Daarna gaat het bijwerken vanzelf verder."
         else -> null
     }
     if (state is UpdateState.Downloading) {

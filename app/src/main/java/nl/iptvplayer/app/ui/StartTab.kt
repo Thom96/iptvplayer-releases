@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,6 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,18 +30,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import coil.compose.AsyncImage
 import nl.iptvplayer.app.AppViewModel
 import nl.iptvplayer.app.data.Kind
 import nl.iptvplayer.app.data.Library
 import nl.iptvplayer.app.data.MediaItem
+import nl.iptvplayer.app.data.Progress
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -79,7 +90,16 @@ fun StartTab(vm: AppViewModel, library: Library) {
         firstRecentFocus.requestSafely()
     }
 
+    // Het laatst bekeken programma staat groot bovenaan, zoals in het brandbook.
+    val latest = remember(progress) { progress.maxByOrNull { it.updatedAt } }
+
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 40.dp)) {
+        latest?.let { p ->
+            item(key = "hero") {
+                ContinueHero(p, onPlay = { vm.resume(context, p) }, buttonModifier = Modifier.restoreFocus(restorer, "hero"))
+            }
+        }
+
         // 1. Live TV
         if (recentLive.isNotEmpty()) groupHeader("Live TV")
         section("Recent bekeken", recentLive, { it.key }, hint = REMOVE_HINT, id = "live-recent", subRow = true, rowState = recentRow) { i, ch ->
@@ -123,6 +143,53 @@ fun StartTab(vm: AppViewModel, library: Library) {
 
     removal?.let { r ->
         ConfirmRemoval(r.title, onConfirm = { r.remove(); removal = null }, onDismiss = { removal = null })
+    }
+}
+
+/** Grote kaart bovenaan Home: beeld rechts, titel en "Verder kijken" links. */
+@Composable
+private fun ContinueHero(p: Progress, onPlay: () -> Unit, buttonModifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(24.dp)
+    Box(Modifier.fillMaxWidth().height(250.dp).padding(start = 56.dp, end = 56.dp, top = 8.dp)) {
+        Box(Modifier.fillMaxSize().clip(shape).background(Palette.surface)) {
+            AsyncImage(
+                model = p.image,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxHeight().fillMaxWidth(0.62f).align(Alignment.CenterEnd),
+            )
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.horizontalGradient(
+                        0.35f to Palette.surface,
+                        0.6f to Palette.surface.copy(alpha = 0.6f),
+                        1f to Color.Transparent,
+                    ),
+                ),
+            )
+        }
+        Column(
+            Modifier.align(Alignment.CenterStart).padding(start = 36.dp).width(520.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                "VERDER KIJKEN",
+                style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 1.5.sp),
+                color = Palette.accent,
+            )
+            Text(p.title, style = MaterialTheme.typography.displaySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            val subtitle = when {
+                p.durationMs == 0L -> "Volgende: ${p.subtitle.orEmpty()}"
+                p.subtitle != null -> "${p.subtitle} · nog ${formatRemaining(p)}"
+                else -> "Nog ${formatRemaining(p)}"
+            }
+            Text(subtitle, style = MaterialTheme.typography.bodyLarge, color = Palette.textSoft, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                ActionButton("Verder kijken", Icons.Filled.PlayArrow, onClick = onPlay, modifier = buttonModifier, primary = true)
+                if (p.durationMs > 0) ProgressBar(p.fraction, Modifier.width(220.dp))
+            }
+        }
     }
 }
 

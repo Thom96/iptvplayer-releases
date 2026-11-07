@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- App-icoon: het tv-logo op de donkere achtergrond van de banner. Het logo heeft zelf al genoeg rand. -->
+<!-- App-icoon: de o van het Gallo-logo op petrol. -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/icon_background" />
-    <foreground android:drawable="@drawable/logo" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
 </adaptive-icon>
