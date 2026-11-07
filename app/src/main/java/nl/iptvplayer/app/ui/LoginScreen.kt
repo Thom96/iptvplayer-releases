@@ -1,6 +1,8 @@
 package nl.iptvplayer.app.ui
 
 import androidx.compose.foundation.Image
+import coil.compose.AsyncImage
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -107,7 +109,27 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
 
 @Composable
 fun LoadingScreen(message: String) {
-    CenteredMessage(message, "Bij de eerste keer kan dit even duren: de volledige film- en serielijst wordt opgehaald.")
+    Column(
+        Modifier.fillMaxSize().padding(48.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // Kraaiende haan; de GIF is gemaakt met tools/haan_gif.py en kan door elke andere GIF vervangen worden.
+        AsyncImage(
+            model = R.raw.haan_laden,
+            contentDescription = null,
+            modifier = Modifier.size(160.dp),
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(message, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(10.dp))
+        Text(
+            "Bij de eerste keer kan dit even duren: de volledige film- en serielijst wordt opgehaald.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Palette.textMuted,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
 @Composable
