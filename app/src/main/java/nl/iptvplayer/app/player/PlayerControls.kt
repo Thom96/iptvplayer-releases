@@ -7,9 +7,13 @@ import nl.iptvplayer.app.i18n.AppLanguage
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
@@ -57,6 +61,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -67,7 +74,9 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -123,6 +132,7 @@ fun PlayerControls(
     var tracks by remember { mutableStateOf(player.currentTracks) }
     var position by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(0L) }
+    var buffered by remember { mutableLongStateOf(0L) }
     var speed by remember { mutableFloatStateOf(player.playbackParameters.speed) }
 
     DisposableEffect(player) {
@@ -145,6 +155,7 @@ fun PlayerControls(
         while (true) {
             position = player.currentPosition.coerceAtLeast(0)
             duration = player.duration.takeIf { it != C.TIME_UNSET && it > 0 } ?: 0
+            buffered = player.bufferedPosition.coerceAtLeast(0)
             delay(500)
         }
     }
@@ -208,6 +219,15 @@ fun PlayerControls(
     BackHandler(enabled = !visible && !introVisible) { onExit() }
     BackHandler(enabled = introVisible && panel == Panel.NONE) { onExit() }
 
+    // Spoelen en de getoonde tijden direct bijwerken (niet pas bij de volgende poll), zodat de
+    // resterende tijd meteen klopt.
+    fun seekBy(delta: Long) {
+        val max = if (duration > 0) duration else Long.MAX_VALUE
+        val target = (player.currentPosition + delta).coerceIn(0, max)
+        player.seekTo(target)
+        position = target
+    }
+
     fun togglePlay() = if (player.isPlaying) player.pause() else player.play()
 
     Box(
@@ -232,8 +252,8 @@ fun PlayerControls(
                 when (e.key) {
                     Key.DirectionUp, Key.ChannelUp -> if (isLive && queue.items.size > 1) player.seekToPreviousMediaItem() else show()
                     Key.DirectionDown, Key.ChannelDown -> if (isLive && queue.items.size > 1) player.seekToNextMediaItem() else show()
-                    Key.DirectionLeft -> if (!isLive) { player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0)); showAtSeekBar() }
-                    Key.DirectionRight -> if (!isLive) { player.seekTo(player.currentPosition + 10_000); showAtSeekBar() }
+                    Key.DirectionLeft -> if (!isLive) { seekBy(-10_000); showAtSeekBar() }
+                    Key.DirectionRight -> if (!isLive) { seekBy(10_000); showAtSeekBar() }
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> show()
                     else -> return@onPreviewKeyEvent false
                 }
@@ -284,11 +304,10 @@ fun PlayerControls(
                             Text(formatTime(position), style = MaterialTheme.typography.titleMedium, color = Color.White, modifier = Modifier.width(96.dp))
                             SeekBar(
                                 position = position,
+                                buffered = buffered,
                                 duration = duration,
                                 onSeek = { delta ->
-                                    val target = (player.currentPosition + delta).coerceIn(0, duration.coerceAtLeast(0))
-                                    player.seekTo(target)
-                                    position = target
+                                    seekBy(delta)
                                     interaction++
                                 },
                                 modifier = Modifier.weight(1f).focusRequester(seekFocus),
@@ -302,7 +321,7 @@ fun PlayerControls(
                             )
                         }
                     }
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(28.dp)) // ruimte voor het tijdlabel onder de bol
                     Row(Modifier.align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Pill(trackSummary(tracks), checked = true, onClick = { panel = Panel.TRACKS })
                         Pill(S.otherTracks, onClick = { panel = Panel.TRACKS })
@@ -515,70 +534,108 @@ private fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Uni
     }
 }
 
-/** Grote ronde afspeelknop: crème met donker icoon, met een gele rand bij focus. */
+/**
+ * Afspeelknop in dezelfde stijl als de andere ronde knoppen, maar groter: zonder focus een
+ * doorschijnende cirkel met wit icoon, met focus helemaal gevuld met een donker icoon. Het
+ * afspeel-icoon schuift iets naar rechts zodat de driehoek optisch in het midden staat, en
+ * pauze/afspelen wisselen met een korte overgang.
+ */
 @Composable
 private fun PlayPauseButton(isPlaying: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
-        modifier = modifier.size(60.dp).tapToClick(onClick),
+        modifier = modifier.size(56.dp).tapToClick(onClick),
         shape = ClickableSurfaceDefaults.shape(CircleShape),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Palette.text,
-            contentColor = Palette.background,
+            containerColor = Color(0x33FFFFFF),
+            contentColor = Color.White,
             focusedContainerColor = Palette.text,
             focusedContentColor = Palette.background,
         ),
-        border = ClickableSurfaceDefaults.border(
-            focusedBorder = androidx.tv.material3.Border(BorderStroke(4.dp, Palette.accent), shape = CircleShape),
-        ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.1f),
     ) {
-        Icon(
-            if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            if (isPlaying) S.pause else S.play,
-            Modifier.align(Alignment.Center).size(34.dp),
-        )
+        Crossfade(isPlaying, Modifier.align(Alignment.Center), label = "playPause") { playing ->
+            Icon(
+                if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                if (playing) S.pause else S.play,
+                Modifier.size(32.dp).offset(x = if (playing) 0.dp else 2.dp),
+            )
+        }
     }
 }
 
 /**
- * Tijdbalk: rood afgespeeld deel met een gele bol. Met focus wordt hij dikker en spoel je met
- * links/rechts 10 s (vasthouden = snel spoelen).
+ * Tijdbalk in één Canvas: grijze achtergrond, lichtere gebufferde strook, afgespeeld deel in de accentkleur en
+ * een bol met vaste grootte. Zonder focus is het een dunne balk met een kleine witte bol; met focus
+ * wordt hij dikker, krijgt de bol de accentkleur en staat de tijd eronder. Links/rechts spoelt, en hoe langer
+ * je de knop vasthoudt, hoe groter de stap (zie [seekStep]).
  */
 @Composable
-private fun SeekBar(position: Long, duration: Long, onSeek: (Long) -> Unit, modifier: Modifier = Modifier) {
+private fun SeekBar(position: Long, buffered: Long, duration: Long, onSeek: (Long) -> Unit, modifier: Modifier = Modifier) {
     var focused by remember { mutableStateOf(false) }
     val fraction = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
-    val barHeight = if (focused) 8.dp else 5.dp
-    val thumb = if (focused) 22.dp else 14.dp
-    Box(
+    val bufferedFraction = if (duration > 0) (buffered.toFloat() / duration).coerceIn(fraction, 1f) else 0f
+    val barHeight by animateDpAsState(if (focused) 8.dp else 4.dp, label = "barHeight")
+    val thumbRadius by animateDpAsState(if (focused) 12.dp else 7.dp, label = "thumbRadius")
+    val thumbColor by animateColorAsState(if (focused) Palette.accent else Color.White, label = "thumbColor")
+    val textMeasurer = rememberTextMeasurer()
+    val labelStyle = MaterialTheme.typography.labelLarge.copy(color = Color.White, fontWeight = FontWeight.SemiBold)
+    Canvas(
         modifier
             .height(40.dp)
             .onFocusChanged { focused = it.isFocused }
             .onPreviewKeyEvent { e ->
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (e.key) {
-                    Key.DirectionLeft -> { onSeek(-10_000); true }
-                    Key.DirectionRight -> { onSeek(10_000); true }
+                    Key.DirectionLeft -> { onSeek(-seekStep(e.nativeKeyEvent.repeatCount)); true }
+                    Key.DirectionRight -> { onSeek(seekStep(e.nativeKeyEvent.repeatCount)); true }
                     else -> false
                 }
             }
             .focusable(),
-        contentAlignment = Alignment.CenterStart,
     ) {
-        Box(Modifier.fillMaxWidth().height(barHeight).background(Color(0x55FFFFFF), RoundedCornerShape(4.dp)))
-        Box(Modifier.fillMaxWidth(fraction).height(barHeight).background(Palette.accent, RoundedCornerShape(4.dp)))
-        // De bol staat op de positie in de balk.
-        Box(Modifier.fillMaxWidth(fraction), contentAlignment = Alignment.CenterEnd) {
-            Box(
-                Modifier
-                    .offset(x = thumb / 2)
-                    .size(thumb)
-                    .background(Palette.accent, CircleShape)
-                    .then(if (focused) Modifier.border(2.dp, Color.White, CircleShape) else Modifier),
-            )
+        val r = thumbRadius.toPx()
+        val h = barHeight.toPx()
+        // Ruimte voor de halve bol aan beide kanten, zodat hij op 0:00 en aan het eind niet wordt afgesneden.
+        val left = r
+        val width = (size.width - 2 * r).coerceAtLeast(0f)
+        val cy = size.height / 2
+        val corner = CornerRadius(h / 2, h / 2)
+        fun bar(to: Float, color: Color) {
+            if (to <= 0f) return
+            drawRoundRect(color, topLeft = Offset(left, cy - h / 2), size = Size(width * to, h), cornerRadius = corner)
+        }
+        bar(1f, Color(0x40FFFFFF))
+        bar(bufferedFraction, Color(0x66FFFFFF))
+        bar(fraction, Palette.accent)
+        val cx = left + width * fraction
+        if (focused) drawCircle(Color.White, radius = r + 2.dp.toPx(), center = Offset(cx, cy))
+        drawCircle(thumbColor, radius = r, center = Offset(cx, cy))
+
+        // Tijd onder de bol tijdens het spoelen. Valt bewust buiten de Canvas (niet afgeknipt);
+        // de Spacer onder de balk houdt daar ruimte voor vrij.
+        if (focused) {
+            val text = textMeasurer.measure(formatTime(position), labelStyle)
+            val padX = 8.dp.toPx()
+            val padY = 3.dp.toPx()
+            val w = text.size.width + 2 * padX
+            val bh = text.size.height + 2 * padY
+            val x = (cx - w / 2).coerceIn(0f, (size.width - w).coerceAtLeast(0f))
+            val y = cy + r + 8.dp.toPx()
+            drawRoundRect(Color(0xCC000000), topLeft = Offset(x, y), size = Size(w, bh), cornerRadius = CornerRadius(bh / 2, bh / 2))
+            drawText(text, topLeft = Offset(x + padX, y + padY))
         }
     }
+}
+
+/**
+ * Spoelstap bij links/rechts: één druk is 10 s; vasthouden versnelt naar 30 s en daarna 60 s per
+ * herhaling. [repeatCount] komt van de herhaalde KeyDown-events van de afstandsbediening.
+ */
+private fun seekStep(repeatCount: Int): Long = when {
+    repeatCount < 10 -> 10_000
+    repeatCount < 30 -> 30_000
+    else -> 60_000
 }
 
 @Composable
