@@ -73,7 +73,9 @@ jobs:
       - name: Bouwen
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          bash ./gradlew --no-daemon assembleRelease testReleaseUnitTest
+          # Dezelfde tests als de controle bij pull requests (Controleren). De debugvariant bevat de
+          # testactiviteit die Compose-tests nodig hebben; unit tests gebruiken R8 toch niet.
+          bash ./gradlew --no-daemon assembleRelease testDebugUnitTest
           # build.gradle.kts zet de build-uitvoer in java.io.tmpdir (/tmp) als LOCALAPPDATA ontbreekt.
           cp /tmp/IPTVPlayer-build/app/outputs/apk/release/app-release.apk IPTVPlayer.apk
 
