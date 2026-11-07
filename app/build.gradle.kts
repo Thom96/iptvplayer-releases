@@ -56,6 +56,12 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    testOptions {
+        // Robolectric: de app-resources (thema, lettertypes) ook in de unit tests.
+        unitTests.isIncludeAndroidResources = true
+        // ScrollSimulationTest: -Pframes=<map> bewaart elk frame als afbeelding.
+        unitTests.all { it.systemProperty("scrollFrames", project.findProperty("frames")?.toString() ?: "") }
+    }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -65,6 +71,7 @@ android {
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)
+    testImplementation(composeBom)
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material:material-icons-extended")
@@ -84,4 +91,8 @@ dependencies {
     implementation("androidx.media3:media3-ui:$media3")
 
     testImplementation("junit:junit:4.13.2")
+    // Scrollgedrag nabootsen zonder tv: Compose-UI in Robolectric, met de afstandsbediening als toetsen.
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

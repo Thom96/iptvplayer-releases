@@ -456,6 +456,10 @@ fun <T> LazyListScope.section(
     subRow: Boolean = false,
     /** Eigen scrollpositie, als de rij van buitenaf gescrold moet kunnen worden. */
     rowState: LazyListState? = null,
+    /** Om de rij heen, bijv. om het scrollgedrag van de lijst eromheen terug te zetten (zie CategoryRowsTab). */
+    rowWrapper: (@Composable (@Composable () -> Unit) -> Unit)? = null,
+    /** De rij krijgt focus. */
+    onRowFocused: (() -> Unit)? = null,
     content: @Composable (index: Int, item: T) -> Unit,
 ) {
     if (items.isEmpty()) return
@@ -477,13 +481,21 @@ fun <T> LazyListScope.section(
     }
     item(key = "row:$id") {
         val ownState = rememberLazyListState()
-        LazyRow(
-            state = rowState ?: ownState,
-            contentPadding = PaddingValues(horizontal = 56.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            itemsIndexed(items, key = { _, it -> key(it) }) { i, it -> content(i, it) }
+        var focused by remember { mutableStateOf(false) }
+        val row: @Composable () -> Unit = {
+            LazyRow(
+                state = rowState ?: ownState,
+                modifier = if (onRowFocused == null) Modifier else Modifier.onFocusChanged {
+                    if (it.hasFocus && !focused) onRowFocused()
+                    focused = it.hasFocus
+                },
+                contentPadding = PaddingValues(horizontal = 56.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                itemsIndexed(items, key = { _, it -> key(it) }) { i, it -> content(i, it) }
+            }
         }
+        if (rowWrapper != null) rowWrapper(row) else row()
     }
 }
 

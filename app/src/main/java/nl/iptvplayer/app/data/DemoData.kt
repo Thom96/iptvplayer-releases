@@ -26,8 +26,20 @@ internal object DemoData {
         "NL | ESPN 1", "NL | Ziggo Sport", "BE | VTM", "BE | Eén", "UK | BBC One", "UK | BBC Two", "DE | ARD",
     )
 
-    val movieCategories = listOf(Category("1", "NL | Films"), Category("2", "EN | Films"), Category("3", "Kids"))
-    val seriesCategories = listOf(Category("11", "NL | Series"), Category("12", "EN | Series"))
+    val movieCategories = listOf(Category("1", "NL | Films"), Category("2", "EN | Films"), Category("3", "Kids")) +
+        extraMovieCategories()
+    val seriesCategories = listOf(Category("11", "NL | Series"), Category("12", "EN | Series")) + extraSeriesCategories()
+
+    /**
+     * Extra categorieën met elk 30 titels, zodat de demo net zo veel rijen heeft als een echt abonnement:
+     * nodig om het scrollen door Films en Series na te bootsen (zie ScrollSimulationTest).
+     */
+    private fun extraMovieCategories() =
+        listOf("NL | Netflix", "NL | Disney+", "NL | Prime Video", "EN | Actie", "EN | Komedie", "EN | 4K").mapIndexed { i, n -> Category("${4 + i}", n) }
+    private fun extraSeriesCategories() =
+        listOf("NL | Netflix", "NL | HBO Max", "EN | Disney+", "EN | Apple TV+", "EN | Documentaires").mapIndexed { i, n -> Category("${13 + i}", n) }
+    private val demoGenres = listOf("Drama", "Comedy", "Crime, Drama", "Action & Adventure", "Sci-Fi & Fantasy", "Mystery, Drama", "Documentary")
+    private const val PER_EXTRA_CATEGORY = 30
     val liveCategories = listOf(Category("21", "Nederland"), Category("22", "Sport"), Category("23", "Buitenland"))
 
     fun library(): Library {
@@ -43,11 +55,27 @@ internal object DemoData {
                 rating = 5.5 + (i * 7 % 40) / 10.0, ext = "mp4", year = TextMatch.yearFrom(name),
             )
         }
+        val extraMovies = movieCategories.drop(3).flatMapIndexed { c, cat ->
+            (0 until PER_EXTRA_CATEGORY).map { j ->
+                val id = 1000 + c * 100 + j
+                val name = movieTitles[(c * 7 + j) % movieTitles.size]
+                MediaItem(
+                    Kind.MOVIE, id, name, poster(id), cat.id, now - (c * 50 + j) * 3_600L - 30 * 86_400L,
+                    rating = 5.0 + (id * 7 % 45) / 10.0, ext = "mp4", year = TextMatch.yearFrom(name),
+                )
+            }
+        }
+        fun seriesItem(id: Int, name: String, cat: String, added: Long, i: Int) = MediaItem(
+            Kind.SERIES, id, name, poster(id), cat, added, rating = 7.0 + (i % 5) / 2.0, ext = null, year = 2008 + i % 17,
+            plot = "Demoserie: hier staat de beschrijving die je IPTV-provider bij de serie meelevert.",
+            genre = demoGenres[i % demoGenres.size], backdrop = backdrop(id),
+        )
         val series = seriesTitles.mapIndexed { i, name ->
-            MediaItem(
-                Kind.SERIES, 200 + i, name, poster(200 + i), if (name.startsWith("NL")) "11" else "12",
-                now - i * 43_200L, rating = 7.0 + (i % 5) / 2.0, ext = null, year = 2008 + i,
-            )
+            seriesItem(200 + i, name, if (name.startsWith("NL")) "11" else "12", now - i * 43_200L, i)
+        } + seriesCategories.drop(2).flatMapIndexed { c, cat ->
+            (0 until PER_EXTRA_CATEGORY).map { j ->
+                seriesItem(2000 + c * 100 + j, seriesTitles[(c * 5 + j) % seriesTitles.size], cat.id, now - (c * 50 + j) * 3_600L - 10 * 86_400L, c + j)
+            }
         }
         val live = channels.mapIndexed { i, name ->
             val cat = when {
@@ -57,7 +85,7 @@ internal object DemoData {
             }
             MediaItem(Kind.LIVE, 300 + i, name, null, cat, 0, 0.0, null, null, num = i + 1, archiveDays = if (i < 6) 7 else 0)
         }
-        return Library(liveCategories, movieCategories, seriesCategories, live, movies, series, System.currentTimeMillis())
+        return Library(liveCategories, movieCategories, seriesCategories, live, movies + extraMovies, series, System.currentTimeMillis())
     }
 
     fun movieInfo(id: Int) = MovieInfo(

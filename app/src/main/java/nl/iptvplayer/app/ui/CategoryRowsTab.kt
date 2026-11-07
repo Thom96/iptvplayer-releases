@@ -16,6 +16,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListItemInfo
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -109,6 +117,7 @@ private fun buildRows(library: Library, kind: Kind): List<CategoryRow> {
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun CategoryRowsList(
     vm: AppViewModel,
     kind: Kind,
@@ -118,8 +127,77 @@ private fun CategoryRowsList(
     context: Context,
     onRemove: (Removal) -> Unit,
 ) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 48.dp)) {
-        section("Verder kijken", continueItems, { it.key }, hint = REMOVE_HINT, id = "continue") { _, p ->
+    val listState = rememberLazyListState()
+    val scroller = rememberSpringScroller(listState)
+    val scope = rememberCoroutineScope()
+    val rowBasePx = with(LocalDensity.current) { EXPANDING_ROW_BASE_HEIGHT.toPx() }
+    // Rijen voor Verder kijken: daar scrollt de rij zelf op de standaardmanier (geen uitklappende kaarten).
+    val platformSpec = LocalBringIntoViewSpec.current
+
+    /**
+     * Rij met focus bovenaan zetten (de titel erboven blijft zichtbaar), voor elke rij op dezelfde plek.
+     * Infopanelen erboven die nog inklappen schuiven alles al omhoog; daar houdt de afstand rekening mee,
+     * en ze gebruiken dezelfde veer als het scrollen.
+     */
+    // Sleutels in lijstvolgorde (zelfde als de items hieronder).
+    val keys = remember(rows, continueItems.isEmpty()) {
+        buildList {
+            if (continueItems.isNotEmpty()) { add("title:continue"); add("row:continue") }
+            rows.forEach { add("title:${it.id}"); add("$EXPANDING_ROW_PREFIX${it.id}") }
+        }
+    }
+    fun isExpandingRow(key: Any) = key is String && key.startsWith(EXPANDING_ROW_PREFIX) && key != "row:continue"
+    fun keyAt(i: Int): Any? = keys.getOrNull(i)
+
+    /** Gemeten hoogtes (ingeklapt) per lijstitem, om items boven beeld te kunnen plaatsen. */
+    val heights = remember { HashMap<Any, Int>() }
+
+    /** Afstand van de bovenkant van item [index] tot de bovenkant van de lijst, ook als het boven beeld staat. */
+    fun topOf(index: Int, visible: List<LazyListItemInfo>): Float? {
+        visible.firstOrNull { it.index == index }?.let { return it.offset.toFloat() }
+        val first = visible.firstOrNull() ?: return null
+        if (index > first.index) return null
+        // Boven beeld: terugrekenen vanaf het eerste zichtbare item. Daartussen staat alles ingeklapt.
+        var top = first.offset.toFloat()
+        for (i in first.index - 1 downTo index) {
+            val key = keyAt(i) ?: return null
+            // Rijtitels zijn allemaal even hoog: een niet eerder gemeten titel krijgt de hoogte van een andere.
+            val h = when {
+                isExpandingRow(key) -> rowBasePx
+                else -> (heights[key] ?: heights.entries.firstOrNull { (k, _) -> k != "title:continue" && k.toString().startsWith("title:") }?.value)
+                    ?.toFloat() ?: return null
+            }
+            top -= h
+        }
+        return top
+    }
+
+    fun scrollToRow(titleIndex: Int) {
+        val start = listState.layoutInfo.visibleItemsInfo
+        start.forEach { if (!isExpandingRow(it.key)) heights[it.key] = it.size }
+        if (topOf(titleIndex, start) == null) {
+            scope.launch { listState.scrollToItem(titleIndex) }
+            return
+        }
+        scroller.follow {
+            val visible = listState.layoutInfo.visibleItemsInfo
+            visible.forEach { if (!isExpandingRow(it.key)) heights[it.key] = it.size }
+            val top = topOf(titleIndex, visible) ?: return@follow null
+            // Infopanelen erboven die nog inklappen schuiven alles al omhoog.
+            val stillCollapsing = visible
+                .filter { it.index < titleIndex && isExpandingRow(it.key) }
+                .sumOf { (it.size - rowBasePx).coerceAtLeast(0f).toDouble() }
+            top - stillCollapsing.toFloat()
+        }
+    }
+
+    CompositionLocalProvider(LocalBringIntoViewSpec provides NoAutoScroll) {
+    LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(bottom = 48.dp)) {
+        section(
+            "Verder kijken", continueItems, { it.key }, hint = REMOVE_HINT, id = "continue",
+            rowWrapper = { row -> CompositionLocalProvider(LocalBringIntoViewSpec provides platformSpec) { row() } },
+            onRowFocused = { scrollToRow(0) },
+        ) { _, p ->
             ProgressCard(
                 p,
                 onClick = { vm.resume(context, p) },
@@ -127,7 +205,8 @@ private fun CategoryRowsList(
                 modifier = Modifier.restoreFocus(restorer, "cw:${p.key}"),
             )
         }
-        rows.forEach { row ->
+        val firstRowIndex = if (continueItems.isEmpty()) 0 else 2
+        rows.forEachIndexed { i, row ->
             item(key = "title:${row.id}") {
                 Row(
                     Modifier.padding(start = 56.dp, end = 56.dp, top = 24.dp, bottom = 10.dp),
@@ -138,7 +217,7 @@ private fun CategoryRowsList(
                     Text(formatCount(row.total), style = MaterialTheme.typography.bodyMedium, color = Palette.textMuted, modifier = Modifier.padding(bottom = 3.dp))
                 }
             }
-            item(key = "row:${row.id}") {
+            item(key = "$EXPANDING_ROW_PREFIX${row.id}") {
                 ExpandingPosterRow(
                     vm, row.items, restorer, row.id,
                     trailing = if (row.total > row.items.size) {
@@ -152,11 +231,15 @@ private fun CategoryRowsList(
                     } else {
                         null
                     },
+                    onFocused = { scrollToRow(firstRowIndex + 2 * i) },
                 )
             }
         }
     }
+    }
 }
+
+private const val EXPANDING_ROW_PREFIX = "row:"
 
 /** Genrenamen van de provider (Engels, van TMDB) met een Nederlandse rijtitel. */
 private val GENRE_TITLES = linkedMapOf(

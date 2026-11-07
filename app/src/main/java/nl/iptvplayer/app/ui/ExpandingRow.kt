@@ -1,17 +1,13 @@
 package nl.iptvplayer.app.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.foundation.gestures.animateScrollBy
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -56,6 +52,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
 import androidx.tv.material3.Card
@@ -70,21 +68,10 @@ import nl.iptvplayer.app.data.ItemDetails
 import nl.iptvplayer.app.data.Kind
 import nl.iptvplayer.app.data.MediaItem
 
-/**
- * Scrollgedrag van de rij: de titel met focus komt links te staan (na de marge), in één vloeiende
- * beweging. Vervangt een eigen scroll-animatie die tegelijk met het standaardgedrag liep en haperde.
- */
-@OptIn(ExperimentalFoundationApi::class)
-private object NoAutoScroll : BringIntoViewSpec {
-    // Het scrollen doet de rij zelf (zie ExpandingPosterRow), synchroon met het uit- en inklappen.
-    override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float = 0f
-}
-
-/** Uitklappen en scrollen gebruiken exact dezelfde duur en curve, zodat ze samen één beweging zijn. */
-private const val MOVE_MS = 220
-private val moveEasing = FastOutSlowInEasing
-
 private val CARD_HEIGHT = 192.dp
+private val ROW_PADDING = 8.dp
+/** Hoogte van een rij zonder infopaneel; de rest is het (uit- of inklappende) paneel. */
+val EXPANDING_ROW_BASE_HEIGHT = CARD_HEIGHT + ROW_PADDING * 2
 private val POSTER_WIDTH = 128.dp
 private val EXPANDED_WIDTH = 341.dp // 16:9 bij dezelfde hoogte
 private val cardShape = RoundedCornerShape(10.dp)
@@ -101,6 +88,8 @@ fun ExpandingPosterRow(
     restorer: FocusRestorer,
     rowId: String,
     trailing: (@Composable () -> Unit)? = null,
+    /** De rij krijgt focus (van boven, onder of de zijbalk): de lijst eromheen kan hem in beeld zetten. */
+    onFocused: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val favorites by vm.storage.favorites.collectAsState()
@@ -122,37 +111,39 @@ fun ExpandingPosterRow(
     val entry = rememberListFocusMemory()
     val entryKey = focusedKey ?: items.firstOrNull()?.key
 
-    val shrinkPx = with(LocalDensity.current) { (EXPANDED_WIDTH - POSTER_WIDTH).toPx() }
+    val posterPx = with(LocalDensity.current) { POSTER_WIDTH.toPx() }
+    val scroller = rememberSpringScroller(listState)
     val scope = rememberCoroutineScope()
-    // Welke kaart bij de vorige compositie uitgeklapt was (-1 = geen).
-    val lastExpanded = remember { intArrayOf(-1) }
-    val expandedIndex = if (rowFocused) items.indexOfFirst { it.key == focusedKey } else -1
-    SideEffect { lastExpanded[0] = expandedIndex }
 
     /**
-     * Gekozen titel links zetten. De doelafstand houdt rekening met het inklappen van de vorige
-     * kaart: staat die links van de nieuwe, dan schuift alles tijdens het inklappen al mee naar links.
+     * Gekozen titel links zetten. De afstand houdt rekening met kaarten links ervan die nog aan het
+     * inklappen zijn (bij snel drukken vaak nog niet helemaal uitgeklapt): die schuiven alles al mee.
+     * Inklappen en scrollen gebruiken dezelfde veer, zodat het samen één beweging is.
      */
     fun scrollToPivot(index: Int) {
-        val previous = lastExpanded[0]
-        scope.launch {
-            val info = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
-            if (info == null) {
-                listState.scrollToItem(index)
-                return@launch
-            }
-            var distance = info.offset.toFloat()
-            if (previous in 0 until index) distance -= shrinkPx
-            listState.animateScrollBy(distance, tween(MOVE_MS, easing = moveEasing))
+        if (listState.layoutInfo.visibleItemsInfo.none { it.index == index }) {
+            scope.launch { listState.scrollToItem(index) }
+            return
+        }
+        scroller.follow {
+            val visible = listState.layoutInfo.visibleItemsInfo
+            val info = visible.firstOrNull { it.index == index } ?: return@follow null
+            val stillCollapsing = visible.filter { it.index < index }.sumOf { (it.size - posterPx).coerceAtLeast(0f).toDouble() }
+            info.offset - stillCollapsing.toFloat()
         }
     }
 
-    Column(Modifier.onFocusChanged { rowFocused = it.hasFocus }) {
+    Column(
+        Modifier.onFocusChanged {
+            if (it.hasFocus && !rowFocused) onFocused()
+            rowFocused = it.hasFocus
+        },
+    ) {
       CompositionLocalProvider(LocalBringIntoViewSpec provides NoAutoScroll) {
         LazyRow(
             state = listState,
             modifier = Modifier.enterFocusAt(entry),
-            contentPadding = PaddingValues(horizontal = 56.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = 56.dp, vertical = ROW_PADDING),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             itemsIndexed(items, key = { _, it -> it.key }) { index, item ->
@@ -182,8 +173,9 @@ fun ExpandingPosterRow(
       }
         AnimatedVisibility(
             visible = rowFocused && focused != null,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
+            // Zelfde veer als het scrollen van de lijst, zodat inklappen en verschuiven samen één beweging zijn.
+            enter = fadeIn() + expandVertically(moveSpring(IntSize.VisibilityThreshold)),
+            exit = fadeOut() + shrinkVertically(moveSpring(IntSize.VisibilityThreshold)),
         ) {
             focused?.let { InfoPanel(it, vm.detailsFor(it)) }
         }
@@ -203,7 +195,7 @@ private fun ExpandingCard(
 ) {
     val width by animateDpAsState(
         if (expanded) EXPANDED_WIDTH else POSTER_WIDTH,
-        animationSpec = tween(MOVE_MS, easing = moveEasing),
+        animationSpec = moveSpring(Dp.VisibilityThreshold),
         label = "kaartbreedte",
     )
     Card(
