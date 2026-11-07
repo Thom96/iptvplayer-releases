@@ -1,5 +1,8 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.AppLanguage
+import nl.iptvplayer.app.i18n.I18n
+import nl.iptvplayer.app.i18n.S
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,15 +82,16 @@ fun CategoryRowsTab(vm: AppViewModel, library: Library, kind: Kind) {
 
     // Groeperen en sorteren van alle titels op de achtergrond, en per bibliotheek onthouden zodat
     // wisselen van tabblad direct gaat.
-    val rows by produceState(rowCache[library]?.get(kind), library, kind) {
-        val cached = rowCache[library]?.get(kind)
+    val language = I18n.language // rijtitels zijn vertaald: opnieuw opbouwen na een taalwissel
+    val rows by produceState(rowCache[library]?.get(kind to language), library, kind, language) {
+        val cached = rowCache[library]?.get(kind to language)
         value = cached ?: withContext(Dispatchers.Default) { buildRows(library, kind) }
-            .also { rowCache.getOrPut(library) { HashMap() }[kind] = it }
+            .also { rowCache.getOrPut(library) { HashMap() }[kind to language] = it }
     }
     val shown = rows ?: return
 
     if (shown.size <= 1 && shown.firstOrNull()?.items.isNullOrEmpty()) {
-        CenteredMessage("Niets gevonden", "Er zijn geen titels in de gekozen talen. Pas het taalfilter aan bij Instellingen.")
+        CenteredMessage(S.nothingFound, S.nothingFoundHint)
         return
     }
     CategoryRowsList(vm, kind, shown, continueItems, restorer, context) { removal = it }
@@ -98,13 +102,13 @@ fun CategoryRowsTab(vm: AppViewModel, library: Library, kind: Kind) {
 }
 
 /** Per bibliotheek (taalfilter) de berekende rijen; zwak vastgehouden zodat oude bibliotheken opgeruimd worden. */
-private val rowCache = java.util.WeakHashMap<Library, HashMap<Kind, List<CategoryRow>>>()
+private val rowCache = java.util.WeakHashMap<Library, HashMap<Pair<Kind, AppLanguage>, List<CategoryRow>>>()
 
 private fun buildRows(library: Library, kind: Kind): List<CategoryRow> {
         val all = library.items(kind)
         val byCategory = all.groupBy { it.categoryId }
         return buildList {
-            add(CategoryRow(ALL_CATEGORIES, "Nieuw toegevoegd", all.size, all.sortedByDescending { it.added }.take(ROW_SIZE)))
+            add(CategoryRow(ALL_CATEGORIES, S.recentlyAdded, all.size, all.sortedByDescending { it.added }.take(ROW_SIZE)))
             // Genre-rijen: alleen series hebben het genre al in de lijst van de provider.
             if (kind == Kind.SERIES) addAll(genreRows(all))
             library.categories(kind).forEach { cat ->
@@ -194,7 +198,7 @@ private fun CategoryRowsList(
     CompositionLocalProvider(LocalBringIntoViewSpec provides NoAutoScroll) {
     LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(bottom = 48.dp)) {
         section(
-            "Verder kijken", continueItems, { it.key }, hint = REMOVE_HINT, id = "continue",
+            S.continueWatching, continueItems, { it.key }, hint = REMOVE_HINT, id = "continue",
             rowWrapper = { row -> CompositionLocalProvider(LocalBringIntoViewSpec provides platformSpec) { row() } },
             onRowFocused = { scrollToRow(0) },
         ) { _, p ->
@@ -241,25 +245,10 @@ private fun CategoryRowsList(
 
 private const val EXPANDING_ROW_PREFIX = "row:"
 
-/** Genrenamen van de provider (Engels, van TMDB) met een Nederlandse rijtitel. */
-private val GENRE_TITLES = linkedMapOf(
-    "comedy" to "Komedie",
-    "drama" to "Drama",
-    "crime" to "Misdaad",
-    "action & adventure" to "Actie & avontuur",
-    "sci-fi & fantasy" to "Sci-fi & fantasy",
-    "mystery" to "Mysterie",
-    "documentary" to "Documentaires",
-    "reality" to "Reality",
-    "animation" to "Animatie",
-    "kids" to "Voor kinderen",
-    "family" to "Familie",
-    "war & politics" to "Oorlog & politiek",
-    "romance" to "Romantiek",
-    "thriller" to "Thrillers",
-    "western" to "Westerns",
-    "history" to "Geschiedenis",
-    "talk" to "Talkshows",
+/** Genrenamen van de provider (Engels, van TMDB), in deze volgorde als rij getoond; de rijtitel staat in `Strings.genres`. */
+private val GENRE_KEYS = listOf(
+    "comedy", "drama", "crime", "action & adventure", "sci-fi & fantasy", "mystery", "documentary", "reality",
+    "animation", "kids", "family", "war & politics", "romance", "thriller", "western", "history", "talk",
 )
 
 /** Prefix voor genre-"categorieën" in het raster (zie BrowseTab). */
@@ -271,7 +260,8 @@ fun genresOf(item: MediaItem): List<String> =
 private fun genreRows(series: List<MediaItem>): List<CategoryRow> {
     val byGenre = HashMap<String, MutableList<MediaItem>>()
     series.forEach { s -> genresOf(s).forEach { g -> byGenre.getOrPut(g) { ArrayList() } += s } }
-    return GENRE_TITLES.mapNotNull { (genre, title) ->
+    return GENRE_KEYS.mapNotNull { genre ->
+        val title = S.genres[genre] ?: genre.replaceFirstChar { it.uppercase() }
         val items = byGenre[genre] ?: return@mapNotNull null
         // Kleine genres overslaan; alleen titels met een poster tonen.
         if (items.size < 10) return@mapNotNull null
@@ -304,7 +294,7 @@ private fun SeeAllCard(total: Int, onClick: () -> Unit, modifier: Modifier = Mod
             ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, null, Modifier.size(32.dp))
                 Spacer(Modifier.height(10.dp))
-                Text("Alles bekijken", style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
+                Text(S.seeAll, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
                 Text(formatCount(total), style = MaterialTheme.typography.bodySmall, color = Color.Unspecified)
             }
         }

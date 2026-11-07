@@ -1,5 +1,8 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
+import nl.iptvplayer.app.i18n.I18n
+import nl.iptvplayer.app.i18n.AppLanguage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -121,12 +124,13 @@ fun formatTime(ms: Long): String {
 fun formatDuration(secs: Int): String {
     val h = secs / 3600
     val m = (secs % 3600) / 60
-    return if (h > 0) "${h}u ${m}m" else "${m} min"
+    return if (h > 0) S.hoursMinutes(h, m) else S.minutes(m)
 }
 
 fun formatRemaining(p: nl.iptvplayer.app.data.Progress): String {
     val mins = ((p.durationMs - p.positionMs).coerceAtLeast(0) / 60_000).toInt()
-    return if (mins >= 60) "${mins / 60}u ${mins % 60}m" else "$mins min"
+    return if (mins >= 60) S.hoursMinutes(mins / 60, mins % 60) else S.minutes(mins)
 }
 
-fun formatCount(n: Int): String = "%,d".format(n).replace(',', '.')
+/** Duizendtallen met een punt, in het Engels met een komma. */
+fun formatCount(n: Int): String = "%,d".format(n).let { if (I18n.language == AppLanguage.EN) it else it.replace(',', '.') }

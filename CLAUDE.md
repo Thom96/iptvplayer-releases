@@ -38,9 +38,41 @@ een release online. De knop "Controleren op updates" in de app leest `version.js
 - Demomodus: inloggen met server `demo` geeft een nepbibliotheek, handig voor schermafbeeldingen.
 - Doelscherm: 1920×1080 bij dichtheid 2, dus 960×540 dp. Alles moet daarbinnen passen.
 
+## Talen
+
+Alle teksten van de interface staan in `app/src/main/java/nl/iptvplayer/app/i18n/`: `Strings.kt` (de lijst met
+teksten en `AppLanguage`), en per taal één bestand (`En.kt`, `De.kt`, `Nl.kt`, `Es.kt`, `Fr.kt`). Engels is de
+standaard. Bij de eerste start kiest de gebruiker een taal; in Instellingen kan dat later.
+
+- Nieuwe tekst: voeg hem toe aan `Strings` en vul hem in elke taal in (de compiler meldt ontbrekende talen).
+  Gebruik in de code `S.<naam>`, nooit een vaste tekst.
+- Nieuwe taal: kopieer `En.kt`, vertaal alles en voeg één regel toe aan `AppLanguage` met de naam in die taal zelf.
+
 ## Design
 
 Brandbook en schermontwerpen staan in het Claude-artifact "Gallo — ontwerp". Kleuren staan in `ui/Theme.kt`
 (`Palette`): petrol-ondergrond, zilverwitte tekst, champagne `#E8CC94` voor focus, voortgang en sterren, en
 hanenkamrood `#BC3E2E` alleen voor LIVE en de kam in het logo. Koppen in Young Serif, tekst in Outfit. Focus is
 overal een champagne rand van 3 dp.
+
+## Branches hernoemen na samenvoegen
+
+Zodra een werkbranch is samengevoegd met `main`, hernoem je hem naar een korte Nederlandse omschrijving van
+wat erin is gebouwd, in de vorm `claude/<omschrijving>`: kleine letters en koppeltekens, bijvoorbeeld
+`claude/inlogscherm`, `claude/taalkeuze` of `claude/vloeiend-scrollen`.
+
+- Hernoemen: push de branch onder de nieuwe naam en verwijder daarna de oude naam.
+
+  ```bash
+  git push origin origin/<oude-naam>:refs/heads/claude/<omschrijving>
+  git push origin --delete <oude-naam>
+  ```
+
+  Vanuit een cloudsessie wordt het verwijderen geweigerd (HTTP 403). Probeer het dan niet opnieuw, maar maak
+  alleen de nieuwe naam aan en geef de eigenaar de lijst met oude namen om zelf te verwijderen op GitHub
+  (Branches → prullenbak-icoon).
+
+- Bestaat de naam al, voeg dan een volgnummer toe (`claude/inlogscherm-2`).
+- Hernoem alleen branches die echt in `main` zitten (`git merge-base --is-ancestor <branch> origin/main`).
+  Branches met werk dat nog niet op `main` staat laat je met rust.
+- Werk niet verder op een hernoemde branch: nieuw werk begint op een nieuwe branch vanaf de nieuwste `main`.

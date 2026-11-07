@@ -1,5 +1,9 @@
 package nl.iptvplayer.app
 
+import nl.iptvplayer.app.i18n.AppLanguage
+import nl.iptvplayer.app.i18n.I18n
+import nl.iptvplayer.app.i18n.S
+import nl.iptvplayer.app.i18n.appLocale
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -79,6 +83,16 @@ sealed interface Screen {
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as App
     val storage get() = app.storage
+
+    /** Pas na de taalkeuze bij de eerste start gaat de app verder naar inloggen. */
+    var languageChosen by mutableStateOf(app.storage.appLanguage != null)
+        private set
+
+    fun setAppLanguage(language: AppLanguage) {
+        storage.appLanguage = language.code
+        I18n.language = language
+        languageChosen = true
+    }
 
     var state by mutableStateOf<AppState>(AppState.Login())
         private set
@@ -205,7 +219,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun playCatchup(context: Context, channel: MediaItem, entry: CatchupEntry) {
         val c = client ?: return
-        val day = java.text.SimpleDateFormat("EEE d MMM HH:mm", java.util.Locale("nl", "NL")).format(java.util.Date(entry.start))
+        val day = java.text.SimpleDateFormat("EEE d MMM HH:mm", appLocale).format(java.util.Date(entry.start))
         val item = PlayItem(
             key = "CATCHUP:${channel.id}:${entry.start}", kind = Kind.CATCHUP,
             url = c.catchupUrl(channel.id, entry), title = entry.title,
@@ -273,7 +287,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     runCatching { account = c.authenticate() }
                     if (c.cacheAgeMs > CACHE_MAX_AGE_MS) refreshInBackground()
                 } else {
-                    state = AppState.Loading("Verbinden met server…")
+                    state = AppState.Loading(S.connecting)
                     account = c.authenticate()
                     loadLibrary(c, forceDownload = true)
                 }
@@ -286,7 +300,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun loadLibrary(c: XtreamClient, forceDownload: Boolean) {
-        state = AppState.Loading("Laden…")
+        state = AppState.Loading(S.loading)
         setLibrary(
             c.loadLibrary(forceDownload) { msg, fraction ->
                 // Vanaf achtergronddraden; de voortgang loopt alleen op, ook als stappen gelijktijdig klaar zijn.
@@ -454,14 +468,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             val (ep, progress) = next
             val label = if (progress != null) {
-                "Verder kijken: seizoen ${ep.season}, aflevering ${ep.number}"
+                S.resumeSeasonEpisode(ep.season, ep.number)
             } else {
-                "Seizoen ${ep.season}: Aflevering ${ep.number} afspelen"
+                S.playSeasonEpisode(ep.season, ep.number)
             }
             val meta = listOfNotNull(
                 info.releaseDate?.take(4) ?: series.year?.toString(),
                 info.genre?.split(',')?.firstOrNull()?.trim(),
-                if (info.seasons.size == 1) "${episodes.size} afleveringen" else "${info.seasons.size} seizoenen",
+                if (info.seasons.size == 1) S.episodes(episodes.size) else S.seasons(info.seasons.size),
                 (info.rating ?: series.rating.takeIf { it > 0 })?.let { "★ %.1f".format(it) },
             ).joinToString("  •  ")
             val intro = SeriesIntro(
@@ -515,9 +529,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun describe(e: Exception): String = when (e) {
-        is AuthException -> e.message ?: "Inloggen mislukt."
-        is UnknownHostException -> "Server niet gevonden. Controleer de URL en je internetverbinding."
-        is SocketTimeoutException -> "De server reageert niet. Probeer het later opnieuw."
+        is AuthException -> e.message ?: S.loginFailed
+        is UnknownHostException -> S.serverNotFound
+        is SocketTimeoutException -> S.serverTimeout
         else -> e.message ?: e.javaClass.simpleName
     }
 

@@ -113,7 +113,14 @@ class Storage(context: Context) {
         prefs.edit().putString("liveFormat", format).apply()
     }
 
-    // ---------- Talen ----------
+    // ---------- Taal van de app ----------
+
+    /** Code van de gekozen app-taal (bijv. "en"); null zolang er bij de eerste start nog niet gekozen is. */
+    var appLanguage: String?
+        get() = prefs.getString("appLanguage", null)
+        set(value) { prefs.edit().putString("appLanguage", value).apply() }
+
+    // ---------- Talen van het aanbod ----------
 
     private val _languages = MutableStateFlow(prefs.getStringSet("languages", emptySet())!!.toSet())
     /** Gekozen taallabels (bijv. "NL", "MULTI"); leeg = alle talen tonen. */

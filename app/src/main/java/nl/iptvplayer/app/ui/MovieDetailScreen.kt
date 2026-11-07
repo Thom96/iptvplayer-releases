@@ -1,5 +1,6 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -86,8 +87,8 @@ fun MovieDetailScreen(vm: AppViewModel, item: MediaItem) {
             Text(
                 when {
                     i?.plot != null -> i.plot
-                    loading -> "Informatie laden…"
-                    else -> "Geen beschrijving beschikbaar."
+                    loading -> S.loadingInfo
+                    else -> S.noDescription
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 7,
@@ -95,31 +96,31 @@ fun MovieDetailScreen(vm: AppViewModel, item: MediaItem) {
             )
             i?.director?.let {
                 Spacer(Modifier.height(12.dp))
-                Text("Regie: $it", color = Palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(S.director(it), color = Palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             i?.cast?.let {
-                Text("Met: $it", color = Palette.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(S.cast(it), color = Palette.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             Spacer(Modifier.height(28.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 val ext = i?.ext
                 if (progress != null) {
                     ActionButton(
-                        "Verder kijken (${formatTime(progress.positionMs)})", Icons.Filled.PlayArrow,
+                        S.resumeAt(formatTime(progress.positionMs)), Icons.Filled.PlayArrow,
                         onClick = { vm.playMovie(context, item, ext, fromStart = false) },
                         modifier = Modifier.focusRequester(playFocus),
                     )
-                    ActionButton("Vanaf begin", Icons.Filled.Replay, onClick = { vm.playMovie(context, item, ext, fromStart = true) })
+                    ActionButton(S.fromStart, Icons.Filled.Replay, onClick = { vm.playMovie(context, item, ext, fromStart = true) })
                 } else {
                     ActionButton(
-                        "Afspelen", Icons.Filled.PlayArrow,
+                        S.play, Icons.Filled.PlayArrow,
                         onClick = { vm.playMovie(context, item, ext, fromStart = true) },
                         modifier = Modifier.focusRequester(playFocus),
                     )
                 }
                 val fav = item.key in favorites
                 ActionButton(
-                    if (fav) "In favorieten" else "Favoriet",
+                    if (fav) S.inFavorites else S.favorite,
                     if (fav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                     onClick = { vm.storage.toggleFavorite(item.key) },
                 )

@@ -1,5 +1,6 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
@@ -259,7 +260,7 @@ private fun ExpandingCard(
 @Composable
 private fun InfoPanel(item: MediaItem, details: ItemDetails?) {
     val meta = listOfNotNull(
-        if (item.kind == Kind.SERIES) "Serie" else "Film",
+        if (item.kind == Kind.SERIES) S.series else S.movie,
         details?.genre?.split(',', '/')?.take(2)?.joinToString(", ") { it.trim() }?.takeIf { it.isNotBlank() },
         (details?.year ?: item.year)?.toString(),
         details?.durationSecs?.let(::formatDuration),
@@ -271,8 +272,8 @@ private fun InfoPanel(item: MediaItem, details: ItemDetails?) {
         Text(
             when {
                 details?.plot != null -> details.plot
-                item.kind == Kind.MOVIE && details == null -> "Informatie laden…"
-                else -> "Geen beschrijving beschikbaar."
+                item.kind == Kind.MOVIE && details == null -> S.loadingInfo
+                else -> S.noDescription
             },
             style = MaterialTheme.typography.bodyMedium,
             color = Palette.textMuted,

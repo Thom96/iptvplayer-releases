@@ -1,5 +1,8 @@
 package nl.iptvplayer.app.player
 
+import nl.iptvplayer.app.i18n.AppLanguage
+import nl.iptvplayer.app.i18n.I18n
+import nl.iptvplayer.app.i18n.S
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -141,9 +144,10 @@ class PlayerActivity : ComponentActivity() {
             .setSeekBackIncrementMs(10_000)
             .setSeekForwardIncrementMs(30_000)
             .build()
-        // Nederlandse ondertiteling automatisch aan als die er is; audio in de originele taal.
+        // Ondertiteling in de taal van de app automatisch aan als die er is (niet bij Engels: meestal is
+        // het geluid al Engels); audio in de originele taal.
         exo.trackSelectionParameters = exo.trackSelectionParameters.buildUpon()
-            .setPreferredTextLanguage("nl")
+            .setPreferredTextLanguage(I18n.language.takeIf { it != AppLanguage.EN }?.code)
             .build()
         playerView.player = exo
 
@@ -187,7 +191,7 @@ class PlayerActivity : ComponentActivity() {
                 }
                 Toast.makeText(
                     this@PlayerActivity,
-                    "Afspelen mislukt: ${error.errorCodeName.removePrefix("ERROR_CODE_").lowercase().replace('_', ' ')}",
+                    S.playbackFailed(error.errorCodeName.removePrefix("ERROR_CODE_").lowercase().replace('_', ' ')),
                     Toast.LENGTH_LONG,
                 ).show()
             }

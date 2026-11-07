@@ -11,6 +11,7 @@ import nl.iptvplayer.app.ui.AppTheme
 import nl.iptvplayer.app.ui.FailedScreen
 import nl.iptvplayer.app.ui.FocusRestorer
 import nl.iptvplayer.app.ui.HomeScreen
+import nl.iptvplayer.app.ui.LanguageScreen
 import nl.iptvplayer.app.ui.LoadingScreen
 import nl.iptvplayer.app.ui.LoginScreen
 import nl.iptvplayer.app.ui.MovieDetailScreen
@@ -25,13 +26,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
-                when (val s = vm.state) {
-                    is AppState.Login -> LoginScreen(vm, s)
-                    is AppState.Loading -> LoadingScreen(s.message, s.progress)
-                    is AppState.Failed -> FailedScreen(s.message, onRetry = vm::retry, onLogout = vm::logout)
-                    AppState.Ready -> Navigation(vm)
+                if (!vm.languageChosen) {
+                    LanguageScreen(vm)
+                } else {
+                    when (val s = vm.state) {
+                        is AppState.Login -> LoginScreen(vm, s)
+                        is AppState.Loading -> LoadingScreen(s.message, s.progress)
+                        is AppState.Failed -> FailedScreen(s.message, onRetry = vm::retry, onLogout = vm::logout)
+                        AppState.Ready -> Navigation(vm)
+                    }
+                    UpdatePrompt(vm)
                 }
-                UpdatePrompt(vm)
             }
         }
     }

@@ -1,5 +1,6 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
 import androidx.tv.material3.Border
 import androidx.compose.foundation.BorderStroke
 import android.os.SystemClock
@@ -112,7 +113,7 @@ private const val CAT_ALL = "__all__"
 private const val PREVIEW_DELAY_MS = 500L
 private val ARROWS = setOf(FocusDirection.Up, FocusDirection.Down, FocusDirection.Left, FocusDirection.Right)
 
-private val clock = SimpleDateFormat("HH:mm", Locale("nl", "NL"))
+private val clock = SimpleDateFormat("HH:mm", Locale.ROOT)
 private fun hhmm(ms: Long) = clock.format(Date(ms))
 
 /**
@@ -340,9 +341,9 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 val entries = buildList {
-                    if (favChannels.isNotEmpty()) add(Triple(CAT_FAV, "Favorieten", favChannels.size))
-                    if (recentChannels.isNotEmpty()) add(Triple(CAT_RECENT, "Recent bekeken", recentChannels.size))
-                    add(Triple(CAT_ALL, "Alle zenders", library.live.size))
+                    if (favChannels.isNotEmpty()) add(Triple(CAT_FAV, S.tabFavorites, favChannels.size))
+                    if (recentChannels.isNotEmpty()) add(Triple(CAT_RECENT, S.recentlyWatched, recentChannels.size))
+                    add(Triple(CAT_ALL, S.allChannels, library.live.size))
                     providerCats.forEach { add(Triple(it.id, TextMatch.displayTitle(it.name), counts[it.id] ?: 0)) }
                 }
                 items(entries, key = { it.first }) { (id, name, count) ->
@@ -448,8 +449,8 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                 modifier = Modifier.fillMaxSize(),
             )
             when {
-                playError -> CenterNote("Deze zender is nu niet beschikbaar")
-                playingKey == null && !fullscreen -> CenterNote("Blijf even op een zender staan voor een voorbeeld")
+                playError -> CenterNote(S.channelUnavailable)
+                playingKey == null && !fullscreen -> CenterNote(S.previewHint)
             }
             if (fullscreen && infoVisible && playing != null) {
                 FullscreenInfo(playing, vm.epg[playing.id].orEmpty(), now, channels.indexOfFirst { it.key == playing.key })
@@ -558,8 +559,8 @@ private fun EpgPanel(vm: AppViewModel, channel: MediaItem, now: Long) {
         Spacer(Modifier.height(10.dp))
         val upcoming = entries?.filter { it.end > now }?.take(3)
         when {
-            entries == null -> Text("Gids laden…", color = Palette.textMuted, style = MaterialTheme.typography.bodyMedium)
-            upcoming.isNullOrEmpty() -> Text("Geen gidsinformatie voor deze zender.", color = Palette.textMuted, style = MaterialTheme.typography.bodyMedium)
+            entries == null -> Text(S.loadingGuide, color = Palette.textMuted, style = MaterialTheme.typography.bodyMedium)
+            upcoming.isNullOrEmpty() -> Text(S.noGuide, color = Palette.textMuted, style = MaterialTheme.typography.bodyMedium)
             else -> upcoming.forEach { e ->
                 val current = e.isNow(now)
                 Column(
@@ -572,7 +573,7 @@ private fun EpgPanel(vm: AppViewModel, channel: MediaItem, now: Long) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (current) {
                             Text(
-                                "NU",
+                                S.now,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Palette.background,
                                 modifier = Modifier.background(Palette.accent, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
@@ -633,10 +634,10 @@ private fun FullscreenInfo(channel: MediaItem, epg: List<EpgEntry>, now: Long, i
                 }
                 if (next != null) {
                     Spacer(Modifier.height(8.dp))
-                    Text("Straks ${hhmm(next.start)}: ${next.title}", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
+                    Text(S.laterAt(hhmm(next.start), next.title), style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
                 }
             }
-            Text("▲▼ zappen  ·  Terug = zenderlijst", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
+            Text(S.zapHint, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
         }
     }
 }
