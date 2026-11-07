@@ -56,7 +56,8 @@ Eenmalig instellen, onder **Settings → Secrets and variables → Actions** van
 | `KEY_ALIAS` | `keyAlias` uit `keystore.properties` |
 | `KEY_PASSWORD` | `keyPassword` uit `keystore.properties` |
 
-Starten: een tag `publish-...` pushen (de tekst van de tag wordt "wat is er nieuw"), of via
+Starten: een commit pushen met in het bericht een regel `[publiceren] Wat is er nieuw` (de tekst na de
+markering komt in de app als "wat is er nieuw"), of via
 **Actions → Publiceren → Run workflow** zodra de workflow op `main` staat. Zonder de secrets stopt de
 workflow in plaats van een APK met een andere sleutel te publiceren.
 

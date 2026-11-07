@@ -2,7 +2,8 @@
 # De knop "Controleren op updates" in de app leest version.json uit de nieuwste release.
 #
 # Starten:
-#  - een tag "publish-..." pushen (werkt vanaf elke branch), of
+#  - een commit pushen (op elke branch) met in het bericht een regel die begint met
+#    "[publiceren]"; de rest van die regel wordt de "wat is er nieuw"-tekst, of
 #  - Actions -> Publiceren -> Run workflow (als dit bestand op main staat).
 #
 # Nodig (Settings -> Secrets and variables -> Actions):
@@ -14,7 +15,7 @@ name: Publiceren
 
 on:
   push:
-    tags: ["publish-*"]
+    branches: ["**"]
   workflow_dispatch:
     inputs:
       notes:
@@ -31,6 +32,7 @@ concurrency:
 
 jobs:
   publiceren:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[publiceren]')
     runs-on: ubuntu-latest
     env:
       TZ: Europe/Amsterdam # versienaam bevat datum en tijd
@@ -91,11 +93,12 @@ jobs:
           CODE: ${{ steps.versie.outputs.code }}
           NAME: ${{ steps.versie.outputs.name }}
           INPUT_NOTES: ${{ github.event.inputs.notes }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           NOTES="$INPUT_NOTES"
-          # Bij een tag: de tekst van de (geannoteerde) tag als "wat is er nieuw".
-          if [ -z "$NOTES" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            NOTES=$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME" | sed '/^-----BEGIN/,$d')
+          # Bij een push: de rest van de regel "[publiceren] ..." uit het commitbericht.
+          if [ -z "$NOTES" ]; then
+            NOTES=$(printf '%s\n' "$COMMIT_MESSAGE" | grep -m1 '^\[publiceren\]' | sed 's/^\[publiceren\][[:space:]]*//')
           fi
           TAG="v$CODE"
           jq -n --argjson code "$CODE" --arg name "$NAME" --arg notes "$NOTES" \
@@ -105,12 +108,6 @@ jobs:
           gh release create "$TAG" IPTVPlayer.apk version.json \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "Versie $NAME" --notes "${NOTES:-Versie $NAME}" --latest
-
-      - name: Starttag opruimen
-        if: github.ref_type == 'tag'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: git push origin --delete "$GITHUB_REF_NAME" || true
 
       - name: Sleutel weghalen
         if: always()
