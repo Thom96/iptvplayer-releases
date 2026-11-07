@@ -1,5 +1,7 @@
 package nl.iptvplayer.app.ui
 
+import nl.iptvplayer.app.i18n.S
+import nl.iptvplayer.app.i18n.appLocale
 import android.os.SystemClock
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -296,9 +298,9 @@ fun ProgressCard(progress: Progress, onClick: () -> Unit, modifier: Modifier = M
         Spacer(Modifier.height(8.dp))
         Text(progress.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         val subtitle = when {
-            progress.durationMs == 0L -> "Volgende: ${progress.subtitle.orEmpty()}"
-            progress.subtitle != null -> "${progress.subtitle} · nog ${formatRemaining(progress)}"
-            else -> "Nog ${formatRemaining(progress)}"
+            progress.durationMs == 0L -> S.nextUp(progress.subtitle.orEmpty())
+            progress.subtitle != null -> "${progress.subtitle} · ${S.timeLeft(formatRemaining(progress))}"
+            else -> S.timeLeft(formatRemaining(progress)).replaceFirstChar { it.uppercase(appLocale) }
         }
         Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }

@@ -34,6 +34,16 @@ een release online. De knop "Controleren op updates" in de app leest `version.js
 - Demomodus: inloggen met server `demo` geeft een nepbibliotheek, handig voor schermafbeeldingen.
 - Doelscherm: 1920×1080 bij dichtheid 2, dus 960×540 dp. Alles moet daarbinnen passen.
 
+## Talen
+
+Alle teksten van de interface staan in `app/src/main/java/nl/iptvplayer/app/i18n/`: `Strings.kt` (de lijst met
+teksten en `AppLanguage`), en per taal één bestand (`En.kt`, `De.kt`, `Nl.kt`, `Es.kt`, `Fr.kt`). Engels is de
+standaard. Bij de eerste start kiest de gebruiker een taal; in Instellingen kan dat later.
+
+- Nieuwe tekst: voeg hem toe aan `Strings` en vul hem in elke taal in (de compiler meldt ontbrekende talen).
+  Gebruik in de code `S.<naam>`, nooit een vaste tekst.
+- Nieuwe taal: kopieer `En.kt`, vertaal alles en voeg één regel toe aan `AppLanguage` met de naam in die taal zelf.
+
 ## Design
 
 Brandbook en schermontwerpen staan in het Claude-artifact "Gallo — ontwerp". Kleuren staan in `ui/Theme.kt`

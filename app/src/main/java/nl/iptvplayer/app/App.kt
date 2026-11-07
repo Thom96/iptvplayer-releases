@@ -4,6 +4,8 @@ import android.app.Application
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import nl.iptvplayer.app.data.Storage
+import nl.iptvplayer.app.i18n.AppLanguage
+import nl.iptvplayer.app.i18n.I18n
 import nl.iptvplayer.app.player.PlaybackQueue
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
@@ -27,6 +29,11 @@ class App : Application(), ImageLoaderFactory {
 
     /** Serie waarvan de afleveringenlijst geopend moet worden na het sluiten van de speler ("Afleveringen en meer"). */
     var pendingSeriesDetail: String? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        I18n.language = AppLanguage.fromCode(storage.appLanguage) ?: AppLanguage.DEFAULT
+    }
 
     override fun newImageLoader(): ImageLoader =
         ImageLoader.Builder(this)
