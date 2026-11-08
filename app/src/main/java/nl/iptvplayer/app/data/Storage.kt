@@ -137,6 +137,19 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
         get() = prefs.getString("appLanguage", null)
         set(value) { prefs.edit().putString("appLanguage", value).apply() }
 
+    // ---------- Activatie ----------
+
+    /** Eigen ID van dit apparaat bij de Gallo-server; één keer gemaakt en daarna altijd hetzelfde. */
+    val deviceId: String
+        get() = prefs.getString("deviceId", null) ?: java.util.UUID.randomUUID().toString().also {
+            prefs.edit().putString("deviceId", it).apply()
+        }
+
+    /** Laatst bekende status van de server, voor als die even niet te bereiken is. */
+    var license: License?
+        get() = License.fromJson(prefs.getString("license", null))
+        set(value) { prefs.edit().putString("license", value?.toJson()).apply() }
+
     // ---------- Talen van het aanbod ----------
 
     private val _languages = MutableStateFlow(prefs.getStringSet("languages", emptySet())!!.toSet())
