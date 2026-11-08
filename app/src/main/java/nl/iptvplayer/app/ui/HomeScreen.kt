@@ -189,11 +189,11 @@ private fun NavRail(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(Modifier.height(44.dp).padding(start = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-                // Ingeklapt alleen de o, uitgeklapt het hele woordmerk.
+                // Ingeklapt alleen de tv (de o), uitgeklapt het hele woordmerk.
                 if (expanded) {
                     GalloWordmark(size = 30.sp)
                 } else {
-                    Image(painterResource(R.drawable.gallo_o), contentDescription = "Gallo", modifier = Modifier.size(width = 28.dp, height = 35.dp))
+                    Image(painterResource(R.drawable.gallo_o), contentDescription = "Gallo", modifier = Modifier.size(width = 36.dp, height = 33.dp))
                 }
             }
             Spacer(Modifier.height(8.dp))
