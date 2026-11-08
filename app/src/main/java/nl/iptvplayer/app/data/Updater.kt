@@ -19,7 +19,7 @@ data class UpdateInfo(val versionCode: Int, val versionName: String, val apkUrl:
 
 /**
  * Updates via GitHub: de nieuwste release in Thom96/iptvplayer-releases bevat version.json en de APK.
- * Publiceren gaat met de workflow .github/workflows/publiceren.yml (zie README).
+ * Publishing is done by the workflow .github/workflows/publish.yml (see README).
  */
 class Updater(private val context: Context, private val http: OkHttpClient) {
 

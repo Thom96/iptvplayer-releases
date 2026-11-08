@@ -1,6 +1,6 @@
-# Bouwt de app en draait de unit tests bij elke pull request, zodat een kapotte build niet pas bij het
-# publiceren opvalt. Ondertekent en publiceert niets.
-name: Controleren
+# Builds the app and runs the unit tests on every pull request, so a broken build is not first noticed when
+# publishing. Signs and publishes nothing.
+name: Check
 
 on:
   pull_request:
@@ -10,11 +10,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: controleren-${{ github.ref }}
+  group: check-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  controleren:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -26,15 +26,15 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
 
-      - name: Bouwen en testen
+      - name: Build and test
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           bash ./gradlew --no-daemon assembleDebug testDebugUnitTest
 
-      - name: Testresultaten bewaren
+      - name: Keep test results
         if: failure()
         uses: actions/upload-artifact@v6
         with:
-          name: testresultaten
+          name: test-results
           path: /tmp/IPTVPlayer-build/app/reports/tests/
           if-no-files-found: ignore

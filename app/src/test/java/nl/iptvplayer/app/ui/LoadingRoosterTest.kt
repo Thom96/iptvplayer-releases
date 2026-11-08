@@ -13,13 +13,13 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * Het laadscherm laat de haan zijn moment afmaken: bij een snelle start één kraai (ruim 0,7 s), na het
- * downloaden de laatste korrels en een kraai. Daarna meldt hij zich één keer klaar.
+ * The loading screen lets the rooster finish his moment: one crow on a fast start (just over 0.7 s), and after
+ * downloading the last grains and a crow. Then he reports done exactly once.
  *
- * Met -Pframes=/pad worden momentopnamen van het snelle laadscherm bewaard.
+ * With -Pframes=/path, snapshots of the fast loading screen are saved.
  */
 @RunWith(RobolectricTestRunner::class)
-class LaadHaanTest {
+class LoadingRoosterTest {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
@@ -27,10 +27,10 @@ class LaadHaanTest {
 
     private fun show(state: AppState.Loading, onDone: () -> Unit) {
         rule.mainClock.autoAdvance = false
-        rule.setContent { AppTheme { LoadingScreen(state, onHaanDone = onDone) } }
+        rule.setContent { AppTheme { LoadingScreen(state, onRoosterDone = onDone) } }
     }
 
-    /** Laat de klok lopen tot [onDone] geroepen is; geeft de verstreken tijd in ms. */
+    /** Runs the clock until [onDone] is called; returns the elapsed time in ms. */
     private fun timeUntilDone(calls: () -> Int, maxMs: Long, snapshotsAt: Set<Long> = emptySet(), name: String = ""): Long {
         var t = 0L
         while (calls() == 0 && t < maxMs) {
@@ -56,20 +56,20 @@ class LaadHaanTest {
     fun quickStartCrowsOnceThenFinishes() {
         var calls = 0
         show(AppState.Loading("", 1f, quick = true, finished = true)) { calls++ }
-        val t = timeUntilDone({ calls }, 3_000, setOf(80L, 400L, 600L), "snel")
-        assertTrue("klaar na $t ms", t in 700..1_100)
+        val t = timeUntilDone({ calls }, 3_000, setOf(80L, 400L, 600L), "quick")
+        assertTrue("done after $t ms", t in 700..1_100)
         rule.mainClock.advanceTimeBy(3_000)
-        assertEquals("maar één keer klaar gemeld", 1, calls)
+        assertEquals("reported done only once", 1, calls)
     }
 
     @Test
     fun fullLoadEatsRemainingGrainsAndCrows() {
         var calls = 0
         show(AppState.Loading("", 1f, quick = false, finished = true)) { calls++ }
-        val t = timeUntilDone({ calls }, 6_000, setOf(1_000L, 2_900L), "volledig")
-        // Alle tien korrels in één keer achter: rennen en kraaien. In het echt loopt hij grotendeels bij
-        // tijdens het downloaden; AppViewModel wacht hooguit 2,5 s.
-        assertTrue("klaar na $t ms", t in 1_000..4_000)
+        val t = timeUntilDone({ calls }, 6_000, setOf(1_000L, 2_900L), "full")
+        // All ten grains behind at once: run and crow. In practice he mostly keeps up during the download;
+        // AppViewModel waits at most 2.5 s.
+        assertTrue("done after $t ms", t in 1_000..4_000)
         assertEquals(1, calls)
     }
 
@@ -78,6 +78,6 @@ class LaadHaanTest {
         var calls = 0
         show(AppState.Loading("", 0.3f, quick = true, finished = false)) { calls++ }
         rule.mainClock.advanceTimeBy(3_000)
-        assertEquals("niet klaar zolang het laden loopt", 0, calls)
+        assertEquals("not done while still loading", 0, calls)
     }
 }

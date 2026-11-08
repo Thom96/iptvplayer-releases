@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     when (val s = vm.state) {
                         is AppState.Login -> LoginScreen(vm, s)
-                        is AppState.Loading -> LoadingScreen(s, onHaanDone = vm::loadingAnimationDone)
+                        is AppState.Loading -> LoadingScreen(s, onRoosterDone = vm::loadingAnimationDone)
                         is AppState.Failed -> FailedScreen(s.message, onRetry = vm::retry, onLogout = vm::logout)
                         AppState.Ready -> when (val gate = vm.gate) {
                             Gate.NONE -> Navigation(vm)
