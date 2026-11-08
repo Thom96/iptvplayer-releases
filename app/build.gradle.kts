@@ -8,8 +8,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-// Eigen sleutel voor updates; staat naast het project (niet kwijtraken: zonder deze sleutel kan
-// een geïnstalleerde versie niet meer bijgewerkt worden).
+// Our own signing key for updates; it sits next to the project (don't lose it: without this key an
+// installed version can no longer be updated).
 val keystoreProps = Properties().apply {
     rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
@@ -22,7 +22,7 @@ android {
         applicationId = "nl.iptvplayer.app"
         minSdk = 26
         targetSdk = 35
-        // Elke build een hoger nummer (minuten sinds 2026), zodat een nieuwe versie altijd over de oude heen installeert.
+        // Every build gets a higher number (minutes since 2026), so a new version always installs over the old one.
         versionCode = ((System.currentTimeMillis() / 60_000) - 29_455_000).toInt()
         versionName = "1.0 (" + SimpleDateFormat("d-M-yyyy HH:mm").format(Date()) + ")"
     }
@@ -44,7 +44,7 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
-            // ./gradlew assembleRelease -PcheckRelease: release-build naast de test-app installeren om te controleren.
+            // ./gradlew assembleRelease -PcheckRelease: install the release build next to the test app to check it.
             if (project.hasProperty("checkRelease")) applicationIdSuffix = ".check"
         }
     }
@@ -57,9 +57,9 @@ android {
         jvmTarget = "17"
     }
     testOptions {
-        // Robolectric: de app-resources (thema, lettertypes) ook in de unit tests.
+        // Robolectric: the app resources (theme, fonts) in the unit tests too.
         unitTests.isIncludeAndroidResources = true
-        // ScrollSimulationTest: -Pframes=<map> bewaart elk frame als afbeelding.
+        // ScrollSimulationTest: -Pframes=<dir> saves every frame as an image.
         unitTests.all { it.systemProperty("scrollFrames", project.findProperty("frames")?.toString() ?: "") }
     }
     buildFeatures {
@@ -83,7 +83,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
-    // QR-code op het activatiescherm.
+    // QR code on the activation screen.
     implementation("com.google.zxing:core:3.5.3")
 
     val media3 = "1.5.1"
@@ -94,7 +94,7 @@ dependencies {
     implementation("androidx.media3:media3-session:$media3")
 
     testImplementation("junit:junit:4.13.2")
-    // Scrollgedrag nabootsen zonder tv: Compose-UI in Robolectric, met de afstandsbediening als toetsen.
+    // Simulate scrolling without a TV: Compose UI in Robolectric, with the remote control as key presses.
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

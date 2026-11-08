@@ -16,7 +16,7 @@ class SearchEngineTest {
     private fun search(lib: Library, q: String) = SearchEngine.search(lib, q).movies.map { it.name }
 
     @Test
-    fun `exacte titel wint van langere titels`() {
+    fun `exact title beats longer titles`() {
         val lib = library(
             movie("NL - The Matrix Reloaded (2003)"),
             movie("NL - The Matrix (1999)"),
@@ -26,52 +26,52 @@ class SearchEngineTest {
     }
 
     @Test
-    fun `woorddelen in willekeurige volgorde`() {
+    fun `word parts in any order`() {
         val lib = library(movie("Breaking Bad"), movie("Bad Boys"), movie("Breaking Dawn"))
         assertEquals(listOf("Breaking Bad"), search(lib, "bad break"))
     }
 
     @Test
-    fun `accenten en hoofdletters worden genegeerd`() {
+    fun `accents and capitals are ignored`() {
         val lib = library(movie("Amélie"), movie("Pokémon: De Film"))
         assertEquals(listOf("Amélie"), search(lib, "AMELIE"))
         assertEquals(listOf("Pokémon: De Film"), search(lib, "pokemon"))
     }
 
     @Test
-    fun `aan elkaar geschreven vindt koppelteken`() {
+    fun `joined word finds hyphenated title`() {
         val lib = library(movie("Spider-Man: No Way Home"), movie("Iron Man"))
         assertEquals(listOf("Spider-Man: No Way Home"), search(lib, "spiderman"))
     }
 
     @Test
-    fun `een typfout geeft toch resultaat`() {
+    fun `a typo still gives a result`() {
         val lib = library(movie("Interstellar"), movie("Inception"))
         assertEquals(listOf("Interstellar"), search(lib, "intersteller"))
     }
 
     @Test
-    fun `zoeken op jaartal`() {
+    fun `search by year`() {
         val lib = library(movie("Dune (2021)"), movie("Dune (1984)"))
         assertEquals(listOf("Dune (1984)"), search(lib, "dune 1984"))
     }
 
     @Test
-    fun `labels voor de titel`() {
+    fun `labels before the title`() {
         assertEquals("The Matrix", TextMatch.cleanTitle("NL - The Matrix (1999)"))
         assertEquals("Dune", TextMatch.cleanTitle("|EN| Dune"))
         assertEquals("Dune", TextMatch.cleanTitle("[4K] Dune"))
     }
 
     @Test
-    fun `weergavetitels`() {
+    fun `display titles`() {
         assertEquals("The Matrix", TextMatch.displayTitle("NL - The Matrix (1999)"))
         assertEquals("NPO 1", TextMatch.displayTitle("NL | NPO 1"))
         assertEquals("Dune", TextMatch.displayTitle("|EN| Dune [4K]"))
         assertEquals("CSI: Miami", TextMatch.displayTitle("CSI: Miami"))
         assertEquals("300 - Rise of an Empire", TextMatch.displayTitle("300 - Rise of an Empire (2014)"))
         assertEquals("Spider-Man: No Way Home", TextMatch.displayTitle("EN - Spider-Man: No Way Home (2021)"))
-        // Notatie van de provider: ┃ als scheidingsteken en een kaal jaartal.
+        // The provider's notation: ┃ as separator and a bare year.
         assertEquals("Wealthy Soul", TextMatch.displayTitle("┃MULTI┃ Wealthy Soul 2024"))
         assertEquals("Lonely", TextMatch.displayTitle("┃MULTI┃ Lonely - 2025"))
         assertEquals("Tiny Fugitives", TextMatch.displayTitle("┃AR┃ Tiny Fugitives"))
@@ -91,14 +91,14 @@ class SearchEngineTest {
     }
 
     @Test
-    fun `een bewerking verschil`() {
+    fun `one edit apart`() {
         assertTrue(TextMatch.withinOneEdit("matrix", "matrx"))
         assertTrue(TextMatch.withinOneEdit("matrix", "matrox"))
         assertFalse(TextMatch.withinOneEdit("matrix", "mtrx"))
     }
 
     @Test
-    fun `bevat zonder spaties`() {
+    fun `contains ignoring spaces`() {
         assertTrue(TextMatch.containsIgnoringSpaces("spider man no way home", "spiderman"))
         assertTrue(TextMatch.containsIgnoringSpaces("the spider man", "spiderman"))
         assertTrue(TextMatch.containsIgnoringSpaces("x men", "xmen"))
@@ -108,7 +108,7 @@ class SearchEngineTest {
     }
 
     @Test
-    fun `server-URL opschonen`() {
+    fun `clean up server URL`() {
         assertEquals("http://provider.tv:8080", XtreamClient.normalizeServer(" provider.tv:8080/ "))
         assertEquals("http://provider.tv:8080", XtreamClient.normalizeServer("http://provider.tv:8080/player_api.php?username=a"))
         assertEquals("https://x.y", XtreamClient.normalizeServer("https://x.y/get.php?username=a&password=b"))

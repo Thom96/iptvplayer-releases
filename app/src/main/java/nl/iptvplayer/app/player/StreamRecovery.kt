@@ -3,35 +3,35 @@ package nl.iptvplayer.app.player
 import androidx.media3.common.PlaybackException
 
 /**
- * Wat te doen als een stream een fout geeft; gedeeld door de Live-tab en de spelerpagina.
+ * What to do when a stream gives an error; shared by the Live tab and the player page.
  *
- * - Live: eerst het andere formaat proberen (ts <-> m3u8), daarna een paar keer opnieuw starten
- *   (netwerkhapering), steeds iets later. Te ver achter op de uitzending: terug naar het live-punt.
- * - Films, afleveringen en terugkijken: alleen bij netwerkfouten opnieuw proberen, vanaf dezelfde positie.
+ * - Live: first try the other format (ts <-> m3u8), then restart a few times
+ *   (network stall), each time a bit later. Too far behind the broadcast: back to the live edge.
+ * - Movies, episodes and catch-up: only retry on network errors, from the same position.
  *
- * Na beeld ([onPlaying]) begint het tellen opnieuw. [reset] bij een bewust gekozen nieuwe zender of titel.
+ * Once there is a picture ([onPlaying]) counting starts over. [reset] on a deliberately chosen new channel or title.
  */
 class StreamRecovery(private val maxRetries: Int = 3) {
 
     sealed interface Action {
-        /** Opnieuw starten met deze URL. */
+        /** Restart with this URL. */
         data class UseFallback(val url: String) : Action
-        /** Na [delayMs] opnieuw voorbereiden; met [toLiveEdge] eerst naar het live-punt. */
+        /** Prepare again after [delayMs]; with [toLiveEdge] first go to the live edge. */
         data class Retry(val delayMs: Long, val toLiveEdge: Boolean) : Action
-        /** Opgeven en de fout tonen. */
+        /** Give up and show the error. */
         data object GiveUp : Action
     }
 
     private val usedFallback = HashSet<String>()
     private var retries = 0
 
-    /** Een zender of titel die net gekozen is: fallback en pogingen opnieuw. */
+    /** A channel or title that was just chosen: fallback and attempts start over. */
     fun reset(key: String) {
         usedFallback.remove(key)
         retries = 0
     }
 
-    /** Er is weer beeld: een volgende hapering krijgt weer alle pogingen. */
+    /** There is a picture again: the next stall gets all attempts again. */
     fun onPlaying() {
         retries = 0
     }
@@ -46,7 +46,7 @@ class StreamRecovery(private val maxRetries: Int = 3) {
     }
 
     companion object {
-        /** Fouten bij het binnenhalen (geen verbinding, time-out, serverfout): 2000–2999 in Media3. */
+        /** Errors while loading (no connection, time-out, server error): 2000–2999 in Media3. */
         fun isNetworkError(errorCode: Int) = errorCode in 2000..2999
     }
 }

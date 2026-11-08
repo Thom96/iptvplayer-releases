@@ -17,7 +17,7 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 
-/** Het scherm blijft alleen aan (geen screensaver) zolang er echt iets speelt. */
+/** The screen only stays on (no screensaver) while something is really playing. */
 @RunWith(RobolectricTestRunner::class)
 class PlaybackSessionTest {
 

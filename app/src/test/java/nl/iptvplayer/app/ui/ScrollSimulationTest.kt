@@ -21,11 +21,11 @@ import java.io.File
 import kotlin.math.abs
 
 /**
- * Bootst het bladeren door Series en Films na met de afstandsbediening: de demobibliotheek, pijltjes
- * ingedrukt gehouden (zoals op de tv, ~20 herhalingen per seconde), en per frame waar de kaart met
- * focus staat. Haperen = de kaart springt heen en weer of staat lang niet stil.
+ * Simulates browsing through Series and Movies with the remote control: the demo library, arrow keys
+ * held down (as on the TV, ~20 repeats per second), and per frame where the focused card
+ * is. Stuttering = the card jumps back and forth or takes long to stand still.
  *
- * Draaien: ./gradlew testDebugUnitTest --tests '*ScrollSimulationTest*' -Pframes=/pad (frames optioneel).
+ * Run: ./gradlew testDebugUnitTest --tests '*ScrollSimulationTest*' -Pframes=/path (frames optional).
  */
 @OptIn(ExperimentalTestApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -54,7 +54,7 @@ class ScrollSimulationTest {
         }
     }
 
-    /** [presses] keer [key], elke [intervalMs] (50 = ingedrukt houden), daarna uitlopen. */
+    /** [presses] times [key], every [intervalMs] (50 = holding down), then run out. */
     private fun hold(key: Key, presses: Int, intervalMs: Long = 50): List<Rect?> {
         val log = ArrayList<Rect?>()
         val framesPerPress = (intervalMs / 16).toInt().coerceAtLeast(1)
@@ -83,7 +83,7 @@ class ScrollSimulationTest {
             }
             return count
         }
-        // Frames tot alles stilstaat na de laatste toets.
+        // Frames until everything stands still after the last key.
         val settle = log.indices.reversed().firstOrNull { i -> i > 0 && log[i] != log[i - 1] }?.let { it + 1 } ?: 0
         println("=== $name: ${log.size} frames, x-omkeringen=${reversals(xs)}, y-omkeringen=${reversals(ys)}, laatste beweging in frame $settle")
         println("x: " + xs.joinToString(" ") { it?.toInt()?.toString() ?: "-" })
@@ -91,11 +91,11 @@ class ScrollSimulationTest {
     }
 
     private fun openTab(downs: Int) {
-        // Zoals op een Android TV: dan gebruikt Compose het tv-scrollgedrag (focus op 30% van de hoogte).
+        // As on an Android TV: then Compose uses the TV scroll behaviour (focus at 30% of the height).
         org.robolectric.Shadows.shadowOf(rule.activity.packageManager)
             .setSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK, true)
         val vm = ViewModelProvider(rule.activity)[AppViewModel::class.java]
-        // Taalkeuze van de eerste start overslaan.
+        // Skip the language choice of the first start.
         rule.runOnUiThread { vm.setAppLanguage(nl.iptvplayer.app.i18n.AppLanguage.NL) }
         rule.runOnUiThread { vm.login("demo", "demo", "demo") }
         runCatching { rule.waitUntil(20_000) {
@@ -104,7 +104,7 @@ class ScrollSimulationTest {
             } }
             .onFailure { throw AssertionError("Inloggen demo mislukt: ${vm.state}", it) }
         rule.waitForIdle()
-        // Zijbalk: Home heeft focus; omlaag naar het tabblad (focus = kiezen), dan naar rechts de inhoud in.
+        // Side rail: Home has focus; down to the tab (focus = choose), then right into the content.
         repeat(downs) { rule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }; rule.waitForIdle() }
         rule.mainClock.advanceTimeBy(1_000)
         rule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }

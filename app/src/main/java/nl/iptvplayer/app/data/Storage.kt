@@ -7,8 +7,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Lokale opslag: inloggegevens, favorieten en kijkvoortgang. Het wachtwoord staat versleuteld opgeslagen
- * (zie [SecretCipher]); een oud, leesbaar opgeslagen wachtwoord wordt bij het lezen omgezet.
+ * Local storage: login details, favourites and watch progress. The password is stored encrypted
+ * (see [SecretCipher]); an old password stored in plain text is converted when it is read.
  */
 class Storage(context: Context, private val cipher: SecretCipher = KeystoreCipher()) {
     private val prefs = context.getSharedPreferences("iptv", Context.MODE_PRIVATE)
@@ -18,7 +18,7 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
             val server = prefs.getString("server", null) ?: return null
             val user = prefs.getString("username", null) ?: return null
             val pass = prefs.getString("passwordEnc", null)?.let { enc ->
-                // Niet te ontsleutelen (sleutel weg): opnieuw inloggen, server en naam staan al ingevuld.
+                // Can't be decrypted (key gone): log in again, server and name are already filled in.
                 cipher.decrypt(enc) ?: return null
             } ?: prefs.getString("password", null)?.also(::savePassword) ?: return null
             return Credentials(server, user, pass)
@@ -32,7 +32,7 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
             }
         }
 
-    /** Versleuteld bewaren; lukt dat op dit toestel niet, dan zoals vroeger, zodat inloggen blijft werken. */
+    /** Store encrypted; if that doesn't work on this device, store as before, so login keeps working. */
     private fun savePassword(password: String) {
         val enc = runCatching { cipher.encrypt(password) }.getOrNull()
         prefs.edit().apply {
@@ -41,11 +41,11 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
         }.apply()
     }
 
-    /** Laatst gebruikte server en gebruikersnaam, om het inlogscherm voor te vullen. */
+    /** Last used server and username, to prefill the login screen. */
     val lastServer: String get() = prefs.getString("server", "") ?: ""
     val lastUsername: String get() = prefs.getString("username", "") ?: ""
 
-    // ---------- Favorieten ----------
+    // ---------- Favourites ----------
 
     private val _favorites = MutableStateFlow(prefs.getStringSet("favorites", emptySet())!!.toSet())
     val favorites: StateFlow<Set<String>> = _favorites
@@ -56,20 +56,20 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
         prefs.edit().putStringSet("favorites", next).apply()
     }
 
-    // ---------- Gezien ----------
+    // ---------- Watched ----------
 
     private val _watched = MutableStateFlow(prefs.getStringSet("watched", emptySet())!!.toSet())
     val watched: StateFlow<Set<String>> = _watched
 
-    // ---------- Verder kijken ----------
+    // ---------- Continue watching ----------
 
     private val _progress = MutableStateFlow(loadProgress())
-    /** Nieuwste eerst. */
+    /** Newest first. */
     val progress: StateFlow<List<Progress>> = _progress
 
     fun progressFor(key: String): Progress? = _progress.value.firstOrNull { it.key == key }
 
-    /** Slaat de positie op; bijna uitgekeken telt als gezien en verdwijnt uit "Verder kijken". */
+    /** Saves the position; almost finished counts as watched and drops out of "Continue watching". */
     fun saveProgress(p: Progress) {
         val finished = p.durationMs > 0 && p.positionMs >= p.durationMs * 0.93
         if (finished) {
@@ -78,31 +78,31 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
             return
         }
         if (p.positionMs < 30_000) return
-        // Een serie heeft maar één regel in "Verder kijken": de laatst bekeken aflevering.
+        // A series has only one entry in "Continue watching": the last watched episode.
         val rest = _progress.value.filterNot { it.key == p.key || (p.seriesId != null && it.seriesId == p.seriesId) }
         setProgress((listOf(p) + rest).take(MAX_PROGRESS))
     }
 
     fun removeProgress(key: String) = setProgress(_progress.value.filterNot { it.key == key })
 
-    /** Volgende aflevering klaarzetten in "Serie verder kijken", ook al is die nog niet gestart. */
+    /** Queue the next episode in "Continue watching" for series, even though it hasn't started yet. */
     fun saveNextUp(p: Progress) {
         val rest = _progress.value.filterNot { it.key == p.key || (p.seriesId != null && it.seriesId == p.seriesId) }
         setProgress((listOf(p) + rest).take(MAX_PROGRESS))
     }
 
-    /** Uitgekeken: als gezien markeren en uit "verder kijken" halen. */
+    /** Finished: mark as watched and remove from "continue watching". */
     fun markFinished(key: String) {
         markWatched(key)
         setProgress(_progress.value.filterNot { it.key == key })
     }
 
-    // ---------- Recent bekeken zenders ----------
+    // ---------- Recently watched channels ----------
 
     private val _recentLive = MutableStateFlow(
         (prefs.getString("recentLive", "") ?: "").split(',').filter { it.isNotEmpty() },
     )
-    /** Laatst bekeken zenders, nieuwste eerst (max. 10). */
+    /** Last watched channels, newest first (max. 10). */
     val recentLive: StateFlow<List<String>> = _recentLive
 
     fun addRecentLive(key: String) = setRecentLive((listOf(key) + _recentLive.value.filterNot { it == key }).take(10))
@@ -114,10 +114,10 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
         prefs.edit().putString("recentLive", list.joinToString(",")).apply()
     }
 
-    // ---------- Streamformaat ----------
+    // ---------- Stream format ----------
 
     private val _liveFormat = MutableStateFlow(prefs.getString("liveFormat", "auto") ?: "auto")
-    /** "auto" (wat de server aanbeveelt), "ts" of "m3u8". */
+    /** "auto" (what the server recommends), "ts" or "m3u8". */
     val liveFormat: StateFlow<String> = _liveFormat
 
     fun setLiveFormat(format: String) {
@@ -125,40 +125,40 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
         prefs.edit().putString("liveFormat", format).apply()
     }
 
-    /** Live-formaat dat de server de vorige keer aanbeval ("ts" of "m3u8"), zodat zappen direct goed start. */
+    /** Live format the server recommended last time ("ts" or "m3u8"), so zapping starts right away. */
     var serverLiveFormat: String?
         get() = prefs.getString("serverLiveFormat", null)
         set(value) { prefs.edit().putString("serverLiveFormat", value).apply() }
 
-    // ---------- Taal van de app ----------
+    // ---------- App language ----------
 
-    /** Code van de gekozen app-taal (bijv. "en"); null zolang er bij de eerste start nog niet gekozen is. */
+    /** Code of the chosen app language (e.g. "en"); null as long as nothing was chosen on first start. */
     var appLanguage: String?
         get() = prefs.getString("appLanguage", null)
         set(value) { prefs.edit().putString("appLanguage", value).apply() }
 
-    // ---------- Activatie ----------
+    // ---------- Activation ----------
 
-    /** Eigen ID van dit apparaat bij de Gallo-server; één keer gemaakt en daarna altijd hetzelfde. */
+    /** This device's own ID at the Gallo server; created once and always the same after that. */
     val deviceId: String
         get() = prefs.getString("deviceId", null) ?: java.util.UUID.randomUUID().toString().also {
             prefs.edit().putString("deviceId", it).apply()
         }
 
-    /** Laatst bekende status van de server, voor als die even niet te bereiken is. */
+    /** Last known status from the server, for when it can't be reached for a while. */
     var license: License?
         get() = License.fromJson(prefs.getString("license", null))
         set(value) { prefs.edit().putString("license", value?.toJson()).apply() }
 
-    // ---------- Talen van het aanbod ----------
+    // ---------- Languages of the catalogue ----------
 
     private val _languages = MutableStateFlow(prefs.getStringSet("languages", emptySet())!!.toSet())
-    /** Gekozen taallabels (bijv. "NL", "MULTI"); leeg = alle talen tonen. */
+    /** Chosen language labels (e.g. "NL", "MULTI"); empty = show all languages. */
     val languages: StateFlow<Set<String>> = _languages
 
     fun toggleLanguage(tag: String) = setLanguages(_languages.value.let { if (tag in it) it - tag else it + tag })
 
-    /** Alle gekozen talen in één keer; leeg = alle talen tonen. */
+    /** All chosen languages at once; empty = show all languages. */
     fun setLanguages(tags: Set<String>) {
         _languages.value = tags
         prefs.edit().putStringSet("languages", tags).apply()

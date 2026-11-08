@@ -74,9 +74,9 @@ private enum class Panel { NONE, TRACKS, SPEED }
 
 
 /**
- * Bediening tijdens het afspelen, in de stijl van Netflix met de kleuren van het logo:
- * linksboven terug / 10 s terug / volgende, rechtsboven de titel, onderin afspeelknop, tijdbalk
- * en een balk met audio en ondertiteling.
+ * Controls during playback, in the style of Netflix with the colours of the logo:
+ * top left back / 10 s back / next, top right the title, at the bottom the play button, seek bar
+ * and a bar with audio and subtitles.
  */
 @OptIn(UnstableApi::class)
 @Composable
@@ -85,14 +85,14 @@ fun PlayerControls(
     queue: PlaybackQueue,
     onExit: () -> Unit,
     onControlsVisible: (Boolean) -> Unit,
-    /** Naar de volgende aflevering; de activity slaat de huidige eerst als uitgekeken op. */
+    /** To the next episode; the activity first saves the current one as finished. */
     onNextEpisode: () -> Unit,
-    /** Serie-intro: S.episodesAndMore opent de seriepagina. */
+    /** Series intro: S.episodesAndMore opens the series page. */
     onMoreEpisodes: () -> Unit = {},
     isFavorite: Boolean = false,
     onToggleFavorite: () -> Unit = {},
 ) {
-    // ---------- Status van de speler ----------
+    // ---------- Player state ----------
     var isPlaying by remember { mutableStateOf(player.isPlaying) }
     var index by remember { mutableIntStateOf(player.currentMediaItemIndex) }
     var tracks by remember { mutableStateOf(player.currentTracks) }
@@ -106,8 +106,8 @@ fun PlayerControls(
             override fun onIsPlayingChanged(playing: Boolean) { isPlaying = playing }
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                 index = player.currentMediaItemIndex
-                // Niet wachten op de volgende meting: met de tijden van de vorige aflevering zou de
-                // "volgende aflevering"-knop blijven staan en nog een keer doorspringen.
+                // Don't wait for the next measurement: with the times of the previous episode the
+                // "next episode" button would stay and skip ahead once more.
                 position = 0
                 duration = 0
             }
@@ -131,14 +131,14 @@ fun PlayerControls(
     val hasNext = !isLive && index < queue.items.size - 1
     val nextItem = if (hasNext) queue.items[index + 1].takeIf { it.kind == Kind.EPISODE } else null
 
-    // ---------- Volgende aflevering (vlak voor de aftiteling) ----------
-    // De provider geeft niet door waar de aftiteling begint: laatste 5% (min. 30 s, max. 90 s).
+    // ---------- Next episode (just before the credits) ----------
+    // The provider doesn't say where the credits start: last 5% (min. 30 s, max. 90 s).
     val creditsAt = (duration * 0.05).toLong().coerceIn(30_000, 90_000)
     var dismissedIndex by remember { mutableIntStateOf(-1) }
     val showNextPrompt = nextItem != null && duration > 0 && duration - position <= creditsAt && dismissedIndex != index
 
-    // ---------- Zichtbaarheid ----------
-    // Serie-intro (Netflix-stijl): bij openen van een serie eerst het infopaneel, de aflevering speelt al.
+    // ---------- Visibility ----------
+    // Series intro (Netflix style): when opening a series, first the info panel; the episode is already playing.
     var introVisible by remember { mutableStateOf(queue.intro != null) }
     var visible by remember { mutableStateOf(queue.intro == null) }
     var interaction by remember { mutableIntStateOf(0) }
@@ -147,7 +147,7 @@ fun PlayerControls(
     val seekFocus = remember { FocusRequester() }
     val rootFocus = remember { FocusRequester() }
 
-    // Links/rechts bij verborgen bediening: tonen met focus op de tijdbalk, zodat verder drukken blijft spoelen.
+    // Left/right with hidden controls: show them with focus on the seek bar, so pressing further keeps seeking.
     var focusSeekBar by remember { mutableStateOf(false) }
     fun showAtSeekBar() {
         focusSeekBar = true
@@ -160,7 +160,7 @@ fun PlayerControls(
         interaction++
     }
 
-    // Live: na zappen met verborgen bediening een paar seconden het nummer en de naam van de zender.
+    // Live: after zapping with hidden controls, show the channel number and name for a few seconds.
     var zapTick by remember { mutableIntStateOf(0) }
     var zapInfoVisible by remember { mutableStateOf(false) }
     LaunchedEffect(zapTick) {
@@ -182,11 +182,11 @@ fun PlayerControls(
         }
     }
     LaunchedEffect(visible, introVisible) {
-        if (introVisible) return@LaunchedEffect // het infopaneel zet zelf de focus
+        if (introVisible) return@LaunchedEffect // the info panel sets the focus itself
         if (visible) (if (focusSeekBar) seekFocus else playFocus).requestSafely() else rootFocus.requestSafely()
         focusSeekBar = false
     }
-    // Infopaneel verdwijnt na 10 seconden zonder actie; de aflevering speelt gewoon door.
+    // The info panel disappears after 10 seconds without action; the episode just keeps playing.
     LaunchedEffect(introVisible, interaction, panel) {
         if (introVisible && panel == Panel.NONE) {
             delay(INTRO_MS)
@@ -199,8 +199,8 @@ fun PlayerControls(
     BackHandler(enabled = !visible && !introVisible) { onExit() }
     BackHandler(enabled = introVisible && panel == Panel.NONE) { onExit() }
 
-    // Spoelen en de getoonde tijden direct bijwerken (niet pas bij de volgende poll), zodat de
-    // resterende tijd meteen klopt.
+    // Update seeking and the shown times right away (not only at the next poll), so the
+    // remaining time is correct immediately.
     fun seekBy(delta: Long) {
         val max = if (duration > 0) duration else Long.MAX_VALUE
         val target = (player.currentPosition + delta).coerceIn(0, max)
@@ -226,9 +226,9 @@ fun PlayerControls(
                 }
                 if (visible || showNextPrompt || introVisible || panel != Panel.NONE) {
                     interaction++
-                    return@onPreviewKeyEvent false // focus binnen de bediening of de volgende-knop laten bewegen
+                    return@onPreviewKeyEvent false // let focus move within the controls or the next button
                 }
-                // Bediening verborgen:
+                // Controls hidden:
                 when (e.key) {
                     Key.DirectionUp, Key.ChannelUp -> if (isLive && queue.items.size > 1) zap(next = false) else show()
                     Key.DirectionDown, Key.ChannelDown -> if (isLive && queue.items.size > 1) zap(next = true) else show()
@@ -242,21 +242,21 @@ fun PlayerControls(
     ) {
         AnimatedVisibility(visible, enter = fadeIn(), exit = fadeOut()) {
             Box(Modifier.fillMaxSize()) {
-                // Donkere verlopen boven en onder, zodat knoppen en tekst leesbaar blijven.
+                // Dark gradients at the top and bottom, so buttons and text stay readable.
                 Box(Modifier.fillMaxWidth().height(200.dp).background(Brush.verticalGradient(listOf(Palette.scrim, Color.Transparent))))
                 Box(
                     Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(320.dp)
                         .background(Brush.verticalGradient(listOf(Color.Transparent, Palette.scrim))),
                 )
 
-                // Linksboven: terug, 10 s terug, volgende aflevering.
+                // Top left: back, 10 s back, next episode.
                 Row(Modifier.padding(start = 48.dp, top = 36.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     RoundIconButton(Icons.AutoMirrored.Filled.ArrowBack, S.back, onClick = onExit)
                     if (!isLive) RoundIconButton(Icons.Filled.Replay10, S.rewind10, onClick = { player.seekBack() })
                     if (hasNext) RoundIconButton(Icons.Filled.SkipNext, S.nextEpisode, onClick = onNextEpisode)
                 }
 
-                // Rechtsboven: titel en aflevering.
+                // Top right: title and episode.
                 Column(
                     Modifier.align(Alignment.TopEnd).padding(end = 56.dp, top = 40.dp).widthIn(max = 640.dp),
                     horizontalAlignment = Alignment.End,
@@ -267,7 +267,7 @@ fun PlayerControls(
                     }
                 }
 
-                // Onderin: afspeelknop, tijdbalk, tijden en de knoppen voor audio/ondertiteling.
+                // Bottom: play button, seek bar, times and the buttons for audio/subtitles.
                 Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start = 56.dp, end = 56.dp, bottom = 32.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         PlayPauseButton(isPlaying, onClick = { togglePlay() }, modifier = Modifier.focusRequester(playFocus))
@@ -301,11 +301,11 @@ fun PlayerControls(
                             )
                         }
                     }
-                    Spacer(Modifier.height(28.dp)) // ruimte voor het tijdlabel onder de bol
+                    Spacer(Modifier.height(28.dp)) // room for the time label under the knob
                     Row(Modifier.align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Pill(trackSummary(tracks), checked = true, onClick = { panel = Panel.TRACKS })
                         Pill(S.otherTracks, onClick = { panel = Panel.TRACKS })
-                        // Sneller of langzamer afspelen kan niet bij live: de buffer loopt dan leeg of achter.
+                        // Faster or slower playback isn't possible for live: the buffer then runs empty or falls behind.
                         if (!isLive) RoundIconButton(Icons.Outlined.Settings, S.playbackSpeed, small = true, onClick = { panel = Panel.SPEED })
                     }
                 }
@@ -329,7 +329,7 @@ fun PlayerControls(
         }
 
         if (showNextPrompt && nextItem != null && panel == Panel.NONE && !introVisible) {
-            // Per aflevering een nieuwe prompt, zodat de afteltijd nooit meegaat naar de volgende.
+            // A new prompt per episode, so the countdown never carries over to the next one.
             key(index) {
                 NextEpisodePrompt(
                     next = nextItem,

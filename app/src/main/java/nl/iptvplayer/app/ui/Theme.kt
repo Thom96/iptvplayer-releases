@@ -22,12 +22,12 @@ import androidx.tv.material3.darkColorScheme
 import nl.iptvplayer.app.R
 
 /**
- * Gallo-brandbook, palet Nachtwacht: petrolblauwe lagen als ondergrond, zilverwit voor tekst,
- * champagne (de gouden nekveren van een haan) voor focus, voortgang en sterren, en hanenkamrood
- * alleen voor LIVE en de kam in het logo. Diepte komt van lichtere lagen, niet van schaduwen.
+ * Gallo brandbook, palette Night Watch: petrol blue layers as the background, silver white for text,
+ * champagne (a rooster's golden hackles) for focus, progress and stars, and comb red
+ * only for LIVE and the comb in the logo. Depth comes from lighter layers, not from shadows.
  */
 object Palette {
-    // Oppervlakken, van donker naar licht.
+    // Surfaces, from dark to light.
     val rail = Color(0xFF07131A)
     val background = Color(0xFF0B1A22)
     val backgroundTop = Color(0xFF10212A)
@@ -35,28 +35,28 @@ object Palette {
     val surfaceFocused = Color(0xFF1A2E38)
     val outline = Color(0x1FEDF3F2)
 
-    // Tekst (contrast op background).
-    val text = Color(0xFFEDF3F2) // zilverwit, 15,8:1
-    val textSoft = Color(0xFFCFDCDD) // 12,6:1
-    val textMuted = Color(0xFFA9BDC2) // 9,1:1
-    val textDisabled = Color(0xFF8197A0) // 5,8:1
+    // Text (contrast on background).
+    val text = Color(0xFFEDF3F2) // silver white, 15.8:1
+    val textSoft = Color(0xFFCFDCDD) // 12.6:1
+    val textMuted = Color(0xFFA9BDC2) // 9.1:1
+    val textDisabled = Color(0xFF8197A0) // 5.8:1
 
-    // Accent en signalen.
-    val accent = Color(0xFFE8CC94) // champagne, 11,4:1: focusrand, voortgang, sterren, de o van het logo
+    // Accent and signals.
+    val accent = Color(0xFFE8CC94) // champagne, 11.4:1: focus border, progress, stars, the o of the logo
     val gold = accent
-    val live = Color(0xFFBC3E2E) // hanenkamrood: alleen als vlak (wit erop 5,4:1), nooit als tekstkleur
+    val live = Color(0xFFBC3E2E) // comb red: only as a surface (white on it 5.4:1), never as a text colour
     val comb = live
-    val online = Color(0xFF8FD1A6) // gezien / verbonden
+    val online = Color(0xFF8FD1A6) // watched / connected
     val favorite = Color(0xFFE8907A)
 
-    // Over video en afbeeldingen: donker petrol in plaats van zwart, zilverwitte tekst erop.
-    val video = Color(0xFF000000) // achter het beeld zelf (zwarte balken blijven zwart)
-    val scrim = Color(0xE607131A) // verloop onder tekst over beeld
-    val scrimLight = Color(0x9907131A) // achter een zijpaneel
-    val badge = Color(0xCC07131A) // klein label op een poster of in de tijdbalk
-    val glass = Color(0x33EDF3F2) // knop over beeld zonder focus
-    val track = Color(0x40EDF3F2) // achtergrond van een tijdbalk
-    val trackBuffered = Color(0x66EDF3F2) // al geladen deel
+    // Over video and images: dark petrol instead of black, silver white text on top.
+    val video = Color(0xFF000000) // behind the picture itself (black bars stay black)
+    val scrim = Color(0xE607131A) // gradient under text over the picture
+    val scrimLight = Color(0x9907131A) // behind a side panel
+    val badge = Color(0xCC07131A) // small label on a poster or in the seek bar
+    val glass = Color(0x33EDF3F2) // button over the picture without focus
+    val track = Color(0x40EDF3F2) // background of a seek bar
+    val trackBuffered = Color(0x66EDF3F2) // already loaded part
 }
 
 val Outfit = FontFamily(
@@ -66,7 +66,7 @@ val Outfit = FontFamily(
     Font(R.font.outfit_700, FontWeight.Bold),
 )
 
-/** Koppen en het woordmerk. Young Serif heeft alleen een normaal gewicht. */
+/** Headings and the wordmark. Young Serif only has a regular weight. */
 val YoungSerif = FontFamily(Font(R.font.young_serif_400, FontWeight.Normal))
 
 private fun TextStyle.outfit(weight: FontWeight) = copy(fontFamily = Outfit, fontWeight = weight)
@@ -141,5 +141,5 @@ fun formatRemaining(p: nl.iptvplayer.app.data.Progress): String {
     return if (mins >= 60) S.hoursMinutes(mins / 60, mins % 60) else S.minutes(mins)
 }
 
-/** Duizendtallen met een punt, in het Engels met een komma. */
+/** Thousands with a dot, in English with a comma. */
 fun formatCount(n: Int): String = "%,d".format(n).let { if (I18n.language == AppLanguage.EN) it else it.replace(',', '.') }

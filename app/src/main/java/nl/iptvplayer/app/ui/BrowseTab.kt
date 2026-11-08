@@ -66,13 +66,13 @@ private fun sortOptions(kind: Kind) =
 private fun List<MediaItem>.sortedBy(order: SortOrder): List<MediaItem> = when (order) {
     SortOrder.SERVER -> this
     SortOrder.NEWEST -> sortedByDescending { it.added }
-    // Sorteersleutel eenmalig per titel berekenen, niet bij elke vergelijking.
+    // Compute the sort key once per title, not on every comparison.
     SortOrder.AZ -> map { TextMatch.cleanTitle(it.name).lowercase() to it }.sortedBy { it.first }.map { it.second }
     SortOrder.RATING -> sortedByDescending { it.rating }
     SortOrder.YEAR -> sortedWith(compareByDescending<MediaItem> { it.year ?: 0 }.thenByDescending { it.added })
 }
 
-/** Laatst getoonde lijst per soort; alleen de laatste, want een hele categorie kan 141.000 titels zijn. */
+/** Last shown list per kind; only the last one, because a whole category can be 141,000 titles. */
 private class BrowseResult(val category: String, val sort: SortOrder, val items: List<MediaItem>) {
     fun itemsFor(category: String, sort: SortOrder) = items.takeIf { category == this.category && sort == this.sort }
 }
@@ -89,7 +89,7 @@ fun BrowseTab(vm: AppViewModel, library: Library, kind: Kind, initialCategory: S
     val gridState = rememberLazyGridState()
 
     val all = library.items(kind)
-    // Tellen, filteren en sorteren van tot 141.000 titels gebeurt op de achtergrond, niet tijdens het tekenen.
+    // Counting, filtering and sorting up to 141,000 titles happens in the background, not while drawing.
     val counts by produceState(emptyMap<String?, Int>(), library, kind) {
         value = withContext(Dispatchers.Default) { all.groupingBy { it.categoryId }.eachCount() }
     }
@@ -98,11 +98,11 @@ fun BrowseTab(vm: AppViewModel, library: Library, kind: Kind, initialCategory: S
     var selected by rememberSaveable { mutableStateOf(initialCategory) }
     var sort by rememberSaveable { mutableStateOf(sortOptions(kind).first()) }
 
-    // Terug van een detailscherm: direct de vorige lijst tonen, zodat scrollpositie en focus terugkomen.
+    // Back from a detail screen: show the previous list right away, so scroll position and focus come back.
     var items by remember { mutableStateOf(lastBrowse[library]?.get(kind)?.itemsFor(selected, sort) ?: emptyList()) }
     LaunchedEffect(library, selected, sort) {
         lastBrowse[library]?.get(kind)?.itemsFor(selected, sort)?.let { items = it; return@LaunchedEffect }
-        delay(120) // snel door categorieën bladeren start niet steeds een nieuwe sortering
+        delay(120) // quickly paging through categories doesn't start a new sort every time
         items = withContext(Dispatchers.Default) {
             val base = when {
                 selected == ALL -> all
@@ -122,8 +122,8 @@ fun BrowseTab(vm: AppViewModel, library: Library, kind: Kind, initialCategory: S
 
     val catFocus = rememberListFocusMemory()
     Row(Modifier.fillMaxSize()) {
-        // Categorieën: focus = selecteren. enterFocusAt zorgt dat je vanuit het raster
-        // terugkomt op de geselecteerde categorie in plaats van op de dichtstbijzijnde.
+        // Categories: focus = select. enterFocusAt makes sure that coming from the grid you
+        // land on the selected category instead of the nearest one.
         LazyColumn(
             Modifier.width(260.dp).fillMaxHeight().enterFocusAt(catFocus),
             contentPadding = PaddingValues(start = 36.dp, end = 12.dp, top = 8.dp, bottom = 48.dp),
@@ -160,8 +160,8 @@ fun BrowseTab(vm: AppViewModel, library: Library, kind: Kind, initialCategory: S
         }
 
         Column(Modifier.weight(1f)) {
-            // Sorteren werkt net als de categorieën: focus = kiezen. enterFocusAt laat je vanuit het raster
-            // op de gekozen sortering uitkomen, anders zou je met omhoog per ongeluk anders sorteren.
+            // Sorting works just like the categories: focus = choose. enterFocusAt makes you land on the chosen
+            // sort order coming from the grid, otherwise pressing up would change the sort by accident.
             val sortFocus = rememberListFocusMemory()
             Row(
                 Modifier.fillMaxWidth().padding(start = 12.dp, end = 48.dp, top = 8.dp).enterFocusAt(sortFocus),

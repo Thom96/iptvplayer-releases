@@ -107,8 +107,8 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
 }
 
 /**
- * Laadscherm. Bij het downloaden van de lijsten ([AppState.Loading.quick] = false) het korrelspel van de haan
- * met uitleg; bij een snelle start uit de bewaarde lijsten alleen het logo en een haan die één keer kraait.
+ * Loading screen. When downloading the lists ([AppState.Loading.quick] = false) the rooster's grain game
+ * with explanation; on a quick start from the saved lists only the logo and a rooster that crows once.
  */
 @Composable
 fun LoadingScreen(state: AppState.Loading, onRoosterDone: () -> Unit = {}) {

@@ -27,7 +27,7 @@ import nl.iptvplayer.app.AppViewModel
 import nl.iptvplayer.app.i18n.AppLanguage
 import nl.iptvplayer.app.i18n.I18n
 
-/** Eerste start: taal kiezen. De kop staat steeds in de taal waar de focus op staat. */
+/** First start: choose a language. The heading is always in the language that has focus. */
 @Composable
 fun LanguageScreen(vm: AppViewModel) {
     var focused by remember { mutableStateOf(I18n.language) }
@@ -40,7 +40,7 @@ fun LanguageScreen(vm: AppViewModel) {
             Spacer(Modifier.height(20.dp))
             Text(focused.strings.chooseLanguage, style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(8.dp))
-            // Twee regels vrijhouden, zodat het logo niet verspringt als een vertaling langer is.
+            // Keep two lines free, so the logo doesn't jump when a translation is longer.
             Text(focused.strings.chooseLanguageHint, style = MaterialTheme.typography.bodyLarge, color = Palette.textMuted, minLines = 2)
         }
         Spacer(Modifier.width(64.dp))
@@ -54,7 +54,7 @@ fun LanguageScreen(vm: AppViewModel) {
     }
 }
 
-/** Alle talen onder elkaar, in hun eigen taal. */
+/** All languages below each other, in their own language. */
 @Composable
 private fun LanguageList(
     selected: AppLanguage,

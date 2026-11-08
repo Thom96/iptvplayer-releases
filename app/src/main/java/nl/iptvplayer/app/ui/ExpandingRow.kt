@@ -71,15 +71,15 @@ import nl.iptvplayer.app.data.MediaItem
 
 private val CARD_HEIGHT = 192.dp
 private val ROW_PADDING = 8.dp
-/** Hoogte van een rij zonder infopaneel; de rest is het (uit- of inklappende) paneel. */
+/** Height of a row without info panel; the rest is the (expanding or collapsing) panel. */
 val EXPANDING_ROW_BASE_HEIGHT = CARD_HEIGHT + ROW_PADDING * 2
 private val POSTER_WIDTH = 128.dp
-private val EXPANDED_WIDTH = 341.dp // 16:9 bij dezelfde hoogte
+private val EXPANDED_WIDTH = 341.dp // 16:9 at the same height
 private val cardShape = RoundedCornerShape(10.dp)
 
 /**
- * Rij zoals bij Netflix: de titel waar je op staat klapt uit tot een brede kaart, schuift naar links,
- * en onder de rij verschijnen genre, jaar, duur en beschrijving.
+ * Row like on Netflix: the title you are on expands to a wide card, shifts to the left,
+ * and below the row genre, year, duration and description appear.
  */
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
@@ -89,7 +89,7 @@ fun ExpandingPosterRow(
     restorer: FocusRestorer,
     rowId: String,
     trailing: (@Composable () -> Unit)? = null,
-    /** De rij krijgt focus (van boven, onder of de zijbalk): de lijst eromheen kan hem in beeld zetten. */
+    /** The row gets focus (from above, below or the side rail): the surrounding list can bring it into view. */
     onFocused: () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -100,15 +100,15 @@ fun ExpandingPosterRow(
     var rowFocused by remember { mutableStateOf(false) }
     val focused = items.firstOrNull { it.key == focusedKey }
 
-    // Filmdetails pas ophalen als je even op een titel blijft staan.
+    // Only fetch movie details when you stay on a title for a moment.
     LaunchedEffect(focusedKey) {
         val item = focused ?: return@LaunchedEffect
         delay(300)
         vm.loadDetails(item)
     }
 
-    // Binnenkomen van boven of onder: op de titel waar je in deze rij was (staat links), anders de eerste.
-    // Zonder dit kiest Compose de dichtstbijzijnde kaart onder de brede kaart, vaak de tweede.
+    // Entering from above or below: on the title you were on in this row (it is on the left), otherwise the first.
+    // Without this Compose picks the nearest card under the wide card, often the second.
     val entry = rememberListFocusMemory()
     val entryKey = focusedKey ?: items.firstOrNull()?.key
 
@@ -117,9 +117,9 @@ fun ExpandingPosterRow(
     val scope = rememberCoroutineScope()
 
     /**
-     * Gekozen titel links zetten. De afstand houdt rekening met kaarten links ervan die nog aan het
-     * inklappen zijn (bij snel drukken vaak nog niet helemaal uitgeklapt): die schuiven alles al mee.
-     * Inklappen en scrollen gebruiken dezelfde veer, zodat het samen één beweging is.
+     * Put the chosen title on the left. The distance takes into account cards to its left that are still
+     * collapsing (often not fully expanded yet when pressing quickly): they already move everything along.
+     * Collapsing and scrolling use the same spring, so together they are one movement.
      */
     fun scrollToPivot(index: Int) {
         if (listState.layoutInfo.visibleItemsInfo.none { it.index == index }) {
@@ -174,7 +174,7 @@ fun ExpandingPosterRow(
       }
         AnimatedVisibility(
             visible = rowFocused && focused != null,
-            // Zelfde veer als het scrollen van de lijst, zodat inklappen en verschuiven samen één beweging zijn.
+            // Same spring as the list scrolling, so collapsing and shifting together are one movement.
             enter = fadeIn() + expandVertically(moveSpring(IntSize.VisibilityThreshold)),
             exit = fadeOut() + shrinkVertically(moveSpring(IntSize.VisibilityThreshold)),
         ) {
@@ -212,8 +212,8 @@ private fun ExpandingCard(
             val backdrop = details?.backdrop
             when {
                 expanded -> {
-                    // Eerst de poster (gedimd als achtergrond, scherp links); de brede afbeelding komt
-                    // eroverheen zodra die geladen is, zodat de kaart nooit leeg is.
+                    // First the poster (dimmed as background, sharp on the left); the wide image goes
+                    // on top as soon as it has loaded, so the card is never empty.
                     AsyncImage(item.image, null, contentScale = ContentScale.Crop, alpha = 0.3f, modifier = Modifier.fillMaxSize())
                     AsyncImage(
                         item.image, item.title, contentScale = ContentScale.Crop,
@@ -256,7 +256,7 @@ private fun ExpandingCard(
     }
 }
 
-/** Informatie onder de rij: soort • genre • jaar • duur • beoordeling, en de beschrijving. */
+/** Information under the row: kind • genre • year • duration • rating, and the description. */
 @Composable
 private fun InfoPanel(item: MediaItem, details: ItemDetails?) {
     val meta = listOfNotNull(
@@ -283,7 +283,7 @@ private fun InfoPanel(item: MediaItem, details: ItemDetails?) {
     }
 }
 
-/** Kleine rijtitel + uitklappende rij, voor gebruik in een LazyColumn (bijv. Home). */
+/** Small row title + expanding row, for use in a LazyColumn (e.g. Home). */
 fun androidx.compose.foundation.lazy.LazyListScope.expandingSection(
     vm: AppViewModel,
     title: String,

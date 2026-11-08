@@ -54,9 +54,9 @@ import nl.iptvplayer.app.ui.Palette
 import nl.iptvplayer.app.ui.formatTime
 import nl.iptvplayer.app.ui.tapToClick
 
-// Knoppen en tijdbalk van de spelerbediening.
+// Buttons and seek bar of the player controls.
 
-// ---------- Onderdelen ----------
+// ---------- Parts ----------
 
 @Composable
 internal fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Unit, small: Boolean = false) {
@@ -80,10 +80,10 @@ internal fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Un
 }
 
 /**
- * Afspeelknop in dezelfde stijl als de andere ronde knoppen, maar groter: zonder focus een
- * doorschijnende cirkel met wit icoon, met focus helemaal gevuld met een donker icoon. Het
- * afspeel-icoon schuift iets naar rechts zodat de driehoek optisch in het midden staat, en
- * pauze/afspelen wisselen met een korte overgang.
+ * Play button in the same style as the other round buttons, but bigger: without focus a
+ * translucent circle with a white icon, with focus completely filled with a dark icon. The
+ * play icon shifts slightly to the right so the triangle looks centred, and
+ * pause/play switch with a short transition.
  */
 @Composable
 internal fun PlayPauseButton(isPlaying: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -113,10 +113,10 @@ internal fun PlayPauseButton(isPlaying: Boolean, onClick: () -> Unit, modifier: 
 }
 
 /**
- * Tijdbalk in één Canvas: grijze achtergrond, lichtere gebufferde strook, afgespeeld deel in de accentkleur en
- * een bol met vaste grootte. Zonder focus is het een dunne balk met een kleine witte bol; met focus
- * wordt hij dikker, krijgt de bol de accentkleur en staat de tijd eronder. Links/rechts spoelt, en hoe langer
- * je de knop vasthoudt, hoe groter de stap (zie [seekStep]).
+ * Seek bar in one Canvas: grey background, lighter buffered strip, played part in the accent colour and
+ * a knob of fixed size. Without focus it is a thin bar with a small white knob; with focus
+ * it gets thicker, the knob gets the accent colour and the time is shown below. Left/right seeks, and the longer
+ * you hold the button, the bigger the step (see [seekStep]).
  */
 @Composable
 internal fun SeekBar(position: Long, buffered: Long, duration: Long, onSeek: (Long) -> Unit, modifier: Modifier = Modifier) {
@@ -144,7 +144,7 @@ internal fun SeekBar(position: Long, buffered: Long, duration: Long, onSeek: (Lo
     ) {
         val r = thumbRadius.toPx()
         val h = barHeight.toPx()
-        // Ruimte voor de halve bol aan beide kanten, zodat hij op 0:00 en aan het eind niet wordt afgesneden.
+        // Room for half the knob on both sides, so it isn't cut off at 0:00 and at the end.
         val left = r
         val width = (size.width - 2 * r).coerceAtLeast(0f)
         val cy = size.height / 2
@@ -160,8 +160,8 @@ internal fun SeekBar(position: Long, buffered: Long, duration: Long, onSeek: (Lo
         if (focused) drawCircle(Palette.text, radius = r + 2.dp.toPx(), center = Offset(cx, cy))
         drawCircle(thumbColor, radius = r, center = Offset(cx, cy))
 
-        // Tijd onder de bol tijdens het spoelen. Valt bewust buiten de Canvas (niet afgeknipt);
-        // de Spacer onder de balk houdt daar ruimte voor vrij.
+        // Time under the knob while seeking. Deliberately outside the Canvas (not clipped);
+        // the Spacer under the bar keeps room for it.
         if (focused) {
             val text = textMeasurer.measure(formatTime(position), labelStyle)
             val padX = 8.dp.toPx()
@@ -177,8 +177,8 @@ internal fun SeekBar(position: Long, buffered: Long, duration: Long, onSeek: (Lo
 }
 
 /**
- * Spoelstap bij links/rechts: één druk is 10 s; vasthouden versnelt naar 30 s en daarna 60 s per
- * herhaling. [repeatCount] komt van de herhaalde KeyDown-events van de afstandsbediening.
+ * Seek step for left/right: one press is 10 s; holding speeds up to 30 s and then 60 s per
+ * repeat. [repeatCount] comes from the remote control's repeated KeyDown events.
  */
 private fun seekStep(repeatCount: Int): Long = when {
     repeatCount < 10 -> 10_000

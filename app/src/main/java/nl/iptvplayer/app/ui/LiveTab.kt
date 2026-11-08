@@ -106,8 +106,8 @@ private val ARROWS = setOf(FocusDirection.Up, FocusDirection.Down, FocusDirectio
 
 
 /**
- * Live TV in drie kolommen: categorieën, zenders (met wat er nu op is) en een voorbeeld met gids.
- * OK = hetzelfde beeld op volledig scherm; daar zap je met omhoog/omlaag en ga je met Terug weer naar de lijst.
+ * Live TV in three columns: categories, channels (with what's on now) and a preview with guide.
+ * OK = the same picture full screen; there you zap with up/down and Back takes you to the list again.
  */
 @OptIn(UnstableApi::class)
 @kotlin.OptIn(ExperimentalComposeUiApi::class)
@@ -122,7 +122,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
     val all = vm.library ?: library
     val fullscreen = vm.liveFullscreen
 
-    // ---------- Categorieën en zenders ----------
+    // ---------- Categories and channels ----------
 
     val counts = remember(library) { library.live.groupingBy { it.categoryId }.eachCount() }
     val providerCats = remember(library) { library.liveCategories.filter { (counts[it.id] ?: 0) > 0 } }
@@ -164,7 +164,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         }
     }
 
-    // ---------- Speler (één speler voor voorbeeld én volledig scherm) ----------
+    // ---------- Player (one player for both preview and full screen) ----------
 
     val player = remember {
         val dataSource = OkHttpDataSource.Factory(app.http).setUserAgent(App.USER_AGENT)
@@ -208,13 +208,13 @@ fun LiveTab(vm: AppViewModel, library: Library) {
             override fun onPlayerError(error: PlaybackException) {
                 val ch = currentPlaying ?: return
                 when (val action = recovery.onError(ch.key, vm.liveUrl(ch.id, alternative = true), live = true, error.errorCode)) {
-                    // Werkt het gekozen formaat niet, probeer dan het andere (ts <-> m3u8).
+                    // If the chosen format doesn't work, try the other one (ts <-> m3u8).
                     is StreamRecovery.Action.UseFallback -> {
                         player.setMediaItem(exoItem(action.url))
                         player.prepare()
                         player.play()
                     }
-                    // Netwerkhapering: even wachten en dezelfde zender opnieuw starten.
+                    // Network stall: wait a moment and restart the same channel.
                     is StreamRecovery.Action.Retry -> {
                         val key = ch.key
                         retryJob = scope.launch {
@@ -240,9 +240,9 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
-        // Weg via de Home-knop tijdens volledig scherm: de gezapte zender toch als recent bewaren.
+        // Left via the Home button during full screen: still save the zapped channel as recent.
         if (vm.liveFullscreen) playingKey?.let(vm.storage::addRecentLive)
-        retryJob?.cancel() // anders start een geplande herstart de zender op de achtergrond
+        retryJob?.cancel() // otherwise a scheduled restart starts the channel in the background
         player.stop()
     }
     LifecycleEventEffect(Lifecycle.Event.ON_START) {
@@ -252,7 +252,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         }
     }
 
-    // Voorbeeld pas starten als je even op een zender blijft staan.
+    // Only start the preview when you stay on a channel for a moment.
     LaunchedEffect(focusedKey) {
         val ch = focused ?: return@LaunchedEffect
         if (vm.liveFullscreen) return@LaunchedEffect
@@ -260,7 +260,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         play(ch)
     }
 
-    // ---------- Volledig scherm ----------
+    // ---------- Full screen ----------
 
     var infoTick by remember { mutableIntStateOf(0) }
     var infoVisible by remember { mutableStateOf(false) }
@@ -288,7 +288,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
     }
 
     BackHandler(enabled = fullscreen) {
-        // Pas bij het verlaten bijwerken: anders verschuift "Recent bekeken" tijdens het zappen.
+        // Only update when leaving: otherwise "Recently watched" shifts while zapping.
         playingKey?.let(vm.storage::addRecentLive)
         vm.liveFullscreen = false
         pendingFocusKey = playingKey
@@ -296,11 +296,11 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         if (idx >= 0) scope.launch { channelListState.scrollToItem(idx) }
     }
 
-    // ---------- Opbouw ----------
+    // ---------- Layout ----------
 
     val catFocus = rememberListFocusMemory()
     val channelFocus = rememberListFocusMemory()
-    // Komt "Favorieten" of "Recent bekeken" er bovenaan bij, dan die in beeld schuiven in plaats van erboven te verstoppen.
+    // If "Favourites" or "Recently watched" appears at the top, scroll it into view instead of hiding it above.
     val catListState = rememberLazyListState()
     LaunchedEffect(favChannels.isEmpty(), recentChannels.isEmpty()) {
         if (catListState.firstVisibleItemIndex <= 2) catListState.scrollToItem(0)
@@ -326,8 +326,8 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         Row(
             Modifier
                 .fillMaxSize()
-                // Met de pijltjes mag de focus de lijsten niet uit naar de navigatiebalk (dan wissel je per ongeluk
-                // van tabblad); dat gaat met Terug.
+                // With the arrow keys the focus must not leave the lists to the navigation rail (you'd switch
+                // tabs by accident); that goes with Back.
                 // Exception: left from the categories goes to the side rail (which puts focus on this tab).
                 .focusProperties {
                     exit = {
@@ -400,7 +400,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
 
             Spacer(Modifier.width(16.dp))
 
-            // Kolom 2: zenders
+            // Column 2: channels
             LazyColumn(
                 Modifier.weight(1f).fillMaxHeight().enterFocusAt(channelFocus),
                 state = channelListState,
@@ -431,7 +431,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
 
             Spacer(Modifier.width(20.dp))
 
-            // Kolom 3: voorbeeld + gids
+            // Column 3: preview + guide
             Column(Modifier.width(330.dp).fillMaxHeight()) {
                 Box(
                     Modifier
@@ -445,7 +445,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
             }
         }
 
-        // Spelerlaag: ligt over het voorbeeldvak, of over het hele scherm. Zelfde view = geen herladen.
+        // Player layer: lies over the preview box, or over the whole screen. Same view = no reloading.
         val rect = previewRect
         val density = LocalDensity.current
         val layer = when {

@@ -58,8 +58,8 @@ import nl.iptvplayer.app.data.SeriesInfo
 import nl.iptvplayer.app.data.TextMatch
 
 /**
- * Serie-detail zoals in het ontwerp: groot beeld rechts, titel en knoppen links, seizoenen als chips en de
- * afleveringen als kaarten in één rij. De omschrijving bovenin toont de aflevering waar je op staat.
+ * Series detail as in the design: large image on the right, title and buttons on the left, seasons as chips and the
+ * episodes as cards in one row. The description at the top shows the episode you are on.
  */
 @Composable
 fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
@@ -82,7 +82,7 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
     val seasons = info?.seasons.orEmpty()
     val allEpisodes = remember(info) { seasons.flatMap { it.episodes } }
 
-    // Wat is de volgende aflevering? Een half bekeken aflevering, anders de eerste na de laatst geziene.
+    // Which episode is next? A half-watched episode, otherwise the first after the last one watched.
     val nextUp: Pair<Episode, Progress?>? = remember(allEpisodes, progressList, watched) {
         val p = progressList.firstOrNull { it.seriesId == item.id }
         val resumeEp = p?.let { pp -> allEpisodes.firstOrNull { it.key == pp.key } }
@@ -112,7 +112,7 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
     val episodeFocus = rememberListFocusMemory()
     val episodeList = rememberLazyListState()
     val episodes = currentSeason?.episodes.orEmpty()
-    // Afleveringenrij openen bij de aflevering waar je gebleven bent.
+    // Open the episode row at the episode where you left off.
     LaunchedEffect(currentSeason, nextUp?.first) {
         val idx = episodes.indexOfFirst { it.key == nextUp?.first?.key }
         if (idx >= 0) episodeList.scrollToItem(idx)
@@ -125,7 +125,7 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
             seasons.size.takeIf { it > 0 }?.let { S.seasons(it) },
             i?.genre,
         )
-        // Staat de focus op een aflevering, dan vertelt de omschrijving over die aflevering.
+        // If the focus is on an episode, the description tells about that episode.
         val ep = focusedEpisode
         DetailHeader(
             title = item.title,
@@ -161,7 +161,7 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
         }
 
         if (seasons.size > 1) {
-            // Binnenkomen in deze rij = op het geselecteerde seizoen; focus op een seizoen = dat seizoen tonen.
+            // Entering this row = on the selected season; focus on a season = show that season.
             LazyRow(
                 modifier = Modifier.enterFocusAt(seasonFocus),
                 contentPadding = PaddingValues(start = 64.dp, end = 64.dp, top = 18.dp, bottom = 6.dp),
@@ -183,7 +183,7 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
             Spacer(Modifier.height(18.dp))
         }
 
-        // Binnenkomen in de rij = op de volgende aflevering (of de eerste).
+        // Entering the row = on the next episode (or the first).
         val target = episodes.firstOrNull { it.key == nextUp?.first?.key } ?: episodes.firstOrNull()
         LazyRow(
             state = episodeList,
@@ -207,7 +207,7 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
     }
 }
 
-/** Aflevering als kaart: beeld met nummer en voortgang, titel en duur of resterende tijd eronder. */
+/** Episode as a card: image with number and progress, title and duration or remaining time below. */
 @Composable
 private fun EpisodeCard(
     ep: Episode,

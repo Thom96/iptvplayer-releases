@@ -18,7 +18,7 @@ import java.io.IOException
 data class UpdateInfo(val versionCode: Int, val versionName: String, val apkUrl: String, val notes: String?)
 
 /**
- * Updates via GitHub: de nieuwste release in Thom96/iptvplayer-releases bevat version.json en de APK.
+ * Updates via GitHub: the latest release in Thom96/iptvplayer-releases contains version.json and the APK.
  * Publishing is done by the workflow .github/workflows/publish.yml (see README).
  */
 class Updater(private val context: Context, private val http: OkHttpClient) {
@@ -26,7 +26,7 @@ class Updater(private val context: Context, private val http: OkHttpClient) {
     val currentVersionCode: Int get() = BuildConfig.VERSION_CODE
     val currentVersionName: String get() = BuildConfig.VERSION_NAME
 
-    /** Geeft de nieuwere versie terug, of null als je al de nieuwste hebt. */
+    /** Returns the newer version, or null if you already have the latest. */
     suspend fun check(): UpdateInfo? = withContext(Dispatchers.IO) {
         val json = http.newCall(Request.Builder().url(VERSION_URL).build()).execute().use { resp ->
             if (!resp.isSuccessful) throw IOException(S.updateServerError(resp.code))
@@ -41,7 +41,7 @@ class Updater(private val context: Context, private val http: OkHttpClient) {
         info.takeIf { it.versionCode > currentVersionCode }
     }
 
-    /** Downloadt de APK naar de cache; [onProgress] krijgt 0..1. */
+    /** Downloads the APK to the cache; [onProgress] gets 0..1. */
     suspend fun download(info: UpdateInfo, onProgress: (Float) -> Unit): File = withContext(Dispatchers.IO) {
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
@@ -67,7 +67,7 @@ class Updater(private val context: Context, private val http: OkHttpClient) {
         target
     }
 
-    /** Android vraagt eenmalig toestemming om apps te installeren vanuit deze app. */
+    /** Android asks once for permission to install apps from this app. */
     fun canInstall(): Boolean = context.packageManager.canRequestPackageInstalls()
 
     fun openInstallPermissionSettings() {
@@ -77,7 +77,7 @@ class Updater(private val context: Context, private val http: OkHttpClient) {
         )
     }
 
-    /** Opent het installatiescherm van Android voor de gedownloade APK. */
+    /** Opens Android's install screen for the downloaded APK. */
     fun install(apk: File) {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apk)
         context.startActivity(

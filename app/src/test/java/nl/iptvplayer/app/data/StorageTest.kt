@@ -8,7 +8,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
-/** De regels voor "verder kijken" en "gezien". */
+/** The rules for "continue watching" and "watched". */
 @RunWith(RobolectricTestRunner::class)
 class StorageTest {
     private val storage = Storage(RuntimeEnvironment.getApplication())
@@ -65,13 +65,13 @@ class StorageTest {
     }
 }
 
-/** Het wachtwoord staat nooit leesbaar in de opslag, ook niet na het omzetten van een oude installatie. */
+/** The password is never stored in readable form, not even after converting an old installation. */
 @RunWith(RobolectricTestRunner::class)
 class StoragePasswordTest {
     private val app = RuntimeEnvironment.getApplication()
     private val prefs get() = app.getSharedPreferences("iptv", android.content.Context.MODE_PRIVATE)
 
-    /** Nep-versleuteling (de Android Keystore bestaat niet in Robolectric). */
+    /** Fake encryption (the Android Keystore doesn't exist in Robolectric). */
     private class Reverse : SecretCipher {
         var broken = false
         override fun encrypt(plain: String) = "enc:" + plain.reversed()

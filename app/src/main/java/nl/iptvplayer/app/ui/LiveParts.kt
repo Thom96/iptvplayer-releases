@@ -53,7 +53,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Onderdelen van de Live-tab: zenderregel, gids, info op volledig scherm.
+// Parts of the Live tab: channel row, guide, full-screen info.
 
 private val clock = SimpleDateFormat("HH:mm", Locale.ROOT)
 internal fun hhmm(ms: Long) = clock.format(Date(ms))
@@ -150,7 +150,7 @@ internal fun ThinProgress(fraction: Float) {
     }
 }
 
-/** Gids onder het voorbeeld: nu en straks. */
+/** Guide under the preview: now and next. */
 @Composable
 internal fun EpgPanel(vm: AppViewModel, channel: MediaItem, now: Long) {
     LaunchedEffect(channel.id) { vm.loadEpg(channel.id) }
@@ -199,7 +199,7 @@ internal fun EpgPanel(vm: AppViewModel, channel: MediaItem, now: Long) {
     }
 }
 
-/** Informatiebalk onderin bij volledig scherm (na zappen of OK). */
+/** Info bar at the bottom in full screen (after zapping or OK). */
 @Composable
 internal fun FullscreenInfo(channel: MediaItem, epg: List<EpgEntry>, now: Long, index: Int) {
     val current = epg.firstOrNull { it.isNow(now) }
