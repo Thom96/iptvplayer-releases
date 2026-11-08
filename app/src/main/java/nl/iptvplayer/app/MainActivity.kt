@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import nl.iptvplayer.app.ui.ActivationScreen
 import nl.iptvplayer.app.ui.AppTheme
 import nl.iptvplayer.app.ui.FailedScreen
 import nl.iptvplayer.app.ui.FocusRestorer
@@ -33,7 +34,10 @@ class MainActivity : ComponentActivity() {
                         is AppState.Login -> LoginScreen(vm, s)
                         is AppState.Loading -> LoadingScreen(s, onHaanDone = vm::loadingAnimationDone)
                         is AppState.Failed -> FailedScreen(s.message, onRetry = vm::retry, onLogout = vm::logout)
-                        AppState.Ready -> Navigation(vm)
+                        AppState.Ready -> when (val gate = vm.gate) {
+                            Gate.NONE -> Navigation(vm)
+                            else -> ActivationScreen(vm, gate)
+                        }
                     }
                     UpdatePrompt(vm)
                 }

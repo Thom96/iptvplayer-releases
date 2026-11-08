@@ -249,4 +249,30 @@ abstract class Strings {
     abstract val noChoice: String
     abstract val off: String
     abstract val normalSpeed: String
+
+    // Activatie
+    abstract val activateTitle: String
+    abstract fun activateScan(url: String): String
+    abstract val activateEnterCode: String
+    abstract val activatePay: String
+    abstract val deviceCode: String
+    abstract fun trialDaysLeft(days: Int): String
+    abstract val continueTrial: String
+    abstract val checkStatus: String
+    abstract val trialEnded: String
+    abstract val subscriptionEnded: String
+    abstract val deviceBlocked: String
+    abstract val deviceBlockedHint: String
+    abstract val waitingForPayment: String
+    abstract val galloOffline: String
+    abstract val galloOfflineHint: String
+    abstract fun languageButton(name: String): String
+    abstract val licenseSection: String
+    abstract val licenseTrial: String
+    abstract val licenseActive: String
+    abstract val licenseFree: String
+    abstract val licenseExpired: String
+    abstract val licenseBlocked: String
+    abstract val validUntil: String
+    abstract val noEndDate: String
 }

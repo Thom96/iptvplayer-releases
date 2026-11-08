@@ -31,6 +31,8 @@ import nl.iptvplayer.app.data.AuthException
 import nl.iptvplayer.app.data.Credentials
 import nl.iptvplayer.app.data.Episode
 import nl.iptvplayer.app.data.Kind
+import nl.iptvplayer.app.data.LicenseClient
+import nl.iptvplayer.app.data.LicenseStatus
 import nl.iptvplayer.app.data.Library
 import nl.iptvplayer.app.data.MediaItem
 import nl.iptvplayer.app.data.Progress
@@ -62,6 +64,9 @@ sealed interface AppState {
     data class Failed(val message: String) : AppState
     data object Ready : AppState
 }
+
+/** Zie [AppViewModel.gate]. */
+enum class Gate { NONE, TRIAL_NOTICE, LOCKED }
 
 sealed interface UpdateState {
     data object Idle : UpdateState
@@ -266,7 +271,54 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // ---------- Activatie (Gallo-server) ----------
+
+    private val licenseClient = LicenseClient(app.http)
+    /** Laatst bekende status van dit apparaat; null = nog nooit contact gehad. */
+    var license by mutableStateOf(storage.license)
+        private set
+    var licenseChecking by mutableStateOf(false)
+        private set
+    /** De laatste controle mislukte (geen internet of server onbereikbaar). */
+    var licenseError by mutableStateOf(false)
+        private set
+    /** Het proefscherm is deze start al weggeklikt. */
+    var trialNoticeSeen by mutableStateOf(false)
+    private var lastLicenseCheck = 0L
+
+    val isDemo: Boolean get() = client?.creds?.server == XtreamClient.DEMO_SERVER
+
+    /** Wat er voor de app moet staan: niets, het proefscherm, of het activatiescherm dat niet weg kan. */
+    val gate: Gate
+        get() {
+            if (isDemo) return Gate.NONE
+            val now = System.currentTimeMillis()
+            val l = license ?: return Gate.LOCKED
+            if (!l.allowsUse(now) || !l.isFresh(now)) return Gate.LOCKED
+            if (l.status == LicenseStatus.TRIAL && !trialNoticeSeen) return Gate.TRIAL_NOTICE
+            return Gate.NONE
+        }
+
+    fun checkLicense() {
+        if (licenseChecking) return
+        licenseChecking = true
+        lastLicenseCheck = System.currentTimeMillis()
+        viewModelScope.launch {
+            try {
+                val l = licenseClient.check(storage.deviceId, BuildConfig.VERSION_NAME, android.os.Build.MODEL ?: "")
+                storage.license = l
+                license = l
+                licenseError = false
+            } catch (_: Exception) {
+                licenseError = true
+            } finally {
+                licenseChecking = false
+            }
+        }
+    }
+
     init {
+        checkLicense()
         storage.credentials?.let { connect(it) }
         // Bij het opstarten even rustig wachten en dan op de achtergrond kijken of er een update is.
         viewModelScope.launch {
@@ -394,6 +446,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * oude lijsten op de achtergrond verversen en af en toe op updates controleren.
      */
     fun onAppResumed() {
+        if (System.currentTimeMillis() - lastLicenseCheck > LICENSE_CHECK_INTERVAL_MS) checkLicense()
         val c = client
         if (state == AppState.Ready && c != null && c.cacheAgeMs > CACHE_MAX_AGE_MS) refreshInBackground()
         if (lastUpdateCheck != 0L && System.currentTimeMillis() - lastUpdateCheck > UPDATE_CHECK_INTERVAL_MS) {
@@ -612,6 +665,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         const val CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000L
         /** Bij terugkomen in de app hooguit zo vaak op updates controleren. */
         const val UPDATE_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000L
+        /** Hoe vaak de app (als hij lang open blijft) opnieuw bij de Gallo-server navraagt. */
+        const val LICENSE_CHECK_INTERVAL_MS = 60 * 60 * 1000L
         /** Snelle start: hooguit zo lang op de kraai wachten. */
         const val QUICK_FINISH_MAX_MS = 1_200L
         /** Na het downloaden: hooguit zo lang wachten tot de haan de laatste korrels op heeft en kraait. */
