@@ -10,6 +10,7 @@ import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,7 +43,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.focusGroup
 import androidx.compose.ui.focus.FocusDirection
@@ -95,6 +100,8 @@ private const val CAT_FAV = "__fav__"
 private const val CAT_RECENT = "__recent__"
 private const val CAT_ALL = "__all__"
 private const val PREVIEW_DELAY_MS = 500L
+private val CAT_EXPANDED = 220.dp
+private val CAT_COLLAPSED = 52.dp
 private val ARROWS = setOf(FocusDirection.Up, FocusDirection.Down, FocusDirection.Left, FocusDirection.Right)
 
 
@@ -123,6 +130,15 @@ fun LiveTab(vm: AppViewModel, library: Library) {
     val recentChannels = remember(recentKeys, all) { recentKeys.mapNotNull { all.byKey[it] } }
 
     var selectedCat by rememberSaveable { mutableStateOf(CAT_ALL) }
+    var catHasFocus by remember { mutableStateOf(false) }
+    val catEntries = remember(favChannels, recentChannels, library, providerCats, counts) {
+        buildList {
+            if (favChannels.isNotEmpty()) add(Triple(CAT_FAV, S.tabFavorites, favChannels.size))
+            if (recentChannels.isNotEmpty()) add(Triple(CAT_RECENT, S.recentlyWatched, recentChannels.size))
+            add(Triple(CAT_ALL, S.allChannels, library.live.size))
+            providerCats.forEach { add(Triple(it.id, TextMatch.displayTitle(it.name), counts[it.id] ?: 0)) }
+        }
+    }
     val channels = remember(selectedCat, library, favChannels, recentChannels) {
         when (selectedCat) {
             CAT_FAV -> favChannels
@@ -142,7 +158,8 @@ fun LiveTab(vm: AppViewModel, library: Library) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
-            delay(30_000)
+            // Elke 10 s, zodat de voortgangsbalken bij de zenders actueel blijven.
+            delay(10_000)
             now = System.currentTimeMillis()
         }
     }
@@ -311,41 +328,73 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                 .fillMaxSize()
                 // Met de pijltjes mag de focus de lijsten niet uit naar de navigatiebalk (dan wissel je per ongeluk
                 // van tabblad); dat gaat met Terug.
-                .focusProperties { exit = { if (it in ARROWS) FocusRequester.Cancel else FocusRequester.Default } }
+                // Uitzondering: links vanuit de categorieën gaat naar de zijbalk (die zet de focus op dit tabblad).
+                .focusProperties {
+                    exit = {
+                        if (it in ARROWS && !(it == FocusDirection.Left && catHasFocus)) FocusRequester.Cancel
+                        else FocusRequester.Default
+                    }
+                }
                 .focusGroup()
                 .alpha(if (fullscreen) 0f else 1f)
                 .padding(start = 40.dp, end = 40.dp, top = 8.dp),
         ) {
-            // Kolom 1: categorieën
-            LazyColumn(
-                Modifier.width(220.dp).fillMaxHeight().enterFocusAt(catFocus),
-                state = catListState,
-                contentPadding = PaddingValues(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                val entries = buildList {
-                    if (favChannels.isNotEmpty()) add(Triple(CAT_FAV, S.tabFavorites, favChannels.size))
-                    if (recentChannels.isNotEmpty()) add(Triple(CAT_RECENT, S.recentlyWatched, recentChannels.size))
-                    add(Triple(CAT_ALL, S.allChannels, library.live.size))
-                    providerCats.forEach { add(Triple(it.id, TextMatch.displayTitle(it.name), counts[it.id] ?: 0)) }
-                }
-                items(entries, key = { it.first }) { (id, name, count) ->
-                    fun select() {
-                        if (selectedCat == id) return
-                        selectedCat = id
-                        scope.launch { channelListState.scrollToItem(0) }
+            // Kolom 1: categorieën. Ingeklapt tot een smalle strook met de gekozen categorie zodra de focus
+            // in de zenderlijst staat; met links klapt hij weer uit.
+            val catWidth by animateDpAsState(if (catHasFocus) CAT_EXPANDED else CAT_COLLAPSED, label = "catWidth")
+            val expandedness = ((catWidth - CAT_COLLAPSED) / (CAT_EXPANDED - CAT_COLLAPSED)).coerceIn(0f, 1f)
+            // Neemt in de rij altijd de smalle breedte in; uitgeklapt ligt de kolom over de zenderlijst heen (zoals de
+            // zijbalk), zodat die niet smaller wordt.
+            Box(Modifier.width(CAT_COLLAPSED).fillMaxHeight().zIndex(1f)) {
+                Box(
+                    Modifier
+                        .wrapContentWidth(Alignment.Start, unbounded = true)
+                        .width(catWidth)
+                        .fillMaxHeight()
+                        .background(Palette.background.copy(alpha = expandedness))
+                        .onFocusChanged { catHasFocus = it.hasFocus },
+                ) {
+                    LazyColumn(
+                        // Ingeklapt onzichtbaar maar wel aanwezig: links vanuit de zenders komt hier uit (op de gekozen
+                        // categorie) en klapt de kolom weer uit.
+                        Modifier
+                            .fillMaxSize()
+                            .clipToBounds()
+                            .alpha(expandedness)
+                            // Boven- en onderaan de lijst niet doorschieten naar een zender onder de uitgeklapte kolom.
+                            .focusProperties {
+                                exit = { if (it == FocusDirection.Up || it == FocusDirection.Down) FocusRequester.Cancel else FocusRequester.Default }
+                            }
+                            .enterFocusAt(catFocus),
+                        state = catListState,
+                        contentPadding = PaddingValues(bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        items(catEntries, key = { it.first }) { (id, name, count) ->
+                            fun select() {
+                                if (selectedCat == id) return
+                                selectedCat = id
+                                scope.launch { channelListState.scrollToItem(0) }
+                            }
+                            ChipButton(
+                                text = name,
+                                selected = selectedCat == id,
+                                onClick = ::select,
+                                trailing = formatCount(count),
+                                fill = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onFocusChanged { if (it.isFocused) select() }
+                                    .listFocusTarget(catFocus, selectedCat == id),
+                            )
+                        }
                     }
-                    ChipButton(
-                        text = name,
-                        selected = selectedCat == id,
-                        onClick = ::select,
-                        trailing = formatCount(count),
-                        fill = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .onFocusChanged { if (it.isFocused) select() }
-                            .listFocusTarget(catFocus, selectedCat == id),
-                    )
+                    if (expandedness < 1f) {
+                        CollapsedCategory(
+                            name = catEntries.firstOrNull { it.first == selectedCat }?.second.orEmpty(),
+                            modifier = Modifier.width(CAT_COLLAPSED).fillMaxHeight().padding(bottom = 32.dp).alpha(1f - expandedness),
+                        )
+                    }
                 }
             }
 

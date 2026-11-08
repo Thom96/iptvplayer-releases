@@ -1,5 +1,10 @@
 package nl.iptvplayer.app.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.layout.layout
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import nl.iptvplayer.app.i18n.S
 import android.app.Activity
 import android.content.Context
@@ -95,13 +100,13 @@ internal fun ChannelRow(
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.02f),
     ) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 number.toString(),
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.width(40.dp).alpha(0.6f),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.width(44.dp).alpha(0.6f),
             )
-            Box(Modifier.size(width = 56.dp, height = 36.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(width = 80.dp, height = 48.dp), contentAlignment = Alignment.Center) {
                 AsyncImage(
                     model = channel.image,
                     contentDescription = null,
@@ -109,13 +114,13 @@ internal fun ChannelRow(
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(channel.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(channel.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (nowShowing != null) {
                     Text(
                         nowShowing.title,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.alpha(0.7f),
@@ -124,13 +129,15 @@ internal fun ChannelRow(
                     ThinProgress(nowShowing.fraction(now))
                 }
             }
-            if (isFavorite) {
-                Spacer(Modifier.width(8.dp))
-                Icon(Icons.Filled.Favorite, null, Modifier.size(14.dp), tint = Palette.favorite)
-            }
-            if (isPlaying) {
-                Spacer(Modifier.width(8.dp))
-                Box(Modifier.size(8.dp).background(Palette.live, RoundedCornerShape(50)))
+            // Vaste ruimte voor hartje en bolletje: anders wordt de balk korter zodra de zender speelt en lijkt
+            // de voortgang te verspringen.
+            Row(
+                Modifier.padding(start = 10.dp).width(36.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (isFavorite) Icon(Icons.Filled.Favorite, null, Modifier.size(16.dp), tint = Palette.favorite)
+                if (isPlaying) Box(Modifier.size(10.dp).background(Palette.live, RoundedCornerShape(50)))
             }
         }
     }
@@ -248,3 +255,39 @@ internal tailrec fun Context.findActivity(): Activity? = when (this) {
     is ContextWrapper -> baseContext.findActivity()
     else -> null
 }
+
+/** Ingeklapte categoriekolom: een smalle strook met de naam van de gekozen categorie, van onder naar boven. */
+@Composable
+internal fun CollapsedCategory(name: String, modifier: Modifier = Modifier) {
+    Box(modifier.background(Palette.surface, RoundedCornerShape(12.dp))) {
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            null,
+            Modifier.align(Alignment.TopCenter).padding(top = 10.dp).size(22.dp),
+            tint = Palette.textMuted,
+        )
+        Text(
+            name,
+            style = MaterialTheme.typography.titleSmall,
+            color = Palette.text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.align(Alignment.Center).padding(vertical = 44.dp).verticalText(),
+        )
+    }
+}
+
+/** Tekst een kwartslag gedraaid (van onder naar boven), met de afmetingen ook gedraaid. */
+private fun Modifier.verticalText() = this
+    .layout { measurable, constraints ->
+        val placeable = measurable.measure(
+            Constraints(maxWidth = constraints.maxHeight, maxHeight = constraints.maxWidth),
+        )
+        layout(placeable.height, placeable.width) {
+            placeable.place(
+                x = -(placeable.width / 2 - placeable.height / 2),
+                y = -(placeable.height / 2 - placeable.width / 2),
+            )
+        }
+    }
+    .rotate(-90f)
