@@ -53,6 +53,19 @@ standaard. Bij de eerste start kiest de gebruiker een taal; in Instellingen kan 
   Gebruik in de code `S.<naam>`, nooit een vaste tekst.
 - Nieuwe taal: kopieer `En.kt`, vertaal alles en voeg één regel toe aan `AppLanguage` met de naam in die taal zelf.
 
+## Server en admin panel (`web/`)
+
+Next.js-app op Vercel (team "Heermoes 13", project `gallo`, root directory `web`), met een Neon-database
+(`DATABASE_URL`) en het admin-wachtwoord in `ADMIN_PASSWORD`. Vercel deployt `main` vanzelf naar productie:
+https://gallo-heermoes-13.vercel.app.
+
+- `/api/device` (POST): de app meldt zich aan met een eigen apparaat-ID en krijgt een code (`XXXX-XXXX`), de status
+  (`trial`, `active`, `free`, `expired`, `blocked`) en tot wanneer die geldt.
+- `/activeren?code=…`: klantpagina (de QR-code op de tv wijst hierheen).
+- `/admin`: dashboard, apparaten, betalingen en instellingen (proefdagen, prijzen).
+- Tabellen worden bij de eerste aanvraag zelf aangemaakt (`web/lib/db.ts`).
+- Controleren: `cd web && npm ci && npx next build`.
+
 ## Design
 
 Brandbook en schermontwerpen staan in het Claude-artifact "Gallo — ontwerp". Kleuren staan in `ui/Theme.kt`
