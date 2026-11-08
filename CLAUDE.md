@@ -13,6 +13,11 @@ Android TV-app (Kotlin, Jetpack Compose for TV) voor een Xtream Codes IPTV-abonn
   GitHub-koppeling. Een apart akkoord voor de pull request of het samenvoegen is niet nodig. Rechtstreeks naar
   `main` pushen kan niet vanuit een cloudsessie; gebruik altijd de pull request.
 - Laat de eigenaar daarna kort weten dat het op `main` staat, met de link naar de pull request.
+- **Nederlands praten, Engels werken.** De eigenaar vraagt alles in het Nederlands en jij antwoordt in het
+  Nederlands. Het werk zelf is Engels: code (namen van klassen, functies, variabelen, bestanden en resources),
+  commentaar, commitberichten, titels en beschrijvingen van pull requests, en branchnamen. Uitzonderingen: de
+  teksten in de app staan per taal in `i18n/` (zie Talen), en de tekst na `[publiceren]` is voor de gebruiker.
+  Bestaande Nederlandse namen in de code (zoals `LaadHaan`) vertaal je alleen als de eigenaar daarom vraagt.
 - Publiceren als nieuwe versie (zie hieronder) is een aparte stap. Doe het als de eigenaar om een nieuwe versie
   of update op de tv vraagt.
 
@@ -75,15 +80,15 @@ overal een champagne rand van 3 dp.
 
 ## Branchnamen
 
-Werk komt op GitHub meteen onder een korte Nederlandse naam die bij de vraag past, in de vorm
-`claude/<omschrijving>`: kleine letters en koppeltekens, bijvoorbeeld `claude/inlogscherm`, `claude/taalkeuze` of
-`claude/vloeiend-scrollen`.
+Werk komt op GitHub meteen onder een korte Engelse naam die bij de vraag past, in de vorm
+`claude/<omschrijving>`: kleine letters en koppeltekens, bijvoorbeeld `claude/login-screen`, `claude/language-picker`
+of `claude/smooth-scrolling`.
 
 - De cloudsessie geeft je bij de start een automatische branchnaam (zoals `claude/kind-cray-7fk90x`). Push daar
   niet naartoe. De eigenaar geeft hierbij toestemming om in plaats daarvan naar `claude/<omschrijving>` te pushen:
   `git push -u origin HEAD:claude/<omschrijving>`. Zo komt de automatische naam nooit op GitHub.
 - Kies de naam bij de eerste push, als duidelijk is waar de vraag over gaat. Kijk eerst of hij al bestaat
-  (`git ls-remote --heads origin claude/<omschrijving>`); zo ja, voeg een volgnummer toe (`claude/inlogscherm-2`).
+  (`git ls-remote --heads origin claude/<omschrijving>`); zo ja, voeg een volgnummer toe (`claude/login-screen-2`).
 - Gebruik dezelfde naam voor alle volgende pushes en voor de pull request naar `main`.
 - Werk niet verder op een samengevoegde branch: nieuw werk begint op een nieuwe branch vanaf de nieuwste `main`,
   met een nieuwe naam.
