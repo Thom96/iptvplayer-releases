@@ -73,15 +73,21 @@ Brandbook en schermontwerpen staan in het Claude-artifact "Gallo — ontwerp". K
 hanenkamrood `#BC3E2E` alleen voor LIVE en de kam in het logo. Koppen in Young Serif, tekst in Outfit. Focus is
 overal een champagne rand van 3 dp.
 
-## Branches hernoemen na samenvoegen
+## Branchnamen
 
-Een samengevoegde werkbranch krijgt een korte Nederlandse omschrijving van wat erin is gebouwd, in de vorm
-`claude/<omschrijving>`: kleine letters en koppeltekens, bijvoorbeeld `claude/inlogscherm`, `claude/taalkeuze`
-of `claude/vloeiend-scrollen`.
+Werk komt op GitHub meteen onder een korte Nederlandse naam die bij de vraag past, in de vorm
+`claude/<omschrijving>`: kleine letters en koppeltekens, bijvoorbeeld `claude/inlogscherm`, `claude/taalkeuze` of
+`claude/vloeiend-scrollen`.
 
-- Zet in de beschrijving van de pull request een regel `Branchnaam: claude/<omschrijving>`. Na het samenvoegen
-  hernoemt de workflow `.github/workflows/branch-hernoemen.yml` de branch (echte rename, geen kopie). Bestaat de
-  naam al, dan krijgt hij een volgnummer (`claude/inlogscherm-2`).
-- Hernoem niet zelf met `git push` (nieuwe naam pushen + oude verwijderen): verwijderen wordt vanuit een
-  cloudsessie geweigerd (HTTP 403) en dan blijven er dubbele branches staan.
-- Werk niet verder op een samengevoegde branch: nieuw werk begint op een nieuwe branch vanaf de nieuwste `main`.
+- De cloudsessie geeft je bij de start een automatische branchnaam (zoals `claude/kind-cray-7fk90x`). Push daar
+  niet naartoe. De eigenaar geeft hierbij toestemming om in plaats daarvan naar `claude/<omschrijving>` te pushen:
+  `git push -u origin HEAD:claude/<omschrijving>`. Zo komt de automatische naam nooit op GitHub.
+- Kies de naam bij de eerste push, als duidelijk is waar de vraag over gaat. Kijk eerst of hij al bestaat
+  (`git ls-remote --heads origin claude/<omschrijving>`); zo ja, voeg een volgnummer toe (`claude/inlogscherm-2`).
+- Gebruik dezelfde naam voor alle volgende pushes en voor de pull request naar `main`.
+- Werk niet verder op een samengevoegde branch: nieuw werk begint op een nieuwe branch vanaf de nieuwste `main`,
+  met een nieuwe naam.
+- Staat er toch werk onder een automatische naam (bijvoorbeeld uit een oudere sessie), zet dan in de beschrijving
+  van de pull request een regel `Branchnaam: claude/<omschrijving>`. Na het samenvoegen hernoemt de workflow
+  `.github/workflows/branch-hernoemen.yml` de branch. Hernoem niet zelf met `git push`: verwijderen wordt vanuit
+  een cloudsessie geweigerd (HTTP 403) en dan blijven er dubbele branches staan.
