@@ -39,16 +39,16 @@ jobs:
     env:
       TZ: Europe/Amsterdam # versienaam bevat datum en tijd
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       # Zonder de eigen sleutel valt de build terug op een debugsleutel; zo'n APK kan niet over de
       # geïnstalleerde app heen. Dan liever stoppen.
