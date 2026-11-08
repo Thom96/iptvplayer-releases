@@ -10,7 +10,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.time.Instant
 
-/** Status van dit apparaat bij de Gallo-server (zie `web/` in de repository). */
+/** Status of this device at the Gallo server (see `web/` in the repository). */
 enum class LicenseStatus(val code: String) {
     TRIAL("trial"), ACTIVE("active"), FREE("free"), EXPIRED("expired"), BLOCKED("blocked");
 
@@ -20,29 +20,29 @@ enum class LicenseStatus(val code: String) {
 }
 
 /**
- * Wat de server de laatste keer over dit apparaat zei.
- * [validUntil]: einde van de proef of het abonnement (ms), null = geen einddatum.
- * [checkedAt]: wanneer de server dit zei (ms, klok van dit apparaat).
+ * What the server said about this device last time.
+ * [validUntil]: end of the trial or subscription (ms), null = no end date.
+ * [checkedAt]: when the server said this (ms, clock of this device).
  */
 data class License(
     val code: String,
     val status: LicenseStatus,
-    /** "lifetime" of "yearly" als er ooit betaald is; null bij alleen een proef of gratis. */
+    /** "lifetime" or "yearly" if there was ever a payment; null with only a trial or free. */
     val plan: String?,
     val validUntil: Long?,
     val activateUrl: String,
     val checkedAt: Long,
 ) {
-    /** Mag de app gebruikt worden? Een verlopen proef of abonnement telt meteen, ook zonder nieuwe controle. */
+    /** May the app be used? An expired trial or subscription counts right away, even without a new check. */
     fun allowsUse(now: Long): Boolean = when (status) {
         LicenseStatus.ACTIVE, LicenseStatus.FREE, LicenseStatus.TRIAL -> validUntil == null || validUntil > now
         LicenseStatus.EXPIRED, LicenseStatus.BLOCKED -> false
     }
 
-    /** Hoe lang de laatste bekende status geldt als de server niet te bereiken is. */
+    /** How long the last known status holds when the server can't be reached. */
     fun isFresh(now: Long): Boolean = now - checkedAt in 0..OFFLINE_GRACE_MS
 
-    /** Hele dagen tot [validUntil], naar boven afgerond. */
+    /** Whole days until [validUntil], rounded up. */
     fun daysLeft(now: Long): Int? = validUntil?.let { ((it - now + DAY_MS - 1) / DAY_MS).toInt().coerceAtLeast(0) }
 
     fun toJson(): String = JSONObject()
@@ -68,7 +68,7 @@ data class License(
             }.getOrNull()
         }
 
-        /** Antwoord van `POST /api/device`. */
+        /** Response of `POST /api/device`. */
         fun fromServer(body: String, now: Long): License {
             val o = JSONObject(body)
             val until = o.optString("validUntil").takeIf { it.isNotEmpty() && it != "null" }
@@ -84,7 +84,7 @@ data class License(
     }
 }
 
-/** Meldt dit apparaat bij de Gallo-server en vraagt de status op. */
+/** Registers this device with the Gallo server and asks for its status. */
 class LicenseClient(private val http: OkHttpClient, private val baseUrl: String = SERVER) {
 
     suspend fun check(deviceId: String, appVersion: String, model: String): License = withContext(Dispatchers.IO) {

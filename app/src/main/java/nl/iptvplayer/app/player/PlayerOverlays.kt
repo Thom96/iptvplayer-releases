@@ -50,13 +50,13 @@ import nl.iptvplayer.app.ui.Palette
 import nl.iptvplayer.app.ui.requestSafely
 import nl.iptvplayer.app.ui.tapToClick
 
-// Lagen over het beeld van de speler: zapinfo, serie-intro en "volgende aflevering".
+// Layers over the player's picture: zap info, series intro and "next episode".
 
-// ---------- Zappen ----------
+// ---------- Zapping ----------
 
 internal const val ZAP_INFO_MS = 4_000L
 
-/** Onderin na het zappen: nummer en naam van de zender, in de stijl van de Live-tab op volledig scherm. */
+/** At the bottom after zapping: number and name of the channel, in the style of the Live tab full screen. */
 @Composable
 internal fun ZapInfo(item: PlayItem, number: Int, modifier: Modifier = Modifier) {
     Row(
@@ -79,11 +79,11 @@ internal fun ZapInfo(item: PlayItem, number: Int, modifier: Modifier = Modifier)
     }
 }
 
-// ---------- Serie-intro ----------
+// ---------- Series intro ----------
 
 internal const val INTRO_MS = 10_000L
 
-/** Links een donker paneel met titel, info en knoppen; rechts speelt de aflevering al. */
+/** On the left a dark panel with title, info and buttons; on the right the episode is already playing. */
 @Composable
 internal fun SeriesIntroOverlay(
     intro: SeriesIntro,
@@ -159,13 +159,13 @@ private fun IntroButton(icon: ImageVector, text: String, onClick: () -> Unit, mo
     }
 }
 
-// ---------- Volgende aflevering ----------
+// ---------- Next episode ----------
 
 private const val NEXT_COUNTDOWN_MS = 5_000L
 
 /**
- * Knop rechtsonder vlak voor de aftiteling. De knop loopt in 5 seconden vol en start dan
- * vanzelf de volgende aflevering (alleen terwijl er wordt afgespeeld). "Aftiteling kijken" annuleert.
+ * Button at the bottom right just before the credits. The button fills up in 5 seconds and then
+ * starts the next episode by itself (only while playing). "Watch credits" cancels.
  */
 @Composable
 internal fun NextEpisodePrompt(
@@ -184,7 +184,7 @@ internal fun NextEpisodePrompt(
             delay(100)
             elapsed += 100
         }
-        // Maar één keer: een herstart van dit effect (bufferen) mag niet nog een aflevering overslaan.
+        // Only once: a restart of this effect (buffering) must not skip another episode.
         if (elapsed >= NEXT_COUNTDOWN_MS && !fired) {
             fired = true
             onPlay()
@@ -209,7 +209,7 @@ internal fun NextEpisodePrompt(
             scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
         ) {
             Box {
-                // Vult zich in 5 seconden met geel: zo zie je wanneer hij vanzelf start.
+                // Fills up with yellow in 5 seconds: that way you see when it starts by itself.
                 Box(
                     Modifier
                         .matchParentSize()

@@ -61,7 +61,7 @@ import java.util.Locale
 private val timeFmt = SimpleDateFormat("HH:mm", Locale.ROOT)
 private val dayFmt get() = SimpleDateFormat("EEE d MMM", appLocale)
 
-/** Dagnummer (lokale tijd) om programma's per dag te groeperen. */
+/** Day number (local time) to group programmes per day. */
 private fun dayKey(ms: Long): Int = Calendar.getInstance().run {
     timeInMillis = ms
     get(Calendar.YEAR) * 1000 + get(Calendar.DAY_OF_YEAR)
@@ -74,7 +74,7 @@ private fun dayLabel(ms: Long, now: Long): String = when (dayKey(ms)) {
 }
 
 /**
- * Terugkijken: links zenders met archief, rechts per dag de programma's die al zijn uitgezonden.
+ * Catch-up: channels with an archive on the left, on the right per day the programmes that have already aired.
  */
 @kotlin.OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -93,7 +93,7 @@ fun CatchupTab(vm: AppViewModel, library: Library) {
 
     var focusedKey by rememberSaveable { mutableStateOf(channels.first().key) }
     var selectedKey by rememberSaveable { mutableStateOf(channels.first().key) }
-    // Pas de gids laden als je even op een zender blijft staan.
+    // Only load the guide when you stay on a channel for a moment.
     LaunchedEffect(focusedKey) {
         delay(400)
         selectedKey = focusedKey
@@ -171,9 +171,9 @@ private fun ArchiveProgrammes(vm: AppViewModel, channel: MediaItem, onPlay: (Cat
             Text(S.loadingArchive, color = Palette.textMuted)
             return
         }
-        // Alleen wat al begonnen is, binnen de archiefperiode; per dag, nieuwste dag eerst.
+        // Only what has already started, within the archive period; per day, newest day first.
         val oldest = now - channel.archiveDays * 24 * 3_600_000L
-        // distinctBy: sommige gidsen bevatten dubbele programma's; dubbele keys laten de lijst crashen.
+        // distinctBy: some guides contain duplicate programmes; duplicate keys make the list crash.
         val past = entries.filter { it.start in oldest until now }.distinctBy { it.start }
         if (past.isEmpty()) {
             Text(S.noArchive, color = Palette.textMuted)

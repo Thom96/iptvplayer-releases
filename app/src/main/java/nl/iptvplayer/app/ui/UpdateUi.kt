@@ -26,7 +26,7 @@ import androidx.tv.material3.Text
 import nl.iptvplayer.app.AppViewModel
 import nl.iptvplayer.app.UpdateState
 
-/** Melding bij het opstarten als er een nieuwe versie is. */
+/** Notice at startup when there is a new version. */
 @Composable
 fun UpdatePrompt(vm: AppViewModel) {
     if (!vm.showUpdatePrompt) return
@@ -63,7 +63,7 @@ fun UpdatePrompt(vm: AppViewModel) {
     LaunchedEffect(Unit) { updateButton.requestSafely() }
 }
 
-/** Sectie "Updates" in Instellingen. */
+/** "Updates" section in Settings. */
 @Composable
 fun UpdateSection(vm: AppViewModel) {
     val state = vm.update
@@ -73,8 +73,8 @@ fun UpdateSection(vm: AppViewModel) {
         color = Palette.textMuted,
     )
     Spacer(Modifier.height(14.dp))
-    // Eén vaste knop waarvan alleen de tekst en actie wisselen. Als de knop zou verdwijnen,
-    // valt de focus terug op het tabblad Home en opent dat vanzelf.
+    // One fixed button whose text and action change. If the button disappeared,
+    // focus would fall back to the Home tab, which would then open by itself.
     UpdateActionButton(vm, state)
     val message = when (state) {
         UpdateState.UpToDate -> S.upToDate
@@ -94,7 +94,7 @@ fun UpdateSection(vm: AppViewModel) {
     }
 }
 
-/** De knop voor elke stap: controleren → bijwerken → downloaden → (toestemming) opnieuw proberen. */
+/** The button for each step: check → update → download → (permission) try again. */
 @Composable
 private fun UpdateActionButton(vm: AppViewModel, state: UpdateState, modifier: Modifier = Modifier) {
     val (label, action) = when (state) {

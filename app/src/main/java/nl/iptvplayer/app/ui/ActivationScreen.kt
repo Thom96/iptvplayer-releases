@@ -63,9 +63,9 @@ import nl.iptvplayer.app.i18n.I18n
 import nl.iptvplayer.app.i18n.S
 
 /**
- * Activatiescherm (ontwerp: "Gallo — activatie en admin", tv-scherm).
- * [Gate.TRIAL_NOTICE]: kort bij het opstarten tijdens de proef, met "Verder met proefperiode".
- * [Gate.LOCKED]: proef of abonnement voorbij, geblokkeerd of te lang geen contact; kijkt elke 15 s of er betaald is.
+ * Activation screen (design: "Gallo — activatie en admin", TV screen).
+ * [Gate.TRIAL_NOTICE]: briefly at startup during the trial, with "Continue with trial".
+ * [Gate.LOCKED]: trial or subscription over, blocked or no contact for too long; checks every 15 s whether payment came in.
  */
 @Composable
 fun ActivationScreen(vm: AppViewModel, gate: Gate) {
@@ -89,7 +89,7 @@ fun ActivationScreen(vm: AppViewModel, gate: Gate) {
     )
 }
 
-/** Het scherm zelf, los van het ViewModel (zo ook te tekenen in tests). */
+/** The screen itself, separate from the ViewModel (so it can also be drawn in tests). */
 @Composable
 fun ActivationContent(
     license: License?,
@@ -102,7 +102,7 @@ fun ActivationContent(
 ) {
     val locked = gate == Gate.LOCKED
     val blocked = license?.status == LicenseStatus.BLOCKED
-    // Te lang geen contact, of nog nooit: dan is het probleem de verbinding, niet de betaling.
+    // No contact for too long, or never: then the problem is the connection, not the payment.
     val offline = license == null || !license.isFresh(now)
     val primary = remember { FocusRequester() }
     val globe = remember { FocusRequester() }
@@ -269,7 +269,7 @@ private fun StatusPill(license: License?, now: Long, locked: Boolean) {
     val text = when {
         license == null -> return
         license.status == LicenseStatus.BLOCKED -> S.licenseBlocked
-        locked && license.allowsUse(now) -> return // alleen te lang geen contact; status zelf is in orde
+        locked && license.allowsUse(now) -> return // only no contact for too long; the status itself is fine
         locked -> S.licenseExpired
         license.status == LicenseStatus.TRIAL -> S.trialDaysLeft(license.daysLeft(now) ?: 0)
         else -> return
@@ -303,7 +303,7 @@ private fun QrCode(content: String, modifier: Modifier = Modifier) {
             val cell = size.minDimension / matrix.width
             for (y in 0 until matrix.height) for (x in 0 until matrix.width) {
                 if (matrix[x, y]) {
-                    // Iets overlappen voorkomt dunne lijntjes tussen de vakjes.
+                    // Overlapping a little prevents thin lines between the squares.
                     drawRect(QR_DARK, Offset(x * cell, y * cell), Size(cell + 0.5f, cell + 0.5f))
                 }
             }

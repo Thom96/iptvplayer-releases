@@ -47,11 +47,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Terug uit het scherm "onbekende apps toestaan": bijwerken hervatten.
+        // Back from the "allow unknown apps" screen: resume updating.
         vm.retryAfterPermission()
-        // Lang in het geheugen gebleven: lijsten verversen en op updates controleren als dat lang geleden is.
+        // Stayed in memory for a long time: refresh lists and check for updates if that was long ago.
         vm.onAppResumed()
-        // "Afleveringen en meer" in de speler: de seriepagina openen.
+        // "Episodes and more" in the player: open the series page.
         val app = application as App
         app.pendingSeriesDetail?.let { key ->
             app.pendingSeriesDetail = null

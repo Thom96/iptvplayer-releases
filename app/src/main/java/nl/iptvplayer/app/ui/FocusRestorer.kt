@@ -18,12 +18,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 
 /**
- * Onthoudt welk element focus had, zodat na "terug" de focus op dezelfde poster terechtkomt
- * in plaats van bovenaan het scherm. Herstel gebeurt alleen kort na een terug-navigatie,
- * niet bij het wisselen van tabblad.
+ * Remembers which element had focus, so that after "back" the focus lands on the same poster
+ * instead of at the top of the screen. Restoring only happens shortly after a back navigation,
+ * not when switching tabs.
  */
 class FocusRestorer internal constructor(private val saved: MutableState<String?>) {
-    /** True als er nog niets bekend is (eerste bezoek). */
+    /** True if nothing is known yet (first visit). */
     val isFresh: Boolean get() = saved.value == null
 
     internal fun onFocused(key: String) {
@@ -42,7 +42,7 @@ class FocusRestorer internal constructor(private val saved: MutableState<String?
         private const val RESTORE_WINDOW_MS = 2_000L
         private var lastBackAt = 0L
 
-        /** Aanroepen bij terug-navigatie naar een vorig scherm. */
+        /** Call on back navigation to a previous screen. */
         fun markBackNavigation() {
             lastBackAt = SystemClock.uptimeMillis()
         }
@@ -67,10 +67,10 @@ fun Modifier.restoreFocus(restorer: FocusRestorer, key: String): Modifier {
 }
 
 /**
- * Vervanger voor Compose' focusRestorer() in scrollende lijsten. Die crasht in Compose 1.7
- * ("Release should only be called once") omdat hij lijst-items vastpint. Deze versie onthoudt
- * alleen welk item het doel is (bijv. de geselecteerde categorie) en stuurt de focus daarheen
- * als je de lijst binnenkomt.
+ * Replacement for Compose's focusRestorer() in scrolling lists. That crashes in Compose 1.7
+ * ("Release should only be called once") because it pins list items. This version only remembers
+ * which item is the target (e.g. the selected category) and sends the focus there
+ * when you enter the list.
  */
 class ListFocusMemory internal constructor() {
     internal var target: FocusRequester? = null
@@ -79,17 +79,17 @@ class ListFocusMemory internal constructor() {
 @Composable
 fun rememberListFocusMemory(): ListFocusMemory = remember { ListFocusMemory() }
 
-/** Op de lijst zelf: bij binnenkomen naar het doel-item, anders gewoon het dichtstbijzijnde item. */
+/** On the list itself: on entering, go to the target item, otherwise just the nearest item. */
 @OptIn(ExperimentalComposeUiApi::class)
 fun Modifier.enterFocusAt(memory: ListFocusMemory): Modifier =
     focusProperties { enter = { memory.target ?: FocusRequester.Default } }.focusGroup()
 
-/** Op elk item: [isTarget] = dit item krijgt de focus als je de lijst binnenkomt. */
+/** On every item: [isTarget] = this item gets the focus when you enter the list. */
 @Composable
 fun Modifier.listFocusTarget(memory: ListFocusMemory, isTarget: Boolean): Modifier {
     val requester = remember { FocusRequester() }
     if (isTarget) {
-        // Alleen zolang het item echt in beeld (gecomponeerd) is, anders zou de focus nergens heen kunnen.
+        // Only while the item is really on screen (composed), otherwise the focus would have nowhere to go.
         DisposableEffect(requester) {
             memory.target = requester
             onDispose { if (memory.target === requester) memory.target = null }
@@ -98,7 +98,7 @@ fun Modifier.listFocusTarget(memory: ListFocusMemory, isTarget: Boolean): Modifi
     return focusRequester(requester)
 }
 
-/** Vraagt focus aan zodra het element in beeld is. */
+/** Requests focus as soon as the element is on screen. */
 suspend fun FocusRequester.requestSafely() {
     withFrameNanos { }
     runCatching { requestFocus() }

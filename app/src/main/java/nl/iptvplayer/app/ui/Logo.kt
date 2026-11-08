@@ -22,8 +22,8 @@ import androidx.tv.material3.Text
 import nl.iptvplayer.app.R
 
 /**
- * Woordmerk uit het brandbook: "Gall" in Young Serif, gevolgd door de o: een kleine retro-tv met een
- * haankop op het scherm. De onderkant van de tv staat op de basislijn van de letters.
+ * Wordmark from the brandbook: "Gall" in Young Serif, followed by the o: a small retro TV with a
+ * rooster head on the screen. The bottom of the TV sits on the baseline of the letters.
  */
 @Composable
 fun GalloWordmark(size: TextUnit, modifier: Modifier = Modifier) {
@@ -40,13 +40,13 @@ fun GalloWordmark(size: TextUnit, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .padding(start = em * 0.036f)
                 .size(width = em * 0.84f, height = em * 0.77f)
-                // De tv eindigt 1/92 boven de onderkant van de afbeelding: die lijn op de basislijn.
+                // The TV ends 1/92 above the bottom of the image: that line goes on the baseline.
                 .alignBy { it.measuredHeight * 91 / 92 },
         )
     }
 }
 
-/** Woordmerk met "PLAYER" eronder, voor het inlogscherm. */
+/** Wordmark with "PLAYER" below it, for the login screen. */
 @Composable
 fun GalloLogo(size: TextUnit, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {

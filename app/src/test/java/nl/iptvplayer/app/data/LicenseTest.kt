@@ -9,7 +9,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
-/** De regels voor de activatie: wanneer mag de app gebruikt worden. */
+/** The activation rules: when may the app be used. */
 @RunWith(RobolectricTestRunner::class)
 class LicenseTest {
     private val now = 1_800_000_000_000L
@@ -41,7 +41,7 @@ class LicenseTest {
     fun lastKnownStatusCountsForThreeDays() {
         assertTrue(license(LicenseStatus.ACTIVE, null, checked = now - 2 * day).isFresh(now))
         assertFalse(license(LicenseStatus.ACTIVE, null, checked = now - 4 * day).isFresh(now))
-        // Klok teruggezet: niet vertrouwen.
+        // Clock set back: don't trust it.
         assertFalse(license(LicenseStatus.ACTIVE, null, checked = now + day).isFresh(now))
     }
 

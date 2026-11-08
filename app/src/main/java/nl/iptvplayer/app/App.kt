@@ -24,10 +24,10 @@ class App : Application(), ImageLoaderFactory {
 
     val storage: Storage by lazy { Storage(this) }
 
-    /** Wachtrij voor de speler; via het geheugen doorgegeven omdat zenderlijsten te groot zijn voor een Intent. */
+    /** Queue for the player; passed through memory because channel lists are too big for an Intent. */
     var pendingQueue: PlaybackQueue? = null
 
-    /** Serie waarvan de afleveringenlijst geopend moet worden na het sluiten van de speler ("Afleveringen en meer"). */
+    /** Series whose episode list should open after the player closes ("Episodes and more"). */
     var pendingSeriesDetail: String? = null
 
     override fun onCreate() {
@@ -38,12 +38,12 @@ class App : Application(), ImageLoaderFactory {
     override fun newImageLoader(): ImageLoader =
         ImageLoader.Builder(this)
             .okHttpClient(http)
-            .crossfade(false) // overvloeien kost tekenwerk tijdens het scrollen
+            .crossfade(false) // crossfading costs drawing work while scrolling
             .respectCacheHeaders(false)
             .build()
 
     companion object {
-        // Veel IPTV-servers weigeren onbekende spelers; een VLC-user-agent wordt vrijwel overal geaccepteerd.
+        // Many IPTV servers refuse unknown players; a VLC user agent is accepted almost everywhere.
         const val USER_AGENT = "VLC/3.0.20 LibVLC/3.0.20"
     }
 }

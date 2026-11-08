@@ -51,9 +51,9 @@ import java.net.UnknownHostException
 sealed interface AppState {
     data class Login(val error: String? = null, val busy: Boolean = false) : AppState
     /**
-     * [progress]: deel van de laadstappen dat klaar is (0..1); stuurt de haan op het laadscherm.
-     * [quick]: opstarten uit de bewaarde lijsten; dan geen korrelspel maar het logo met een kraaiende haan.
-     * [finished]: alles is binnen; het scherm wacht nog even tot de haan klaar is (zie [AppViewModel.loadingAnimationDone]).
+     * [progress]: share of the loading steps that are done (0..1); drives the rooster on the loading screen.
+     * [quick]: starting from the saved lists; then no grain game but the logo with a crowing rooster.
+     * [finished]: everything is in; the screen waits a moment for the rooster to finish (see [AppViewModel.loadingAnimationDone]).
      */
     data class Loading(
         val message: String,
@@ -65,7 +65,7 @@ sealed interface AppState {
     data object Ready : AppState
 }
 
-/** Zie [AppViewModel.gate]. */
+/** See [AppViewModel.gate]. */
 enum class Gate { NONE, TRIAL_NOTICE, LOCKED }
 
 sealed interface UpdateState {
@@ -93,7 +93,7 @@ sealed interface Screen {
         override val key = "series:${item.id}"
     }
 
-    /** Volledige categorie als raster, geopend via "Alles bekijken". */
+    /** Full category as a grid, opened via "View all". */
     data class Browse(val kind: Kind, val categoryId: String) : Screen {
         override val key = "browse:$kind:$categoryId"
     }
@@ -103,7 +103,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as App
     val storage get() = app.storage
 
-    /** Pas na de taalkeuze bij de eerste start gaat de app verder naar inloggen. */
+    /** Only after the language choice on first start does the app go on to login. */
     var languageChosen by mutableStateOf(app.storage.appLanguage != null)
         private set
 
@@ -115,10 +115,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     var state by mutableStateOf<AppState>(AppState.Login())
         private set
-    /** Alle lijsten van de server. */
+    /** All lists from the server. */
     var library by mutableStateOf<Library?>(null)
         private set
-    /** De lijsten gefilterd op de gekozen talen; dit is wat de schermen tonen. */
+    /** The lists filtered on the chosen languages; this is what the screens show. */
     var visibleLibrary by mutableStateOf<Library?>(null)
         private set
     var account by mutableStateOf<AccountInfo?>(null)
@@ -131,12 +131,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     val nav = mutableStateListOf<Screen>(Screen.Home)
 
-    /** Live TV op volledig scherm: dan verbergt Home de navigatiebalk. */
+    /** Live TV full screen: then Home hides the navigation rail. */
     var liveFullscreen by mutableStateOf(false)
 
-    // ---------- Details voor de uitgeklapte kaart ----------
+    // ---------- Details for the expanded card ----------
 
-    /** Opgehaalde filmdetails (series hebben hun details al in de lijst). */
+    /** Fetched movie details (series already have their details in the list). */
     private val movieDetails = mutableStateMapOf<String, ItemDetails>()
     private val detailsLimiter = Semaphore(3)
 
@@ -146,7 +146,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         else -> null
     }
 
-    /** Haalt filmdetails op (één keer per film); voor series is dat niet nodig. */
+    /** Fetches movie details (once per movie); not needed for series. */
     suspend fun loadDetails(item: MediaItem) {
         if (item.kind != Kind.MOVIE || item.key in movieDetails) return
         val c = client ?: return
@@ -170,13 +170,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val updater = Updater(app, app.http)
     var update by mutableStateOf<UpdateState>(UpdateState.Idle)
         private set
-    /** Melding bij het opstarten; "Later" verbergt hem tot de volgende start. */
+    /** Notice at startup; "Later" hides it until the next start. */
     var showUpdatePrompt by mutableStateOf(false)
 
-    /** [manual] = via de knop in Instellingen; dan tonen we ook "je hebt de nieuwste versie" en fouten. */
+    /** [manual] = via the button in Settings; then we also show "you have the latest version" and errors. */
     fun checkForUpdates(manual: Boolean) {
         if (update is UpdateState.Checking || update is UpdateState.Downloading) return
-        // Een gevonden update niet overschrijven: dan blijft "Bijwerken" gewoon staan.
+        // Don't overwrite an update that was found: then "Update" simply stays.
         if (!manual && (update is UpdateState.Available || update is UpdateState.NeedsPermission)) return
         lastUpdateCheck = System.currentTimeMillis()
         update = UpdateState.Checking
@@ -198,7 +198,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun installUpdate() {
         val info = (update as? UpdateState.Available)?.info ?: return
         if (!updater.canInstall()) {
-            // Eenmalig: "Installeren van onbekende apps" toestaan voor IPTV Player.
+            // One time: allow "Install unknown apps" for IPTV Player.
             update = UpdateState.NeedsPermission(info)
             updater.openInstallPermissionSettings()
             return
@@ -215,16 +215,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Na terugkeer uit het toestemmingsscherm opnieuw proberen. */
+    /** Try again after returning from the permission screen. */
     fun retryAfterPermission() {
         val s = update as? UpdateState.NeedsPermission ?: return
         update = UpdateState.Available(s.info)
         if (updater.canInstall()) installUpdate()
     }
 
-    // ---------- Terugkijken ----------
+    // ---------- Catch-up ----------
 
-    /** Archiefgids per zender-id; null in de map = nog niet geladen. */
+    /** Archive guide per channel id; null in the map = not loaded yet. */
     val archive = mutableStateMapOf<Int, List<CatchupEntry>>()
     private val archiveFetchedAt = HashMap<Int, Long>()
 
@@ -234,7 +234,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (last != null && System.currentTimeMillis() - last < 10 * 60_000) return
         archiveFetchedAt[streamId] = System.currentTimeMillis()
         archive[streamId] = runCatching { c.archiveEpg(streamId) }.getOrElse {
-            archiveFetchedAt.remove(streamId) // netwerkfout: bij de volgende keer opnieuw proberen
+            archiveFetchedAt.remove(streamId) // network error: try again next time
             emptyList()
         }
     }
@@ -250,14 +250,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         startPlayer(context, PlaybackQueue(listOf(item)))
     }
 
-    // ---------- Tv-gids ----------
+    // ---------- TV guide ----------
 
-    /** Gids per zender-id; wordt gevuld door [loadEpg]. */
+    /** Guide per channel id; filled by [loadEpg]. */
     val epg = mutableStateMapOf<Int, List<EpgEntry>>()
     private val epgFetchedAt = HashMap<Int, Long>()
     private val epgLimiter = Semaphore(4)
 
-    /** Haalt de gids van een zender op (hooguit eens per 15 minuten, max. 4 tegelijk). */
+    /** Fetches the guide of a channel (at most once per 15 minutes, max. 4 at a time). */
     suspend fun loadEpg(streamId: Int) {
         val c = client ?: return
         val last = epgFetchedAt[streamId]
@@ -266,29 +266,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             epgFetchedAt[streamId] = System.currentTimeMillis()
             runCatching { c.shortEpg(streamId) }
                 .onSuccess { epg[streamId] = it }
-                // Netwerkfout: na een minuut opnieuw proberen in plaats van pas na een kwartier.
+                // Network error: try again after a minute instead of only after a quarter of an hour.
                 .onFailure { epgFetchedAt[streamId] = System.currentTimeMillis() - 14 * 60_000 }
         }
     }
 
-    // ---------- Activatie (Gallo-server) ----------
+    // ---------- Activation (Gallo server) ----------
 
     private val licenseClient = LicenseClient(app.http)
-    /** Laatst bekende status van dit apparaat; null = nog nooit contact gehad. */
+    /** Last known status of this device; null = never had contact. */
     var license by mutableStateOf(storage.license)
         private set
     var licenseChecking by mutableStateOf(false)
         private set
-    /** De laatste controle mislukte (geen internet of server onbereikbaar). */
+    /** The last check failed (no internet or server unreachable). */
     var licenseError by mutableStateOf(false)
         private set
-    /** Het proefscherm is deze start al weggeklikt. */
+    /** The trial screen has already been dismissed during this start. */
     var trialNoticeSeen by mutableStateOf(false)
     private var lastLicenseCheck = 0L
 
     val isDemo: Boolean get() = client?.creds?.server == XtreamClient.DEMO_SERVER
 
-    /** Wat er voor de app moet staan: niets, het proefscherm, of het activatiescherm dat niet weg kan. */
+    /** What must be shown in front of the app: nothing, the trial screen, or the activation screen that can't be closed. */
     val gate: Gate
         get() {
             if (isDemo) return Gate.NONE
@@ -320,14 +320,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     init {
         checkLicense()
         storage.credentials?.let { connect(it) }
-        // Bij het opstarten even rustig wachten en dan op de achtergrond kijken of er een update is.
+        // At startup, wait a bit and then check in the background whether there is an update.
         viewModelScope.launch {
             kotlinx.coroutines.delay(8_000)
             checkForUpdates(manual = false)
         }
     }
 
-    // ---------- Inloggen ----------
+    // ---------- Login ----------
 
     fun login(server: String, username: String, password: String) {
         val creds = Credentials(XtreamClient.normalizeServer(server), username.trim(), password)
@@ -346,7 +346,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Opstarten met opgeslagen gegevens: eerst de cache tonen, daarna op de achtergrond verversen. */
+    /** Starting with saved credentials: show the cache first, then refresh in the background. */
     private fun connect(creds: Credentials) {
         viewModelScope.launch {
             try {
@@ -371,10 +371,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Wordt voltooid als de haan op het laadscherm zijn moment heeft gehad. */
+    /** Completed when the rooster on the loading screen has had its moment. */
     private var roosterDone = CompletableDeferred<Unit>()
 
-    /** Het laadscherm meldt dat de haan klaar is (alles opgegeten en gekraaid). */
+    /** The loading screen reports that the rooster is done (everything eaten and crowed). */
     fun loadingAnimationDone() {
         roosterDone.complete(Unit)
     }
@@ -385,29 +385,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         state = AppState.Loading(S.loading, quick = quick)
         setLibrary(
             c.loadLibrary(forceDownload) { msg, fraction ->
-                // Vanaf achtergronddraden; de voortgang loopt alleen op, ook als stappen gelijktijdig klaar zijn.
+                // From background threads; progress only goes up, even when steps finish at the same time.
                 synchronized(this) {
                     val shown = (state as? AppState.Loading)?.progress ?: 0f
                     state = AppState.Loading(msg, maxOf(shown, fraction), quick)
                 }
             },
         )
-        // De haan zijn laadscherm laten afmaken, maar nooit langer dan even laten wachten.
+        // Let the rooster finish its loading screen, but never keep the user waiting long.
         state = AppState.Loading(S.loading, 1f, quick, finished = true)
         withTimeoutOrNull(if (quick) QUICK_FINISH_MAX_MS else FULL_FINISH_MAX_MS) { roosterDone.await() }
         state = AppState.Ready
     }
 
     private suspend fun setLibrary(lib: Library) {
-        filterJob?.cancel() // een taalfilter op de oude lijsten mag de nieuwe niet overschrijven
-        // Gefilterde bibliotheek en de lijsten voor Home al op de achtergrond klaarzetten.
+        filterJob?.cancel() // a language filter on the old lists must not overwrite the new ones
+        // Prepare the filtered library and the lists for Home in the background already.
         val visible = withContext(Dispatchers.Default) {
             lib.filtered(storage.languages.value).also { it.newestMovies; it.newestSeries }
         }
         library = lib
         visibleLibrary = visible
         viewModelScope.launch(Dispatchers.Default) {
-            kotlinx.coroutines.delay(5_000) // eerst het scherm rustig laten opbouwen
+            kotlinx.coroutines.delay(5_000) // first let the screen build up calmly
             lib.warmUp()
         }
     }
@@ -417,7 +417,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         applyLanguageFilter()
     }
 
-    /** "Alle talen": het filter in één keer leegmaken (niet taal voor taal, dat rekent alles meerdere keren uit). */
+    /** "All languages": clear the filter in one go (not language by language, that computes everything several times). */
     fun showAllLanguages() {
         storage.setLanguages(emptySet())
         applyLanguageFilter()
@@ -425,7 +425,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private var filterJob: kotlinx.coroutines.Job? = null
 
-    /** Rekent de zichtbare bibliotheek opnieuw uit; een nieuwe keuze annuleert een berekening die nog loopt. */
+    /** Recomputes the visible library; a new choice cancels a computation that is still running. */
     private fun applyLanguageFilter() {
         val lib = library ?: return
         val languages = storage.languages.value
@@ -437,13 +437,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ---------- Terugkomen in de app ----------
+    // ---------- Coming back to the app ----------
 
     private var lastUpdateCheck = 0L
 
     /**
-     * De app blijft op een tv vaak dagen in het geheugen (Home-knop sluit hem niet af). Daarom bij terugkomen:
-     * oude lijsten op de achtergrond verversen en af en toe op updates controleren.
+     * On a TV the app often stays in memory for days (the Home button doesn't close it). So on return:
+     * refresh old lists in the background and check for updates now and then.
      */
     fun onAppResumed() {
         if (System.currentTimeMillis() - lastLicenseCheck > LICENSE_CHECK_INTERVAL_MS) checkLicense()
@@ -467,11 +467,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val acc = c.authenticate()
                 storage.serverLiveFormat = c.liveFormat
                 val lib = c.loadLibrary(forceDownload = true)
-                if (client !== c) return@launch // intussen uitgelogd of ander account
+                if (client !== c) return@launch // logged out or switched account in the meantime
                 account = acc
                 setLibrary(lib)
             } catch (_: Exception) {
-                // Oude lijsten blijven gewoon staan.
+                // The old lists simply stay.
             } finally {
                 refreshing = false
             }
@@ -493,7 +493,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         state = AppState.Login()
     }
 
-    // ---------- Navigatie ----------
+    // ---------- Navigation ----------
 
     fun open(item: MediaItem, context: Context) {
         when (item.kind) {
@@ -506,13 +506,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun back(): Screen? = if (nav.size > 1) nav.removeAt(nav.lastIndex) else null
 
-    // ---------- Afspelen ----------
+    // ---------- Playback ----------
 
-    /** Formaat voor live-streams: de keuze uit Instellingen, of bij "auto" wat de server aanbeveelt. */
+    /** Format for live streams: the choice from Settings, or with "auto" what the server recommends. */
     val liveFormat: String
         get() = storage.liveFormat.value.takeIf { it != "auto" } ?: client?.liveFormat ?: "ts"
 
-    /** Live-URL in het gekozen formaat; [alternative] = het andere formaat, als terugval. */
+    /** Live URL in the chosen format; [alternative] = the other format, as a fallback. */
     fun liveUrl(streamId: Int, alternative: Boolean = false): String {
         val c = client ?: return ""
         val format = if (alternative) (if (liveFormat == "ts") "m3u8" else "ts") else liveFormat
@@ -540,7 +540,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         startPlayer(context, PlaybackQueue(listOf(play), 0, resume))
     }
 
-    /** Speelt [episodes] af vanaf [index], zodat de volgende aflevering automatisch start. */
+    /** Plays [episodes] from [index], so the next episode starts automatically. */
     fun playEpisodes(
         context: Context,
         series: MediaItem,
@@ -561,7 +561,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         startPlayer(context, PlaybackQueue(items, index, resume, intro))
     }
 
-    /** Welke aflevering is aan de beurt: een half bekeken, anders de eerste na de laatst geziene. */
+    /** Which episode is next: a half-watched one, otherwise the first after the last one watched. */
     fun nextUpFor(seriesId: Int, episodes: List<Episode>): Pair<Episode, Progress?>? {
         if (episodes.isEmpty()) return null
         val p = storage.progress.value.firstOrNull { it.seriesId == seriesId }
@@ -571,16 +571,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         return (episodes.getOrNull(last + 1) ?: episodes.first()) to null
     }
 
-    /** Ophalen van afleveringen voor [openSeries] of [resume]; zolang dat loopt, telt een tweede druk niet. */
+    /** Fetching episodes for [openSeries] or [resume]; while that runs, a second press doesn't count. */
     private var openingJob: kotlinx.coroutines.Job? = null
 
     /**
-     * Serie openen zoals Netflix: de volgende aflevering start direct, met links een paneel met info
-     * en "Afleveringen en meer". Lukt het ophalen niet, dan de gewone seriepagina.
+     * Open a series like Netflix: the next episode starts right away, with a panel on the left with info
+     * and "Episodes and more". If fetching fails, the regular series page.
      */
     fun openSeries(context: Context, series: MediaItem) {
         val c = client ?: return
-        if (openingJob?.isActive == true) return // nog bezig met ophalen: tweede druk op OK negeren
+        if (openingJob?.isActive == true) return // still fetching: ignore a second press on OK
         openingJob = viewModelScope.launch {
             val info = runCatching { c.seriesInfo(series.id) }.getOrNull()
             val episodes = info?.seasons?.flatMap { it.episodes }.orEmpty()
@@ -614,8 +614,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Hervat vanuit "verder kijken". Bij een serie halen we eerst alle afleveringen op, zodat
-     * daarna automatisch de volgende aflevering start; lukt dat niet, dan alleen deze aflevering.
+     * Resumes from "continue watching". For a series we first fetch all episodes, so that
+     * the next episode starts automatically afterwards; if that fails, only this episode.
      */
     fun resume(context: Context, p: Progress) {
         val c = client ?: return
@@ -663,13 +663,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private companion object {
         const val CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000L
-        /** Bij terugkomen in de app hooguit zo vaak op updates controleren. */
+        /** Check for updates at most this often when coming back to the app. */
         const val UPDATE_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000L
-        /** Hoe vaak de app (als hij lang open blijft) opnieuw bij de Gallo-server navraagt. */
+        /** How often the app (if it stays open for a long time) checks with the Gallo server again. */
         const val LICENSE_CHECK_INTERVAL_MS = 60 * 60 * 1000L
-        /** Snelle start: hooguit zo lang op de kraai wachten. */
+        /** Quick start: wait at most this long for the crow. */
         const val QUICK_FINISH_MAX_MS = 1_200L
-        /** Na het downloaden: hooguit zo lang wachten tot de haan de laatste korrels op heeft en kraait. */
+        /** After downloading: wait at most this long for the rooster to eat the last grains and crow. */
         const val FULL_FINISH_MAX_MS = 2_500L
     }
 }

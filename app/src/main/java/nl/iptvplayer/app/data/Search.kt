@@ -7,15 +7,15 @@ object TextMatch {
     private val marks = Regex("""\p{Mn}+""")
     private val nonAlnum = Regex("[^a-z0-9]+")
 
-    // Scheidingstekens die providers gebruiken: "|", maar ook "┃" (U+2503), "│" en "｜".
+    // Separators that providers use: "|", but also "┃" (U+2503), "│" and "｜".
     private const val BAR = "[|┃│｜]"
 
-    // Voorvoegsels die providers voor titels zetten: "NL - ", "EN: ", "|NL| ", "┃MULTI┃ ", "[4K] ".
+    // Prefixes that providers put before titles: "NL - ", "EN: ", "|NL| ", "┃MULTI┃ ", "[4K] ".
     private val tagPrefix = Regex("""^\s*(\[[^\]]{1,20}]|$BAR[^|┃│｜]{1,20}$BAR|[A-Z]{2,4}\s*([-:]|$BAR))\s*""")
     private val yearSuffix = Regex("""\s*[(\[](19|20)\d{2}[)\]]\s*$""")
     private val yearAnywhere = Regex("""[(\[]((19|20)\d{2})[)\]]""")
-    // Kaal jaartal aan het eind: "Wealthy Soul 2024", "Lonely - 2025". Alleen tot volgend jaar,
-    // zodat "Blade Runner 2049" heel blijft.
+    // Bare year at the end: "Wealthy Soul 2024", "Lonely - 2025". Only up to next year,
+    // so "Blade Runner 2049" stays intact.
     private val bareYearSuffix = Regex("""\s+(-\s+)?((19|20)\d{2})\s*$""")
     private val maxYear = Calendar.getInstance().get(Calendar.YEAR) + 1
 
@@ -25,21 +25,21 @@ object TextMatch {
             .replace(nonAlnum, " ")
             .trim()
 
-    /** Titel zonder taal-/kwaliteitslabels en jaartal, voor exacte matches bij het zoeken. */
+    /** Title without language/quality labels and year, for exact matches when searching. */
     fun cleanTitle(name: String): String {
         var s = name
         repeat(3) { s = s.replaceFirst(tagPrefix, "") }
         return stripYear(s).ifEmpty { name }
     }
 
-    // Strenger dan tagPrefix: alleen duidelijke labels ("NL - ", "NL | ", "┃NL┃", "[4K]"), zodat
-    // titels als "CSI: Miami" of "300 - Rise of an Empire" heel blijven.
+    // Stricter than tagPrefix: only clear labels ("NL - ", "NL | ", "┃NL┃", "[4K]"), so
+    // titles like "CSI: Miami" or "300 - Rise of an Empire" stay intact.
     private val displayPrefix = Regex("""^\s*(\[[^\]]{1,20}]|$BAR[^|┃│｜]{1,20}$BAR|[A-Z][A-Z0-9]{1,3}([ -][A-Z0-9]{2,4})?\s*($BAR|\s[-–]))\s*""")
     private val trailingTag = Regex("""\s*\[[^\]]{1,20}]\s*$""")
-    // Symbolen en superscript-letters aan het eind, zoals "⏺ʳᵉᶜ" (= terugkijken beschikbaar).
+    // Symbols and superscript letters at the end, like "⏺ʳᵉᶜ" (= catch-up available).
     private val trailingSymbols = Regex("""[\s\p{So}\p{Lm}]+$""")
 
-    /** Titel voor weergave: zonder taallabels, kwaliteitstags en jaartal. */
+    /** Title for display: without language labels, quality tags and year. */
     fun displayTitle(name: String): String {
         var s = name
         repeat(2) { s = s.replaceFirst(displayPrefix, "") }
@@ -48,13 +48,13 @@ object TextMatch {
         return stripYear(s).ifEmpty { name }
     }
 
-    // "[NL] Gooische Vrouwen (2005) - S01E01 - Het Feest": alles t/m "S01E01 -" weghalen.
+    // "[NL] Gooische Vrouwen (2005) - S01E01 - Het Feest": remove everything up to and including "S01E01 -".
     private val episodePrefix = Regex("""^.*?\bS\d{1,2}\s?E\d{1,3}\b\s*[-–:|.]?\s*""", RegexOption.IGNORE_CASE)
 
-    /** Nette afleveringstitel, bijv. "Het Feest" i.p.v. "[NL] Gooische Vrouwen (2005) - S01E01 - Het Feest". */
+    /** Clean episode title, e.g. "Het Feest" instead of "[NL] Gooische Vrouwen (2005) - S01E01 - Het Feest". */
     fun episodeTitle(raw: String): String {
         var stripped = raw.replaceFirst(episodePrefix, "").trim()
-        // Bestandsnaam-notatie ("S01E01.The.Medieval.Tower"): punten zijn spaties. Niet bij "Mr.Robot" of "U.S.A.".
+        // File name notation ("S01E01.The.Medieval.Tower"): dots are spaces. Not for "Mr.Robot" or "U.S.A.".
         if (stripped != raw.trim() && fileNameTitle.matches(stripped)) stripped = stripped.replace('.', ' ')
         return displayTitle(stripped.ifEmpty { raw })
     }
@@ -68,7 +68,7 @@ object TextMatch {
         return if (year <= maxYear && bare.range.first > 0) t.substring(0, bare.range.first).trim() else t
     }
 
-    /** Taallabel aan het begin, bijv. "NL" uit "┃NL┃ Titel" of "MULTI" uit "┃MULTI / LINGO┃ KIDS". */
+    /** Language label at the start, e.g. "NL" from "┃NL┃ Title" or "MULTI" from "┃MULTI / LINGO┃ KIDS". */
     fun languageTag(name: String): String? = languagePrefix.find(name)?.groupValues?.get(1)
 
     private val languagePrefix = Regex("""^\s*$BAR\s*([A-Z]{2,5})""")
@@ -79,7 +79,7 @@ object TextMatch {
         return bare.groupValues[2].toInt().takeIf { it <= maxYear }
     }
 
-    /** True als a en b maximaal één bewerking (invoegen, verwijderen, vervangen) verschillen. */
+    /** True if a and b differ by at most one edit (insert, delete, replace). */
     fun withinOneEdit(a: String, b: String): Boolean {
         if (a == b) return true
         val (s, l) = if (a.length <= b.length) a to b else b to a
@@ -100,8 +100,8 @@ object TextMatch {
     }
 
     /**
-     * True als [text] zonder spaties [needle] bevat ("spider man" bevat "spiderman"). Zonder kopie van
-     * [text], want dit draait voor elke titel bij elke toetsaanslag. [needle] mag geen spaties bevatten.
+     * True if [text] without spaces contains [needle] ("spider man" contains "spiderman"). Without copying
+     * [text], because this runs for every title on every key press. [needle] must not contain spaces.
      */
     fun containsIgnoringSpaces(text: String, needle: String): Boolean {
         if (needle.isEmpty()) return true
@@ -148,7 +148,7 @@ object SearchEngine {
     private fun rank(items: List<MediaItem>, q: String, compact: String, tokens: List<String>): List<MediaItem> {
         var hits = items.mapNotNull { item -> score(item, q, compact, tokens).takeIf { it > 0 }?.let { item to it } }
         if (hits.isEmpty()) {
-            // Niets gevonden: probeer met één typfout per woord.
+            // Nothing found: try with one typo per word.
             hits = items.mapNotNull { item -> fuzzyScore(item, tokens).takeIf { it > 0 }?.let { item to it } }
         }
         return hits
@@ -159,12 +159,12 @@ object SearchEngine {
 
     private fun score(item: MediaItem, q: String, compact: String, tokens: List<String>): Int {
         val norm = item.norm
-        // Snelle voorselectie: vrijwel alle titels vallen hier af, zonder extra geheugen.
+        // Quick preselection: almost all titles drop out here, without extra memory.
         if (!tokens.all { norm.contains(it) }) {
-            // "spiderman" vindt "Spider-Man"
+            // "spiderman" finds "Spider-Man"
             return if (q.length >= 4 && TextMatch.containsIgnoringSpaces(norm, compact)) 300 else 0
         }
-        // Alleen voor kandidaten: opgeschoonde titel en woorden berekenen.
+        // Only for candidates: compute the cleaned title and words.
         val clean = TextMatch.normalize(TextMatch.cleanTitle(item.name))
         if (clean == q || norm == q) return 1000
         if (clean.startsWith(q)) return 800 - minOf(clean.length - q.length, 100)

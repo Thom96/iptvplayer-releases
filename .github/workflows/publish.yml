@@ -122,7 +122,7 @@ jobs:
           # The same tests as the pull request check (Check). The debug variant contains the test
           # activity the Compose tests need; unit tests don't use R8 anyway.
           bash ./gradlew --no-daemon assembleRelease testDebugUnitTest -PappVersionName="$VERSION"
-          # build.gradle.kts puts the build output in java.io.tmpdir (/tmp) when LOCALAPPDATA is not set.
+          # build.gradle.kts puts the build output in java.io.tmpdir (/tmp).
           cp /tmp/IPTVPlayer-build/app/outputs/apk/release/app-release.apk IPTVPlayer.apk
 
       - name: Verify version and signature

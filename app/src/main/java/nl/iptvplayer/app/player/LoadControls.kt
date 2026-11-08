@@ -6,8 +6,8 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.LoadControl
 
 /**
- * Buffer-instellingen voor snel starten: afspelen zodra er 1 s video binnen is (standaard 2,5 s),
- * na haperen 2 s. Daarna bouwt de buffer gewoon op tot 50 s.
+ * Buffer settings for a quick start: play as soon as 1 s of video is in (default 2.5 s),
+ * 2 s after a stall. After that the buffer builds up normally to 50 s.
  */
 @OptIn(UnstableApi::class)
 fun fastStartLoadControl(): LoadControl =

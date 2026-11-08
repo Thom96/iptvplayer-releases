@@ -64,12 +64,12 @@ import nl.iptvplayer.app.data.TextMatch
 
 private const val ROW_SIZE = 20
 
-/** Eén rij in het overzicht: een categorie met de nieuwste titels. */
+/** One row in the overview: a category with the newest titles. */
 private class CategoryRow(val id: String, val title: String, val total: Int, val items: List<MediaItem>)
 
 /**
- * Films of series zoals bij Netflix: per categorie een horizontale rij, met "Alles bekijken"
- * aan het eind voor het volledige raster met sorteren.
+ * Movies or series like on Netflix: a horizontal row per category, with "View all"
+ * at the end for the full grid with sorting.
  */
 @Composable
 fun CategoryRowsTab(vm: AppViewModel, library: Library, kind: Kind) {
@@ -77,12 +77,12 @@ fun CategoryRowsTab(vm: AppViewModel, library: Library, kind: Kind) {
     val restorer = rememberFocusRestorer()
     val progress by vm.storage.progress.collectAsState()
     var removal by remember { mutableStateOf<Removal?>(null) }
-    // Verder kijken: bij Series de begonnen series, bij Films de begonnen films.
+    // Continue watching: for Series the started series, for Movies the started movies.
     val continueItems = progress.filter { (it.seriesId != null) == (kind == Kind.SERIES) }
 
-    // Groeperen en sorteren van alle titels op de achtergrond, en per bibliotheek onthouden zodat
-    // wisselen van tabblad direct gaat.
-    val language = I18n.language // rijtitels zijn vertaald: opnieuw opbouwen na een taalwissel
+    // Group and sort all titles in the background, and remember them per library so
+    // switching tabs is instant.
+    val language = I18n.language // row titles are translated: rebuild after a language change
     val rows by produceState(rowCache[library]?.get(kind to language), library, kind, language) {
         val cached = rowCache[library]?.get(kind to language)
         value = cached ?: withContext(Dispatchers.Default) { buildRows(library, kind) }
@@ -101,7 +101,7 @@ fun CategoryRowsTab(vm: AppViewModel, library: Library, kind: Kind) {
     }
 }
 
-/** Per bibliotheek (taalfilter) de berekende rijen; zwak vastgehouden zodat oude bibliotheken opgeruimd worden. */
+/** The computed rows per library (language filter); held weakly so old libraries get cleaned up. */
 private val rowCache = java.util.WeakHashMap<Library, HashMap<Pair<Kind, AppLanguage>, List<CategoryRow>>>()
 
 private fun buildRows(library: Library, kind: Kind): List<CategoryRow> {
@@ -109,7 +109,7 @@ private fun buildRows(library: Library, kind: Kind): List<CategoryRow> {
         val byCategory = all.groupBy { it.categoryId }
         return buildList {
             add(CategoryRow(ALL_CATEGORIES, S.recentlyAdded, all.size, all.sortedByDescending { it.added }.take(ROW_SIZE)))
-            // Genre-rijen: alleen series hebben het genre al in de lijst van de provider.
+            // Genre rows: only series already have the genre in the provider's list.
             if (kind == Kind.SERIES) addAll(genreRows(all))
             library.categories(kind).forEach { cat ->
                 val items = byCategory[cat.id].orEmpty()
@@ -135,15 +135,15 @@ private fun CategoryRowsList(
     val scroller = rememberSpringScroller(listState)
     val scope = rememberCoroutineScope()
     val rowBasePx = with(LocalDensity.current) { EXPANDING_ROW_BASE_HEIGHT.toPx() }
-    // Rijen voor Verder kijken: daar scrollt de rij zelf op de standaardmanier (geen uitklappende kaarten).
+    // Rows for Continue watching: there the row scrolls itself the default way (no expanding cards).
     val platformSpec = LocalBringIntoViewSpec.current
 
     /**
-     * Rij met focus bovenaan zetten (de titel erboven blijft zichtbaar), voor elke rij op dezelfde plek.
-     * Infopanelen erboven die nog inklappen schuiven alles al omhoog; daar houdt de afstand rekening mee,
-     * en ze gebruiken dezelfde veer als het scrollen.
+     * Put the focused row at the top (the title above it stays visible), at the same place for every row.
+     * Info panels above it that are still collapsing already push everything up; the distance takes that into account,
+     * and they use the same spring as the scrolling.
      */
-    // Sleutels in lijstvolgorde (zelfde als de items hieronder).
+    // Keys in list order (same as the items below).
     val keys = remember(rows, continueItems.isEmpty()) {
         buildList {
             if (continueItems.isNotEmpty()) { add("title:continue"); add("row:continue") }
@@ -153,19 +153,19 @@ private fun CategoryRowsList(
     fun isExpandingRow(key: Any) = key is String && key.startsWith(EXPANDING_ROW_PREFIX) && key != "row:continue"
     fun keyAt(i: Int): Any? = keys.getOrNull(i)
 
-    /** Gemeten hoogtes (ingeklapt) per lijstitem, om items boven beeld te kunnen plaatsen. */
+    /** Measured heights (collapsed) per list item, to place items above the screen. */
     val heights = remember { HashMap<Any, Int>() }
 
-    /** Afstand van de bovenkant van item [index] tot de bovenkant van de lijst, ook als het boven beeld staat. */
+    /** Distance from the top of item [index] to the top of the list, even when it is above the screen. */
     fun topOf(index: Int, visible: List<LazyListItemInfo>): Float? {
         visible.firstOrNull { it.index == index }?.let { return it.offset.toFloat() }
         val first = visible.firstOrNull() ?: return null
         if (index > first.index) return null
-        // Boven beeld: terugrekenen vanaf het eerste zichtbare item. Daartussen staat alles ingeklapt.
+        // Above the screen: compute back from the first visible item. Everything in between is collapsed.
         var top = first.offset.toFloat()
         for (i in first.index - 1 downTo index) {
             val key = keyAt(i) ?: return null
-            // Rijtitels zijn allemaal even hoog: een niet eerder gemeten titel krijgt de hoogte van een andere.
+            // Row titles all have the same height: a title not measured before gets the height of another.
             val h = when {
                 isExpandingRow(key) -> rowBasePx
                 else -> (heights[key] ?: heights.entries.firstOrNull { (k, _) -> k != "title:continue" && k.toString().startsWith("title:") }?.value)
@@ -187,7 +187,7 @@ private fun CategoryRowsList(
             val visible = listState.layoutInfo.visibleItemsInfo
             visible.forEach { if (!isExpandingRow(it.key)) heights[it.key] = it.size }
             val top = topOf(titleIndex, visible) ?: return@follow null
-            // Infopanelen erboven die nog inklappen schuiven alles al omhoog.
+            // Info panels above it that are still collapsing already push everything up.
             val stillCollapsing = visible
                 .filter { it.index < titleIndex && isExpandingRow(it.key) }
                 .sumOf { (it.size - rowBasePx).coerceAtLeast(0f).toDouble() }
@@ -245,13 +245,13 @@ private fun CategoryRowsList(
 
 private const val EXPANDING_ROW_PREFIX = "row:"
 
-/** Genrenamen van de provider (Engels, van TMDB), in deze volgorde als rij getoond; de rijtitel staat in `Strings.genres`. */
+/** The provider's genre names (English, from TMDB), shown as rows in this order; the row title is in `Strings.genres`. */
 private val GENRE_KEYS = listOf(
     "comedy", "drama", "crime", "action & adventure", "sci-fi & fantasy", "mystery", "documentary", "reality",
     "animation", "kids", "family", "war & politics", "romance", "thriller", "western", "history", "talk",
 )
 
-/** Prefix voor genre-"categorieën" in het raster (zie BrowseTab). */
+/** Prefix for genre "categories" in the grid (see BrowseTab). */
 const val GENRE_PREFIX = "genre:"
 
 fun genresOf(item: MediaItem): List<String> =
@@ -263,7 +263,7 @@ private fun genreRows(series: List<MediaItem>): List<CategoryRow> {
     return GENRE_KEYS.mapNotNull { genre ->
         val title = S.genres[genre] ?: genre.replaceFirstChar { it.uppercase() }
         val items = byGenre[genre] ?: return@mapNotNull null
-        // Kleine genres overslaan; alleen titels met een poster tonen.
+        // Skip small genres; only show titles with a poster.
         if (items.size < 10) return@mapNotNull null
         CategoryRow(
             GENRE_PREFIX + genre, title, items.size,
@@ -301,7 +301,7 @@ private fun SeeAllCard(total: Int, onClick: () -> Unit, modifier: Modifier = Mod
     }
 }
 
-/** "┃NL┃ AMAZON PRIME VIDEO" -> "Amazon Prime Video"; korte afkortingen (HBO, NPO, 4K) blijven hoofdletters. */
+/** "┃NL┃ AMAZON PRIME VIDEO" -> "Amazon Prime Video"; short abbreviations (HBO, NPO, 4K) stay upper case. */
 private fun prettyCategory(name: String): String =
     TextMatch.displayTitle(name).split(' ').joinToString(" ") { w ->
         if (w.length <= 3 || w.any { it.isDigit() }) w else w.lowercase().replaceFirstChar { it.uppercase() }

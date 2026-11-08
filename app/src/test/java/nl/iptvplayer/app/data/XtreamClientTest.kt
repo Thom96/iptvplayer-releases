@@ -12,7 +12,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 
-/** Lijsten van de server lezen, zonder netwerk: de "gedownloade" bestanden staan al in de cache. */
+/** Reading lists from the server without network: the "downloaded" files are already in the cache. */
 @RunWith(RobolectricTestRunner::class)
 class XtreamClientTest {
     @get:Rule
@@ -22,7 +22,7 @@ class XtreamClientTest {
 
     private fun client(): XtreamClient {
         val c = XtreamClient(creds, OkHttpClient(), tmp.root)
-        // De cachemap heeft een naam die van server en gebruiker afhangt; laat de client hem maken en vul hem.
+        // The cache directory has a name that depends on server and user; let the client create it and fill it.
         val dir = File(tmp.root, "lists-" + (creds.server + "|" + creds.username).hashCode().toUInt().toString(16))
         dir.mkdirs()
         fun put(action: String, json: String) = File(dir, "$action.json").writeText(json)
@@ -36,7 +36,7 @@ class XtreamClientTest {
         ]""")
         put("get_vod_streams", """[
             {"name":"Film (2019)","stream_id":21,"rating":"7.4","container_extension":"mkv","added":"1700000000","stream_icon":"geen-url"},
-            {"title":"Alleen titel","stream_id":22,"rating_5based":4,"plot":"  Verhaal  "}
+            {"title":"Title only","stream_id":22,"rating_5based":4,"plot":"  Plot  "}
         ]""")
         put("get_series", """[{"name":"Serie","series_id":"31","cover":"http://cover","backdrop_path":["","http://bg"],"last_modified":"1700000500","genre":"Drama"}]""")
         return c
@@ -46,19 +46,19 @@ class XtreamClientTest {
     fun readsListsFromServerJson() = runBlocking {
         val lib = client().loadLibrary(forceDownload = false)
         assertEquals(listOf(Category("1", "NL | Algemeen")), lib.liveCategories)
-        assertEquals("categorie zonder naam krijgt een vertaalde naam", listOf(Category("10", S.unnamedCategory)), lib.movieCategories)
+        assertEquals("category without a name gets a translated name", listOf(Category("10", S.unnamedCategory)), lib.movieCategories)
 
         val npo = lib.live.single()
         assertEquals(listOf<Any?>(11, "NPO 1", "http://logo", "1", 1, 7), listOf(npo.id, npo.name, npo.image, npo.categoryId, npo.num, npo.archiveDays))
 
-        val (film, titel) = lib.movies
-        assertEquals(2019, film.year)
-        assertEquals(7.4, film.rating, 0.0)
-        assertEquals("mkv", film.ext)
-        assertNull("geen http-adres = geen plaatje", film.image)
-        assertEquals("Alleen titel", titel.name)
-        assertEquals("5-puntsschaal wordt 10-puntsschaal", 8.0, titel.rating, 0.0)
-        assertEquals("Verhaal", titel.plot)
+        val (movie, titleOnly) = lib.movies
+        assertEquals(2019, movie.year)
+        assertEquals(7.4, movie.rating, 0.0)
+        assertEquals("mkv", movie.ext)
+        assertNull("no http address = no image", movie.image)
+        assertEquals("Title only", titleOnly.name)
+        assertEquals("5-point scale becomes 10-point scale", 8.0, titleOnly.rating, 0.0)
+        assertEquals("Plot", titleOnly.plot)
 
         val serie = lib.series.single()
         assertEquals(listOf<Any?>(31, "http://cover", "http://bg", 1700000500L, "Drama"), listOf(serie.id, serie.image, serie.backdrop, serie.added, serie.genre))

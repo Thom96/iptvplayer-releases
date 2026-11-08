@@ -48,7 +48,7 @@ import nl.iptvplayer.app.AppViewModel
 import nl.iptvplayer.app.data.MediaItem
 import nl.iptvplayer.app.data.MovieInfo
 
-/** Film-detail in dezelfde opbouw als serie-detail: beeld rechts, titel, gegevens en knoppen links. */
+/** Movie detail in the same layout as series detail: image on the right, title, details and buttons on the left. */
 @Composable
 fun MovieDetailScreen(vm: AppViewModel, item: MediaItem) {
     val context = LocalContext.current
@@ -68,7 +68,7 @@ fun MovieDetailScreen(vm: AppViewModel, item: MediaItem) {
     val i = info
     DetailBackdrop(i?.backdrop ?: i?.poster ?: item.image)
 
-    // Een film heeft geen rijen eronder: de inhoud staat verticaal in het midden.
+    // A movie has no rows below it: the content is vertically centred.
     Column(Modifier.fillMaxSize().padding(horizontal = 64.dp, vertical = 48.dp), verticalArrangement = Arrangement.Center) {
         DetailHeader(
             title = item.title,
@@ -126,8 +126,8 @@ fun MovieDetailScreen(vm: AppViewModel, item: MediaItem) {
 }
 
 /**
- * Bovenkant van een detailscherm uit het brandbook: titel in Young Serif, sterren in champagne gevolgd
- * door jaar, duur of seizoenen, een omschrijving en daaronder de knoppen.
+ * Top of a detail screen from the brandbook: title in Young Serif, stars in champagne followed
+ * by year, duration or seasons, a description and the buttons below it.
  */
 @Composable
 internal fun DetailHeader(
@@ -182,8 +182,8 @@ internal fun DetailHeader(
 }
 
 /**
- * Achtergrond van een detailscherm: het beeld rechtsboven op volle sterkte, aflopend naar petrol aan de
- * linkerkant en onderin, zodat de tekst links en de rijen onderin altijd leesbaar zijn.
+ * Background of a detail screen: the image top right at full strength, fading to petrol on the
+ * left and at the bottom, so the text on the left and the rows at the bottom are always readable.
  */
 @Composable
 fun DetailBackdrop(image: String?) {
