@@ -1,0 +1,15 @@
+.page { max-width: 440px; margin: 0 auto; padding: 28px 20px 48px; display: flex; flex-direction: column; gap: 22px; min-height: 100vh; }
+.title { margin: 0; font-size: 28px; line-height: 1.2; }
+.lead { margin: 0; color: var(--soft); font-size: 15px; line-height: 1.45; }
+.code { font-size: 22px; font-weight: 600; letter-spacing: 4px; color: var(--accent); background: var(--surface); }
+.found { margin: 0; color: var(--ok); font-size: 14px; }
+.plans { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.plans legend { margin-bottom: 10px; }
+.plan {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; margin: 0;
+  background: var(--surface); border: 3px solid transparent; cursor: pointer; color: var(--text); font-size: 15px;
+}
+.plan:has(input:checked) { border-color: var(--accent); background: var(--surface-hi); }
+.plan input { width: auto; accent-color: var(--accent); }
+.planText { display: flex; flex-direction: column; gap: 2px; flex-grow: 1; font-size: 17px; }
+.price { font-size: 17px; font-weight: 600; color: var(--accent); }
