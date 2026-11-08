@@ -45,6 +45,8 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // Terug uit het scherm "onbekende apps toestaan": bijwerken hervatten.
         vm.retryAfterPermission()
+        // Lang in het geheugen gebleven: lijsten verversen en op updates controleren als dat lang geleden is.
+        vm.onAppResumed()
         // "Afleveringen en meer" in de speler: de seriepagina openen.
         val app = application as App
         app.pendingSeriesDetail?.let { key ->

@@ -194,6 +194,20 @@ fun PlayerControls(
         interaction++
     }
 
+    // Live: na zappen met verborgen bediening een paar seconden het nummer en de naam van de zender.
+    var zapTick by remember { mutableIntStateOf(0) }
+    var zapInfoVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(zapTick) {
+        if (zapTick == 0) return@LaunchedEffect
+        zapInfoVisible = true
+        delay(ZAP_INFO_MS)
+        zapInfoVisible = false
+    }
+    fun zap(next: Boolean) {
+        if (next) player.seekToNextMediaItem() else player.seekToPreviousMediaItem()
+        zapTick++
+    }
+
     LaunchedEffect(visible) { onControlsVisible(visible) }
     LaunchedEffect(visible, interaction, isPlaying, panel) {
         if (visible && isPlaying && panel == Panel.NONE) {
@@ -250,8 +264,8 @@ fun PlayerControls(
                 }
                 // Bediening verborgen:
                 when (e.key) {
-                    Key.DirectionUp, Key.ChannelUp -> if (isLive && queue.items.size > 1) player.seekToPreviousMediaItem() else show()
-                    Key.DirectionDown, Key.ChannelDown -> if (isLive && queue.items.size > 1) player.seekToNextMediaItem() else show()
+                    Key.DirectionUp, Key.ChannelUp -> if (isLive && queue.items.size > 1) zap(next = false) else show()
+                    Key.DirectionDown, Key.ChannelDown -> if (isLive && queue.items.size > 1) zap(next = true) else show()
                     Key.DirectionLeft -> if (!isLive) { seekBy(-10_000); showAtSeekBar() }
                     Key.DirectionRight -> if (!isLive) { seekBy(10_000); showAtSeekBar() }
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> show()
@@ -325,10 +339,15 @@ fun PlayerControls(
                     Row(Modifier.align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Pill(trackSummary(tracks), checked = true, onClick = { panel = Panel.TRACKS })
                         Pill(S.otherTracks, onClick = { panel = Panel.TRACKS })
-                        RoundIconButton(Icons.Outlined.Settings, S.playbackSpeed, small = true, onClick = { panel = Panel.SPEED })
+                        // Sneller of langzamer afspelen kan niet bij live: de buffer loopt dan leeg of achter.
+                        if (!isLive) RoundIconButton(Icons.Outlined.Settings, S.playbackSpeed, small = true, onClick = { panel = Panel.SPEED })
                     }
                 }
             }
+        }
+
+        if (isLive && zapInfoVisible && !visible && item != null) {
+            ZapInfo(item, number = index + 1, modifier = Modifier.align(Alignment.BottomStart))
         }
 
         val intro = queue.intro
@@ -361,6 +380,33 @@ fun PlayerControls(
             Panel.SPEED -> SpeedPanel(speed, onSelect = { player.setPlaybackSpeed(it); panel = Panel.NONE })
             Panel.NONE -> Unit
         }
+    }
+}
+
+// ---------- Zappen ----------
+
+private const val ZAP_INFO_MS = 4_000L
+
+/** Onderin na het zappen: nummer en naam van de zender, in de stijl van de Live-tab op volledig scherm. */
+@Composable
+private fun ZapInfo(item: PlayItem, number: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(listOf(Color.Transparent, Palette.scrim)))
+            .padding(start = 56.dp, end = 56.dp, top = 64.dp, bottom = 40.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(number.toString(), style = MaterialTheme.typography.displaySmall, color = Palette.textSoft)
+        Spacer(Modifier.width(28.dp))
+        Text(
+            item.title,
+            style = MaterialTheme.typography.headlineSmall,
+            color = Palette.text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

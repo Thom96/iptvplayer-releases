@@ -131,10 +131,12 @@ class Storage(context: Context) {
     /** Gekozen taallabels (bijv. "NL", "MULTI"); leeg = alle talen tonen. */
     val languages: StateFlow<Set<String>> = _languages
 
-    fun toggleLanguage(tag: String) {
-        val next = _languages.value.let { if (tag in it) it - tag else it + tag }
-        _languages.value = next
-        prefs.edit().putStringSet("languages", next).apply()
+    fun toggleLanguage(tag: String) = setLanguages(_languages.value.let { if (tag in it) it - tag else it + tag })
+
+    /** Alle gekozen talen in één keer; leeg = alle talen tonen. */
+    fun setLanguages(tags: Set<String>) {
+        _languages.value = tags
+        prefs.edit().putStringSet("languages", tags).apply()
     }
 
     private fun markWatched(key: String) {
