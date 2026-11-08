@@ -22,8 +22,8 @@ import androidx.tv.material3.Text
 import nl.iptvplayer.app.R
 
 /**
- * Woordmerk uit het brandbook: "Gall" in Young Serif, gevolgd door de o (champagne afspeelknop met
- * een rode hanenkam). De onderkant van de cirkel staat op de basislijn van de letters.
+ * Woordmerk uit het brandbook: "Gall" in Young Serif, gevolgd door de o: een kleine retro-tv met een
+ * haankop op het scherm. De onderkant van de tv staat op de basislijn van de letters.
  */
 @Composable
 fun GalloWordmark(size: TextUnit, modifier: Modifier = Modifier) {
@@ -38,10 +38,10 @@ fun GalloWordmark(size: TextUnit, modifier: Modifier = Modifier) {
             painterResource(R.drawable.gallo_o),
             contentDescription = null,
             modifier = Modifier
-                .padding(start = em * 0.027f)
-                .size(width = em * 0.598f, height = em * 0.741f)
-                // De cirkel eindigt 2/102 boven de onderkant van de afbeelding: die lijn op de basislijn.
-                .alignBy { it.measuredHeight * 100 / 102 },
+                .padding(start = em * 0.036f)
+                .size(width = em * 0.84f, height = em * 0.77f)
+                // De tv eindigt 1/92 boven de onderkant van de afbeelding: die lijn op de basislijn.
+                .alignBy { it.measuredHeight * 91 / 92 },
         )
     }
 }
