@@ -1,8 +1,8 @@
 package nl.iptvplayer.app.data
 
 /**
- * Nepbibliotheek voor de demomodus (server "demo"): om het uiterlijk te testen zonder echte IPTV-server.
- * Afbeeldingen komen van picsum.photos, video's zijn openbare teststreams.
+ * Fake library for demo mode (server "demo"): to test the look without a real IPTV server.
+ * Images come from picsum.photos, videos are public test streams.
  */
 internal object DemoData {
     const val MOVIE_URL = "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8"
@@ -31,8 +31,8 @@ internal object DemoData {
     val seriesCategories = listOf(Category("11", "NL | Series"), Category("12", "EN | Series")) + extraSeriesCategories()
 
     /**
-     * Extra categorieën met elk 30 titels, zodat de demo net zo veel rijen heeft als een echt abonnement:
-     * nodig om het scrollen door Films en Series na te bootsen (zie ScrollSimulationTest).
+     * Extra categories with 30 titles each, so the demo has as many rows as a real subscription:
+     * needed to simulate scrolling through Movies and Series (see ScrollSimulationTest).
      */
     private fun extraMovieCategories() =
         listOf("NL | Netflix", "NL | Disney+", "NL | Prime Video", "EN | Actie", "EN | Komedie", "EN | 4K").mapIndexed { i, n -> Category("${4 + i}", n) }

@@ -13,13 +13,13 @@ class PlayItem(
     val image: String? = null,
     val ext: String? = null,
     val seriesId: Int? = null,
-    /** Alternatieve URL als de eerste niet werkt (live: .ts in plaats van .m3u8). */
+    /** Alternative URL if the first doesn't work (live: .ts instead of .m3u8). */
     val fallbackUrl: String? = null,
 )
 
 /**
- * Informatiepaneel bij het openen van een serie (zoals Netflix): de aflevering speelt al, links staan
- * titel, info en knoppen. Zonder actie verdwijnt het paneel na 10 seconden.
+ * Info panel when opening a series (like Netflix): the episode is already playing, on the left are
+ * title, info and buttons. Without any action the panel disappears after 10 seconds.
  */
 class SeriesIntro(
     val seriesKey: String,
@@ -27,7 +27,7 @@ class SeriesIntro(
     val meta: String,
     val plot: String?,
     val cast: String?,
-    /** Bijv. "Seizoen 1: Aflevering 1 afspelen" of "Verder kijken: S2 E3". */
+    /** E.g. "Season 1: Play episode 1" or "Continue watching: S2 E3". */
     val playLabel: String,
 )
 
@@ -40,11 +40,11 @@ class PlaybackQueue(
     val isLive: Boolean get() = items.firstOrNull()?.kind == Kind.LIVE
 }
 
-// ---------- Bewaren, voor als Android de app op de achtergrond afsluit ----------
+// ---------- Saving, for when Android closes the app in the background ----------
 
 /**
- * De wachtrij als JSON. De speler bewaart hem in de privé-cache als hij naar de achtergrond gaat; sluit Android
- * de app daarna af, dan weet de speler bij terugkeer nog wat hij speelde.
+ * The queue as JSON. The player saves it in the private cache when it goes to the background; if Android
+ * then closes the app, the player still knows what it was playing when it comes back.
  */
 fun PlaybackQueue.toJson(): String = JSONObject().apply {
     put("startIndex", startIndex)
@@ -76,7 +76,7 @@ fun PlaybackQueue.toJson(): String = JSONObject().apply {
     }
 }.toString()
 
-/** Leest [toJson] terug; null als het bestand onleesbaar of leeg is. */
+/** Reads [toJson] back; null if the file is unreadable or empty. */
 fun playbackQueueFromJson(json: String): PlaybackQueue? = runCatching {
     val o = JSONObject(json)
     val arr = o.getJSONArray("items")

@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class AuthException(message: String) : IOException(message)
 
-/** Praat met een Xtream Codes-server via player_api.php. */
+/** Talks to an Xtream Codes server via player_api.php. */
 class XtreamClient(
     val creds: Credentials,
     private val http: OkHttpClient,
@@ -44,8 +44,8 @@ class XtreamClient(
     private val demo = creds.server == DEMO_SERVER
 
     /**
-     * Formaat voor live-streams dat de server aanbeveelt: ts, of m3u8 als ts niet mag. Wordt bij [authenticate]
-     * vastgesteld; tot dan de waarde van de vorige keer (AppViewModel zet die), anders ts.
+     * Format for live streams that the server recommends: ts, or m3u8 if ts isn't allowed. Determined at
+     * [authenticate]; until then the value from last time (AppViewModel sets it), otherwise ts.
      */
     var liveFormat: String = "ts"
 
@@ -68,7 +68,7 @@ class XtreamClient(
         val formats = user.optJSONArray("allowed_output_formats")?.let { arr ->
             List(arr.length()) { arr.optString(it) }
         } ?: emptyList()
-        // TS start bij de meeste IPTV-servers sneller dan HLS (gemeten: ~1 s tegen ~2 s); HLS alleen als TS niet mag.
+        // TS starts faster than HLS on most IPTV servers (measured: ~1 s against ~2 s); HLS only if TS isn't allowed.
         liveFormat = if (formats.isEmpty() || "ts" in formats) "ts" else "m3u8"
 
         AccountInfo(
@@ -80,7 +80,7 @@ class XtreamClient(
         )
     }
 
-    // ---------- Lijsten ----------
+    // ---------- Lists ----------
 
     val hasCache: Boolean get() = demo || LIST_ACTIONS.all { File(cacheDir, "$it.json").exists() }
 
@@ -92,11 +92,11 @@ class XtreamClient(
     }
 
     /**
-     * Laadt alle categorieën en streams. Met [forceDownload] = false worden aanwezige cachebestanden
-     * gebruikt; anders wordt alles opnieuw gedownload.
+     * Loads all categories and streams. With [forceDownload] = false, existing cache files are
+     * used; otherwise everything is downloaded again.
      *
-     * [onProgress] krijgt een tekst en het deel van de stappen dat klaar is (0..1): elke gedownloade lijst en
-     * elke verwerkte lijst telt als één stap. Wordt vanaf achtergronddraden aangeroepen.
+     * [onProgress] gets a text and the share of the steps that are done (0..1): every downloaded list and
+     * every processed list counts as one step. Called from background threads.
      */
     suspend fun loadLibrary(
         forceDownload: Boolean,
@@ -114,7 +114,7 @@ class XtreamClient(
                 async(Dispatchers.IO) { download(action); stepDone(S.downloadingLists) }
             }.forEach { it.await() }
         }
-        // Snelle weg: de al verwerkte lijsten uit index.bin, zolang die nieuwer is dan de JSON-bestanden.
+        // Fast path: the already processed lists from index.bin, as long as it is newer than the JSON files.
         if (indexIsFresh()) {
             withContext(Dispatchers.IO) { runCatching { readIndex() }.getOrNull() }?.let { return@coroutineScope it }
         }
@@ -139,7 +139,7 @@ class XtreamClient(
 
     private fun file(action: String) = File(cacheDir, "$action.json")
 
-    // ---------- Index: verwerkte lijsten in compact binair formaat ----------
+    // ---------- Index: processed lists in a compact binary format ----------
 
     private val indexFile get() = File(cacheDir, "index.bin")
 
@@ -243,7 +243,7 @@ class XtreamClient(
         }.filterNotNull()
     }
 
-    /** Streamend parsen: de filmlijst kan tientallen MB groot zijn. */
+    /** Streaming parse: the movie list can be tens of MB. */
     private fun parseItems(file: File, kind: Kind): List<MediaItem> {
         val result = ArrayList<MediaItem>()
         JsonReader(InputStreamReader(file.inputStream().buffered(64 * 1024), Charsets.UTF_8)).use { r ->
@@ -314,7 +314,7 @@ class XtreamClient(
             cast = info.text("cast", "actors"),
             director = info.text("director"),
             releaseDate = info.text("releasedate", "release_date", "releaseDate"),
-            // Minder dan een minuut is een placeholder van de provider ("0 min" tonen heeft geen zin).
+            // Less than a minute is a placeholder from the provider (showing "0 min" makes no sense).
             durationSecs = info.optString("duration_secs").toIntOrNull()?.takeIf { it >= 60 },
             rating = info.optString("rating").toDoubleOrNull()?.takeIf { it > 0 },
             backdrop = info.backdrop(),
@@ -337,7 +337,7 @@ class XtreamClient(
             }
         }
 
-        // "episodes" is meestal {"1": [...], "2": [...]}, maar sommige servers sturen een array van arrays.
+        // "episodes" is usually {"1": [...], "2": [...]}, but some servers send an array of arrays.
         val episodeLists = ArrayList<JSONArray>()
         when (val eps = root.opt("episodes")) {
             is JSONObject -> eps.keys().forEach { k -> eps.optJSONArray(k)?.let(episodeLists::add) }
@@ -380,9 +380,9 @@ class XtreamClient(
         )
     }
 
-    // ---------- Tv-gids ----------
+    // ---------- TV guide ----------
 
-    /** Huidig en komende programma's van een zender. Titels en beschrijvingen zijn base64-gecodeerd. */
+    /** Current and upcoming programmes of a channel. Titles and descriptions are base64 encoded. */
     suspend fun shortEpg(streamId: Int, limit: Int = 4): List<EpgEntry> = withContext(Dispatchers.IO) {
         if (demo) return@withContext DemoData.epg(streamId)
         val url = base.newBuilder()
@@ -403,13 +403,13 @@ class XtreamClient(
                 end = end * 1000,
             )
         }.sortedBy { it.start }.fold(mutableListOf<EpgEntry>()) { acc, e ->
-            // Sommige providers sturen overlappende items; houd per tijdvak er één.
+            // Some providers send overlapping items; keep one per time slot.
             if (acc.isEmpty() || e.start >= acc.last().end - 60_000) acc += e
             acc
         }
     }
 
-    /** Volledige gids van een zender inclusief afgelopen dagen, voor terugkijken. */
+    /** Full guide of a channel including past days, for catch-up. */
     suspend fun archiveEpg(streamId: Int): List<CatchupEntry> = withContext(Dispatchers.IO) {
         if (demo) return@withContext DemoData.archive(streamId)
         val url = base.newBuilder()
@@ -435,8 +435,8 @@ class XtreamClient(
     }
 
     /**
-     * Terugkijk-URL: /timeshift/{user}/{pass}/{duur in minuten}/{start als jjjj-mm-dd:uu-mm}/{id}.ts.
-     * De begintijd moet in de tijdzone van de server; die nemen we letterlijk over uit de gids.
+     * Catch-up URL: /timeshift/{user}/{pass}/{duration in minutes}/{start as yyyy-mm-dd:hh-mm}/{id}.ts.
+     * The start time must be in the server's time zone; we take it literally from the guide.
      */
     fun catchupUrl(streamId: Int, entry: CatchupEntry): String {
         if (demo) return DemoData.MOVIE_URL
@@ -449,10 +449,10 @@ class XtreamClient(
     private fun decodeBase64(s: String): String = try {
         String(android.util.Base64.decode(s, android.util.Base64.DEFAULT), Charsets.UTF_8).trim()
     } catch (e: IllegalArgumentException) {
-        s // sommige servers sturen platte tekst
+        s // some servers send plain text
     }
 
-    // ---------- Stream-URL's ----------
+    // ---------- Stream URLs ----------
 
     private fun streamUrl(type: String, id: Int, ext: String) =
         "${creds.server}/$type/${enc(creds.username)}/${enc(creds.password)}/$id.$ext"
@@ -466,13 +466,13 @@ class XtreamClient(
     fun episodeUrl(id: Int, ext: String?) =
         if (demo) DemoData.EPISODE_URL else streamUrl("series", id, ext?.takeIf { it.isNotBlank() } ?: "mp4")
 
-    // ---------- Hulpfuncties ----------
+    // ---------- Helpers ----------
 
     private fun request(url: HttpUrl) = Request.Builder().url(url).build()
 
     private fun getString(url: HttpUrl): String =
         http.newCall(request(url)).execute().use { resp ->
-            // Sommige providers gebruiken eigen codes (511/513) voor een ongeldige login.
+            // Some providers use their own codes (511/513) for an invalid login.
             if (resp.code in AUTH_ERROR_CODES) throw AuthException(S.wrongCredentials)
             if (!resp.isSuccessful) throw IOException(S.serverError(resp.code))
             resp.body?.string() ?: ""
@@ -481,7 +481,7 @@ class XtreamClient(
     private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 
     companion object {
-        /** Vul "demo" in als server om de app met nepdata te bekijken. */
+        /** Enter "demo" as the server to view the app with fake data. */
         const val DEMO_SERVER = "http://demo"
 
         private val AUTH_ERROR_CODES = setOf(401, 403, 511, 512, 513)
@@ -492,7 +492,7 @@ class XtreamClient(
             "get_live_streams", "get_vod_streams", "get_series",
         )
 
-        /** Maakt van wat de gebruiker intypt een nette basis-URL. */
+        /** Turns what the user types into a clean base URL. */
         fun normalizeServer(input: String): String {
             var s = input.trim()
             if (!s.startsWith("http://", true) && !s.startsWith("https://", true)) s = "http://$s"
@@ -524,7 +524,7 @@ private fun JSONObject.backdrop(): String? = when (val b = opt("backdrop_path"))
     else -> null
 }
 
-/** backdrop_path is een lijst (of soms één tekst); neem de eerste URL. */
+/** backdrop_path is a list (or sometimes a single string); take the first URL. */
 private fun JsonReader.firstUrl(): String? = when (peek()) {
     JsonToken.BEGIN_ARRAY -> {
         beginArray()

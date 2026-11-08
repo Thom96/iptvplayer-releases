@@ -58,10 +58,10 @@ import java.util.Locale
 
 internal val REMOVE_HINT: String get() = S.removeHint
 
-/** Iets dat de gebruiker uit een lijst wil halen; wordt eerst bevestigd. */
+/** Something the user wants to remove from a list; confirmed first. */
 internal class Removal(val title: String, val remove: () -> Unit)
 
-/** Home: recent bekeken zenders, verder kijken (series en films), favorieten en nieuw toegevoegd. */
+/** Home: recently watched channels, continue watching (series and movies), favourites and newly added. */
 @Composable
 fun StartTab(vm: AppViewModel, library: Library) {
     val context = LocalContext.current
@@ -71,7 +71,7 @@ fun StartTab(vm: AppViewModel, library: Library) {
     val restorer = rememberFocusRestorer()
     var removal by remember { mutableStateOf<Removal?>(null) }
 
-    // Recent bekeken en verder kijken komen uit de volledige bibliotheek, los van het taalfilter.
+    // Recently watched and continue watching come from the full library, separate from the language filter.
     val all = vm.library ?: library
     val recentLive = remember(recentKeys, all) { recentKeys.mapNotNull { all.byKey[it] } }
     val seriesProgress = progress.filter { it.seriesId != null }
@@ -79,7 +79,7 @@ fun StartTab(vm: AppViewModel, library: Library) {
     val newMovies = library.newestMovies
     val newSeries = library.newestSeries
 
-    // Na het kijken staat de laatst bekeken zender vooraan; de focus gaat mee in plaats van op de oude plek te blijven.
+    // After watching, the last watched channel is at the front; the focus moves along instead of staying in the old place.
     val recentRow = rememberLazyListState()
     val firstRecentFocus = remember { FocusRequester() }
     val firstRecent = recentLive.firstOrNull()?.key
@@ -92,7 +92,7 @@ fun StartTab(vm: AppViewModel, library: Library) {
         firstRecentFocus.requestSafely()
     }
 
-    // Het laatst bekeken programma staat groot bovenaan, zoals in het brandbook.
+    // The last watched programme is shown large at the top, as in the brandbook.
     val latest = remember(progress) { progress.maxByOrNull { it.updatedAt } }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 40.dp)) {
@@ -128,7 +128,7 @@ fun StartTab(vm: AppViewModel, library: Library) {
         }
         expandingSection(vm, S.newSeries, "series-new", newSeries, restorer)
 
-        // 3. Films
+        // 3. Movies
         groupHeader(S.tabMovies)
         section(S.keepWatching, movieProgress, { it.key }, hint = REMOVE_HINT, id = "movies-continue", subRow = true) { _, p ->
             ProgressCard(
@@ -148,7 +148,7 @@ fun StartTab(vm: AppViewModel, library: Library) {
     }
 }
 
-/** Grote kaart bovenaan Home: beeld rechts, titel en "Verder kijken" links. */
+/** Large card at the top of Home: image on the right, title and "Continue watching" on the left. */
 @Composable
 private fun ContinueHero(p: Progress, onPlay: () -> Unit, buttonModifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(24.dp)

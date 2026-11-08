@@ -50,12 +50,12 @@ import nl.iptvplayer.app.ui.requestSafely
 import nl.iptvplayer.app.ui.tapToClick
 import java.util.Locale
 
-// Zijpanelen van de speler: audio en ondertiteling, afspeelsnelheid.
+// Side panels of the player: audio and subtitles, playback speed.
 
-/** Eén keuze in het audio- of ondertitelingsmenu. */
+/** One choice in the audio or subtitle menu. */
 private class TrackOption(val group: Tracks.Group?, val index: Int, val label: String, val selected: Boolean)
 
-// ---------- Audio en ondertiteling ----------
+// ---------- Audio and subtitles ----------
 
 
 private fun label(format: Format, fallback: String): String {
@@ -76,7 +76,7 @@ private fun options(tracks: Tracks, type: Int, prefix: String): List<TrackOption
     }
 }
 
-/** Bijvoorbeeld "Engels met ondertiteling" of "Nederlands". */
+/** For example "English with subtitles" or "Dutch". */
 internal fun trackSummary(tracks: Tracks): String {
     val audio = options(tracks, C.TRACK_TYPE_AUDIO, S.audio).firstOrNull { it.selected }?.label ?: S.defaultAudio
     val sub = options(tracks, C.TRACK_TYPE_TEXT, S.subtitles).firstOrNull { it.selected }

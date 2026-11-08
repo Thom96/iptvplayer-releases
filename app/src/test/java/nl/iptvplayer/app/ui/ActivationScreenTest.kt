@@ -19,8 +19,8 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * Het activatiescherm in de standen die de klant kan zien. Alles moet binnen 960×540 dp passen.
- * Met -Pframes=/pad worden schermafbeeldingen bewaard.
+ * The activation screen in the states the customer can see. Everything must fit within 960×540 dp.
+ * With -Pframes=/path, screenshots are saved.
  */
 @RunWith(RobolectricTestRunner::class)
 class ActivationScreenTest {

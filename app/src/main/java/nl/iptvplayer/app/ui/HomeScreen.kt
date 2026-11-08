@@ -65,7 +65,7 @@ import nl.iptvplayer.app.AppViewModel
 import nl.iptvplayer.app.R
 import nl.iptvplayer.app.data.Kind
 
-/** Volgorde = volgorde in de zijbalk, van boven naar beneden; instellingen staan los onderaan. */
+/** Order = order in the side rail, from top to bottom; settings sit separately at the bottom. */
 enum class HomeTab(val icon: ImageVector) {
     SEARCH(Icons.Outlined.Search),
     HOME(Icons.Outlined.Home),
@@ -88,7 +88,7 @@ enum class HomeTab(val icon: ImageVector) {
     }
 }
 
-/** Breedte van de ingeklapte zijbalk; de inhoud begint hier rechts van. */
+/** Width of the collapsed side rail; the content starts to the right of it. */
 private val RailWidth = 76.dp
 private val RailExpandedWidth = 248.dp
 
@@ -117,7 +117,7 @@ fun HomeScreen(vm: AppViewModel) {
         }
     }
 
-    // Terug: eerst naar de zijbalk, dan naar Home, dan de app sluiten.
+    // Back: first to the side rail, then to Home, then close the app.
     BackHandler {
         when {
             !navFocused -> scope.launch { tabFocus.getValue(tab).requestSafely() }
@@ -154,8 +154,8 @@ fun HomeScreen(vm: AppViewModel) {
                 onSelect = { tab = it },
                 modifier = Modifier
                     .zIndex(1f)
-                    // Vanuit de inhoud altijd op het actieve tabblad uitkomen, niet op het item dat er toevallig
-                    // naast ligt: focus = selecteren, dus dat zou meteen van tabblad wisselen.
+                    // From the content, always land on the active tab, not on the item that happens to be
+                    // next to it: focus = select, so that would switch tabs right away.
                     .focusProperties { enter = { tabFocus.getValue(tab) } }
                     .focusGroup()
                     .onFocusChanged { navFocused = it.hasFocus },
@@ -165,8 +165,8 @@ fun HomeScreen(vm: AppViewModel) {
 }
 
 /**
- * Zijbalk uit het brandbook: iconen op de donkerste laag, klapt uit met labels zodra hij focus heeft.
- * Uitgeklapt ligt hij over de inhoud heen, zodat die niet verspringt.
+ * Side rail from the brandbook: icons on the darkest layer, expands with labels as soon as it has focus.
+ * Expanded it lies over the content, so the content doesn't jump.
  */
 @Composable
 private fun NavRail(
@@ -184,12 +184,12 @@ private fun NavRail(
                 .background(Palette.rail),
         )
         Column(
-            // Past binnen 540 dp hoogte (Chromecast met Google TV: 1920×1080 bij dichtheid 2).
+            // Fits within 540 dp height (Chromecast with Google TV: 1920×1080 at density 2).
             Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(Modifier.height(44.dp).padding(start = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-                // Ingeklapt alleen de tv (de o), uitgeklapt het hele woordmerk.
+                // Collapsed only the TV (the o), expanded the whole wordmark.
                 if (expanded) {
                     GalloWordmark(size = 30.sp)
                 } else {
@@ -211,7 +211,7 @@ private fun NavRail(
     }
 }
 
-/** Item in de zijbalk: actief = zilverwit vlak, focus = champagne rand (zoals overal in de app). */
+/** Item in the side rail: active = silver white surface, focus = champagne border (as everywhere in the app). */
 @Composable
 private fun RailItem(tab: HomeTab, selected: Boolean, expanded: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(12.dp)

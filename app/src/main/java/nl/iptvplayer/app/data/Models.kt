@@ -6,25 +6,25 @@ data class Credentials(val server: String, val username: String, val password: S
 
 data class Category(val id: String, val name: String)
 
-/** Een zender, film of serie uit de lijsten van de server. */
+/** A channel, movie or series from the server's lists. */
 class MediaItem(
     val kind: Kind,
     val id: Int,
     val name: String,
     val image: String?,
     val categoryId: String?,
-    /** Moment van toevoegen (epoch seconden), 0 als onbekend. */
+    /** Moment it was added (epoch seconds), 0 if unknown. */
     val added: Long,
-    /** Beoordeling op schaal 0-10, 0 als onbekend. */
+    /** Rating on a scale of 0-10, 0 if unknown. */
     val rating: Double,
-    /** Bestandsextensie van films, bijv. "mkv". */
+    /** File extension of movies, e.g. "mkv". */
     val ext: String?,
     val year: Int?,
-    /** Zendernummer van de provider (alleen live), 0 als onbekend. */
+    /** The provider's channel number (live only), 0 if unknown. */
     val num: Int = 0,
-    /** Aantal dagen terugkijken (tv_archive), 0 = niet beschikbaar. */
+    /** Number of catch-up days (tv_archive), 0 = not available. */
     val archiveDays: Int = 0,
-    /** Alleen series: de lijst van de provider bevat al beschrijving, genre en brede afbeelding. */
+    /** Series only: the provider's list already contains description, genre and wide image. */
     val plot: String? = null,
     val genre: String? = null,
     val backdrop: String? = null,
@@ -32,14 +32,14 @@ class MediaItem(
     val key: String = keyOf(kind, id)
 
     /**
-     * Nette titel voor op het scherm, bijv. "The Matrix" i.p.v. "NL - The Matrix (1999)".
-     * Eén keer berekend (alleen voor titels die echt getoond worden): het opschonen kost vier zoekpatronen.
+     * Clean title for the screen, e.g. "The Matrix" instead of "NL - The Matrix (1999)".
+     * Computed once (only for titles that are actually shown): cleaning costs four regex patterns.
      */
     val title: String by lazy(LazyThreadSafetyMode.NONE) { TextMatch.displayTitle(name) }
 
     /**
-     * Genormaliseerde naam voor zoeken. Bewust het enige wat we per titel bewaren: afgeleide velden
-     * (woorden, opgeschoonde titel) voor alle 200.000 titels kostten ruim 100 MB en maakten de tv traag.
+     * Normalized name for searching. Deliberately the only thing we store per title: derived fields
+     * (words, cleaned title) for all 200,000 titles took over 100 MB and made the TV slow.
      */
     internal val norm: String by lazy(LazyThreadSafetyMode.PUBLICATION) { TextMatch.normalize(name) }
 
@@ -63,7 +63,7 @@ class Library(
         series.forEach { put(it.key, it) }
     }
 
-    /** Op de achtergrond voorbereiden wat de schermen nodig hebben, zodat dat niet tijdens het tekenen gebeurt. */
+    /** Prepare in the background what the screens need, so that it doesn't happen while drawing. */
     fun warmUp() {
         newestMovies
         newestSeries
@@ -73,7 +73,7 @@ class Library(
     val newestMovies: List<MediaItem> by lazy { movies.sortedByDescending { it.added }.take(40) }
     val newestSeries: List<MediaItem> by lazy { series.sortedByDescending { it.added }.take(40) }
 
-    /** Taallabels met het aantal titels, voor het taalfilter. Meest voorkomend eerst. */
+    /** Language labels with their number of titles, for the language filter. Most common first. */
     val languageCounts: List<Pair<String, Int>> by lazy {
         val counts = HashMap<String, Int>()
         for ((cats, items) in listOf(liveCategories to live, movieCategories to movies, seriesCategories to series)) {
@@ -85,7 +85,7 @@ class Library(
         counts.entries.sortedByDescending { it.value }.map { it.key to it.value }
     }
 
-    /** Alleen titels en categorieën in de gekozen talen; titels zonder taallabel blijven altijd zichtbaar. */
+    /** Only titles and categories in the chosen languages; titles without a language label always stay visible. */
     fun filtered(languages: Set<String>): Library {
         if (languages.isEmpty()) return this
         fun keep(tag: String?) = tag == null || tag in languages
@@ -115,7 +115,7 @@ class Library(
 
 data class AccountInfo(
     val status: String,
-    /** Verloopdatum in epoch seconden, null = onbeperkt. */
+    /** Expiry date in epoch seconds, null = unlimited. */
     val expiresAt: Long?,
     val maxConnections: Int?,
     val activeConnections: Int?,
@@ -148,7 +148,7 @@ data class Episode(
     val key: String get() = MediaItem.keyOf(Kind.EPISODE, id)
 }
 
-/** Extra informatie voor de uitgeklapte kaart (Netflix-stijl). */
+/** Extra information for the expanded card (Netflix style). */
 data class ItemDetails(
     val plot: String?,
     val genre: String?,
@@ -158,7 +158,7 @@ data class ItemDetails(
     val rating: Double?,
 )
 
-/** Eén programma uit de tv-gids; tijden in epoch milliseconden. */
+/** One programme from the TV guide; times in epoch milliseconds. */
 data class EpgEntry(val title: String, val description: String?, val start: Long, val end: Long) {
     fun isNow(now: Long) = now in start until end
     fun fraction(now: Long) = if (end > start) ((now - start).toFloat() / (end - start)).coerceIn(0f, 1f) else 0f
@@ -177,7 +177,7 @@ data class SeriesInfo(
     val seasons: List<Season>,
 )
 
-/** Kijkvoortgang van een film of aflevering, voor "Verder kijken". */
+/** Watch progress of a movie or episode, for "Continue watching". */
 data class Progress(
     val key: String,
     val title: String,
@@ -192,14 +192,14 @@ data class Progress(
     val fraction: Float get() = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 }
 
-/** Programma uit het archief van een zender, om terug te kijken. */
+/** Programme from a channel's archive, for catch-up. */
 data class CatchupEntry(
     val title: String,
     val description: String?,
-    /** Epoch milliseconden. */
+    /** Epoch milliseconds. */
     val start: Long,
     val end: Long,
-    /** Begintijd zoals de server hem schrijft ("2026-10-24 13:30:00", lokale servertijd), nodig voor de URL. */
+    /** Start time as the server writes it ("2026-10-24 13:30:00", local server time), needed for the URL. */
     val serverStart: String,
     val hasArchive: Boolean,
 )

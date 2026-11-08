@@ -45,12 +45,12 @@ class PlayerActivity : ComponentActivity() {
     private lateinit var app: App
     private lateinit var queue: PlaybackQueue
     private lateinit var playerView: PlayerView
-    /** De speler; Compose tekent de bediening zodra hij er is. */
+    /** The player; Compose draws the controls as soon as it exists. */
     private var player by mutableStateOf<ExoPlayer?>(null)
-    /** Scherm aan en mediasessie zolang er iets speelt. */
+    /** Screen on and media session while something is playing. */
     private var session: PlaybackSession? = null
 
-    /** Ander formaat proberen of opnieuw starten na een fout (zelfde regels als het voorbeeld in Live). */
+    /** Try another format or restart after an error (same rules as the preview in Live). */
     private val recovery = StreamRecovery()
     private var resumeIndex = 0
     private var resumePosition = 0L
@@ -66,7 +66,7 @@ class PlayerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         app = application as App
-        // Na het afsluiten door Android is het geheugen leeg: dan de bewaarde wachtrij terughalen.
+        // After Android closed the app, memory is empty: then restore the saved queue.
         queue = app.pendingQueue
             ?: savedInstanceState?.let { restoreQueue() }?.also { app.pendingQueue = it }
             ?: run { finish(); return }
@@ -74,7 +74,7 @@ class PlayerActivity : ComponentActivity() {
         resumePosition = savedInstanceState?.getLong("position")
             ?: if (queue.isLive) C.TIME_UNSET else queue.startPositionMs
 
-        // Alleen het beeld en de ondertiteling; de bediening is eigen Compose-code (PlayerControls).
+        // Only the picture and the subtitles; the controls are our own Compose code (PlayerControls).
         playerView = PlayerView(this).apply {
             useController = false
             isFocusable = false
@@ -92,7 +92,7 @@ class PlayerActivity : ComponentActivity() {
                         player = exo,
                         queue = queue,
                         onExit = { finish() },
-                        // Ondertiteling omhoog als de bediening in beeld is, zodat ze elkaar niet raken.
+                        // Subtitles move up when the controls are on screen, so they don't touch.
                         onControlsVisible = { visible -> playerView.subtitleView?.setBottomPaddingFraction(if (visible) 0.26f else 0.08f) },
                         onNextEpisode = { nextEpisode() },
                         onMoreEpisodes = {
@@ -107,7 +107,7 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    /** Witte ondertiteling met schaduw, zonder zwarte balk, in het lettertype van de app. */
+    /** White subtitles with a shadow, without a black bar, in the app's font. */
     private fun styleSubtitles(view: SubtitleView) {
         view.setApplyEmbeddedStyles(false)
         view.setApplyEmbeddedFontSizes(false)
@@ -141,7 +141,7 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Gewoon gesloten: de bewaarde wachtrij is niet meer nodig (bevat ook de stream-URL's).
+        // Closed normally: the saved queue is no longer needed (it also contains the stream URLs).
         if (isFinishing) queueFile().delete()
     }
 
@@ -158,8 +158,8 @@ class PlayerActivity : ComponentActivity() {
             .setSeekBackIncrementMs(10_000)
             .setSeekForwardIncrementMs(30_000)
             .build()
-        // Ondertiteling in de taal van de app automatisch aan als die er is (niet bij Engels: meestal is
-        // het geluid al Engels); audio in de originele taal.
+        // Turn on subtitles in the app's language automatically if available (not for English: the
+        // audio is usually English already); audio in the original language.
         exo.trackSelectionParameters = exo.trackSelectionParameters.buildUpon()
             .setPreferredTextLanguage(I18n.language.takeIf { it != AppLanguage.EN }?.code)
             .build()
@@ -169,10 +169,10 @@ class PlayerActivity : ComponentActivity() {
         exo.repeatMode = if (queue.isLive) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF
         exo.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                // Alleen de pogingen opnieuw tellen; welke zenders het andere formaat al kregen, blijft bewaard
-                // (een vervangen item geeft ook een overgang, en mag dan niet nog eens terugvallen).
+                // Only reset the attempts; which channels already got the other format is kept
+                // (a replaced item also causes a transition, and must not fall back again then).
                 recovery.onPlaying()
-                // Automatisch door naar de volgende aflevering: de vorige is uitgekeken.
+                // Automatically on to the next episode: the previous one is finished.
                 if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && !queue.isLive) {
                     finishItem(exo.currentMediaItemIndex - 1)
                 }
@@ -195,7 +195,7 @@ class PlayerActivity : ComponentActivity() {
                         exo.play()
                         return
                     }
-                    // Netwerkhapering: even wachten en opnieuw; een film gaat verder waar hij was.
+                    // Network stall: wait a moment and try again; a movie continues where it was.
                     is StreamRecovery.Action.Retry -> {
                         handler.postDelayed({
                             if (player === exo) {
@@ -226,7 +226,7 @@ class PlayerActivity : ComponentActivity() {
         handler.removeCallbacks(saveTicker)
         val exo = player ?: return
         saveProgress()
-        // Pas bij het verlaten bijwerken: anders verschuift "Recent bekeken" tijdens het zappen.
+        // Only update when leaving: otherwise "Recently watched" shifts while zapping.
         currentItem()?.takeIf { it.kind == Kind.LIVE }?.let { app.storage.addRecentLive(it.key) }
         resumeIndex = exo.currentMediaItemIndex
         resumePosition = if (queue.isLive) C.TIME_UNSET else exo.currentPosition.coerceAtLeast(0)
@@ -271,12 +271,12 @@ class PlayerActivity : ComponentActivity() {
         if (position >= duration * 0.93) queueNextUp(exo.currentMediaItemIndex)
     }
 
-    /** Naar de volgende aflevering (ook in het volgende seizoen); de huidige telt als uitgekeken. */
+    /** To the next episode (also in the next season); the current one counts as finished. */
     private fun nextEpisode() {
         val exo = player ?: return
         val index = exo.currentMediaItemIndex
         if (index >= queue.items.size - 1) return
-        // Halverwege overslaan is niet "uitgekeken": dan alleen de positie bewaren.
+        // Skipping halfway is not "finished": then only save the position.
         if (exo.duration > 0 && exo.currentPosition >= exo.duration * 0.93) finishItem(index) else saveProgress()
         exo.seekToNextMediaItem()
         exo.play()
@@ -288,7 +288,7 @@ class PlayerActivity : ComponentActivity() {
         queueNextUp(index)
     }
 
-    /** Zet de volgende aflevering klaar in "Serie verder kijken". */
+    /** Queues the next episode in "Continue watching" for series. */
     private fun queueNextUp(index: Int) {
         if (queue.items.getOrNull(index)?.kind != Kind.EPISODE) return
         val next = queue.items.getOrNull(index + 1)?.takeIf { it.kind == Kind.EPISODE } ?: return

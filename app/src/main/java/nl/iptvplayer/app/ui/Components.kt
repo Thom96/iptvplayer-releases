@@ -88,8 +88,8 @@ private val SELECT_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)
 private const val LONG_PRESS_MS = 600L
 
 /**
- * Muis/touch: tikken = focus + klikken, lang indrukken = lange klik. De TV-componenten reageren
- * alleen op de afstandsbediening; dit maakt de app ook met de muis in de emulator bedienbaar.
+ * Mouse/touch: tap = focus + click, long press = long click. The TV components only respond
+ * to the remote control; this makes the app usable with the mouse in the emulator too.
  */
 @Composable
 fun Modifier.tapToClick(onClick: () -> Unit, onLongClick: (() -> Unit)? = null): Modifier {
@@ -101,9 +101,9 @@ fun Modifier.tapToClick(onClick: () -> Unit, onLongClick: (() -> Unit)? = null):
     return this
         .focusRequester(requester)
         .onPreviewKeyEvent { e ->
-            // OK lang indrukken zelf afhandelen: veel afstandsbedieningen sturen niet het signaal
-            // waarop de TV-componenten een lange klik herkennen, waardoor het item gewoon opende.
-            // Pas bij loslaten reageren, zodat het loslaten niet in een geopende pop-up terechtkomt.
+            // Handle a long OK press ourselves: many remote controls don't send the signal
+            // by which the TV components recognize a long click, so the item just opened.
+            // Only react on release, so the release doesn't end up in an opened pop-up.
             if (longClick == null || e.key !in SELECT_KEYS) return@onPreviewKeyEvent false
             val native = e.nativeKeyEvent
             when (e.type) {
@@ -115,7 +115,7 @@ fun Modifier.tapToClick(onClick: () -> Unit, onLongClick: (() -> Unit)? = null):
                     native.isLongPress -> longPress[0] = true
                 }
                 KeyEventType.KeyUp -> {
-                    // Alleen als het indrukken hier begon (niet het loslaten na OK in een pop-up).
+                    // Only if the press started here (not the release after OK in a pop-up).
                     if (pressedAt[0] > 0) {
                         val held = SystemClock.uptimeMillis() - pressedAt[0]
                         pressedAt[0] = 0
@@ -141,13 +141,13 @@ internal fun focusBorder() = CardDefaults.border(
     focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = CardShape),
 )
 
-/** Poster voor een film of serie (2:3). Lang indrukken = favoriet aan/uit. */
+/** Poster for a movie or series (2:3). Long press = favourite on/off. */
 @Composable
 fun PosterCard(
     item: MediaItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    /** null = volledige breedte (voor rasters). */
+    /** null = full width (for grids). */
     width: Dp? = 128.dp,
     isFavorite: Boolean = false,
     isWatched: Boolean = false,
@@ -230,7 +230,7 @@ private fun TitleFallback(name: String) {
     }
 }
 
-/** Zenderkaart met logo (breed). */
+/** Channel card with logo (wide). */
 @Composable
 fun ChannelCard(
     item: MediaItem,
@@ -270,7 +270,7 @@ fun ChannelCard(
     }
 }
 
-/** Kaart voor "Verder kijken" met voortgangsbalk. */
+/** Card for "Continue watching" with a progress bar. */
 @Composable
 fun ProgressCard(progress: Progress, onClick: () -> Unit, modifier: Modifier = Modifier, onLongClick: (() -> Unit)? = null) {
     Column(Modifier.width(260.dp)) {
@@ -291,7 +291,7 @@ fun ProgressCard(progress: Progress, onClick: () -> Unit, modifier: Modifier = M
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
-                // Klaargezette volgende aflevering (nog niet gestart) heeft geen voortgangsbalk.
+                // A queued next episode (not started yet) has no progress bar.
                 if (progress.durationMs > 0) ProgressBar(progress.fraction, Modifier.align(Alignment.BottomCenter))
             }
         }
@@ -313,7 +313,7 @@ fun ProgressBar(fraction: Float, modifier: Modifier = Modifier) {
     }
 }
 
-/** Selecteerbare knop voor categorieën, sorteringen en seizoenen: actief = zilverwit, focus = champagne rand. */
+/** Selectable button for categories, sort orders and seasons: active = silver white, focus = champagne border. */
 @Composable
 fun ChipButton(
     text: String,
@@ -362,7 +362,7 @@ fun ChipButton(
 
 @Composable
 fun ActionButton(text: String, icon: ImageVector?, onClick: () -> Unit, modifier: Modifier = Modifier, primary: Boolean = false) {
-    // Brandbook: pil; primair = zilverwit, secundair = lichte laag; focus = champagne rand.
+    // Brandbook: pill; primary = silver white, secondary = light layer; focus = champagne border.
     Button(
         onClick = onClick,
         modifier = modifier.tapToClick(onClick),
@@ -384,7 +384,7 @@ fun ActionButton(text: String, icon: ImageVector?, onClick: () -> Unit, modifier
     }
 }
 
-/** Tekstveld voor de afstandsbediening: OK opent het toetsenbord. */
+/** Text field for the remote control: OK opens the keyboard. */
 @Composable
 fun TvTextField(
     value: String,
@@ -414,7 +414,7 @@ fun TvTextField(
         keyboardActions = KeyboardActions(onAny = { onImeAction() }),
         modifier = modifier
             .onFocusChanged { focused = it.isFocused }
-            // Het tekstveld vangt de pijltjes af; zonder dit kom je er met de afstandsbediening niet meer uit.
+            // The text field captures the arrow keys; without this you can't get out of it with the remote control.
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (event.key) {
@@ -446,21 +446,21 @@ fun TvTextField(
     )
 }
 
-/** Titel + horizontale rij; leeg = niets tonen. */
+/** Title + horizontal row; empty = show nothing. */
 fun <T> LazyListScope.section(
     title: String,
     items: List<T>,
     key: (T) -> String,
     hint: String? = null,
-    /** Unieke sleutel als dezelfde titel vaker voorkomt (bijv. "Kijk verder" bij series én films). */
+    /** Unique key if the same title occurs more than once (e.g. "Continue watching" for both series and movies). */
     id: String = title,
-    /** Rij binnen een groep (zie [groupHeader]): kleinere, grijze titel. */
+    /** Row within a group (see [groupHeader]): smaller, grey title. */
     subRow: Boolean = false,
-    /** Eigen scrollpositie, als de rij van buitenaf gescrold moet kunnen worden. */
+    /** Own scroll state, if the row must be scrollable from outside. */
     rowState: LazyListState? = null,
-    /** Om de rij heen, bijv. om het scrollgedrag van de lijst eromheen terug te zetten (zie CategoryRowsTab). */
+    /** Around the row, e.g. to restore the scroll behaviour of the surrounding list (see CategoryRowsTab). */
     rowWrapper: (@Composable (@Composable () -> Unit) -> Unit)? = null,
-    /** De rij krijgt focus. */
+    /** The row gets focus. */
     onRowFocused: (() -> Unit)? = null,
     content: @Composable (index: Int, item: T) -> Unit,
 ) {
@@ -501,7 +501,7 @@ fun <T> LazyListScope.section(
     }
 }
 
-/** Kop boven een groep rijen, bijv. "Series" met daaronder "Kijk verder" en "Nieuwe series". */
+/** Header above a group of rows, e.g. "Series" with "Continue watching" and "New series" below it. */
 fun LazyListScope.groupHeader(title: String) {
     item(key = "group:$title") {
         Text(

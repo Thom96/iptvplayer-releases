@@ -4,9 +4,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose") version "2.1.0" apply false
 }
 
-// Het project staat in Google Drive; build-uitvoer houden we lokaal zodat Drive niet duizenden
-// tijdelijke bestanden gaat synchroniseren.
-val localBuildRoot = File(System.getenv("LOCALAPPDATA") ?: System.getProperty("java.io.tmpdir"), "IPTVPlayer-build")
+// Build output goes to the temp directory (/tmp/IPTVPlayer-build on Linux), outside the project folder.
+val localBuildRoot = File(System.getProperty("java.io.tmpdir"), "IPTVPlayer-build")
 allprojects {
     layout.buildDirectory.set(File(localBuildRoot, project.name))
 }

@@ -9,17 +9,17 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/** Versleutelt kleine geheimen (het wachtwoord) voor de opslag. */
+/** Encrypts small secrets (the password) for storage. */
 interface SecretCipher {
     fun encrypt(plain: String): String
-    /** Null als het niet (meer) te ontsleutelen is, bijvoorbeeld omdat de sleutel weg is. */
+    /** Null if it can't be decrypted (any more), for example because the key is gone. */
     fun decrypt(encrypted: String): String?
 }
 
 /**
- * AES-GCM met een sleutel in de Android Keystore: de sleutel verlaat de beveiligde opslag van het toestel
- * nooit, dus een kopie van de app-gegevens bevat het wachtwoord niet leesbaar.
- * Uitvoer: base64 van IV + versleutelde tekst.
+ * AES-GCM with a key in the Android Keystore: the key never leaves the device's secure storage,
+ * so a copy of the app data doesn't contain the password in readable form.
+ * Output: base64 of IV + encrypted text.
  */
 class KeystoreCipher(private val alias: String = "gallo-login") : SecretCipher {
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- De o van het Gallo-logo: een retro-tv in champagne met een haankop op het scherm; de snavel is de
-     afspeelknop. Bijgesneden tot de tv zelf (zonder pootjes), zodat hij direct naast "Gall" kan staan. -->
+<!-- The o of the Gallo logo: a retro TV in champagne with a rooster head on the screen; the beak is the
+     play button. Cropped to the TV itself (without legs), so it can sit right next to "Gall". -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="50dp"
     android:height="46dp"

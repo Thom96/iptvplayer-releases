@@ -53,7 +53,7 @@ fun SearchTab(vm: AppViewModel, library: Library) {
             results = null
             return@LaunchedEffect
         }
-        // Na terugkeren direct resultaten tonen; tijdens het typen even wachten.
+        // After returning, show results right away; while typing, wait a moment.
         if (!first) delay(250)
         first = false
         results = withContext(Dispatchers.Default) { SearchEngine.search(library, query) }

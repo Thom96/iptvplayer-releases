@@ -7,16 +7,16 @@ import androidx.media3.session.MediaSession
 import java.util.UUID
 
 /**
- * Laat de tv weten dat er iets speelt, zolang de speler echt speelt:
- * - het scherm blijft aan (geen screensaver), en mag weer uit bij pauze, een fout of stilstand;
- * - een mediasessie meldt het afspelen aan Google TV, zodat ook de Assistent en mediaknoppen werken.
+ * Tells the TV that something is playing, as long as the player really plays:
+ * - the screen stays on (no screensaver), and may turn off again on pause, an error or a stall;
+ * - a media session reports playback to Google TV, so the Assistant and media keys work too.
  *
- * Roep [release] aan voordat de speler zelf wordt vrijgegeven.
+ * Call [release] before the player itself is released.
  */
 class PlaybackSession(private val activity: Activity, private val player: Player) {
 
     private val session = MediaSession.Builder(activity, player)
-        // Uniek per speler: het voorbeeld in Live en de spelerpagina kunnen tegelijk bestaan.
+        // Unique per player: the preview in Live and the player page can exist at the same time.
         .setId(UUID.randomUUID().toString())
         .build()
 
