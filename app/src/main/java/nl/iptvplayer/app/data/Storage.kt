@@ -6,28 +6,40 @@ import kotlinx.coroutines.flow.StateFlow
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Lokale opslag: inloggegevens, favorieten en kijkvoortgang. */
-class Storage(context: Context) {
+/**
+ * Lokale opslag: inloggegevens, favorieten en kijkvoortgang. Het wachtwoord staat versleuteld opgeslagen
+ * (zie [SecretCipher]); een oud, leesbaar opgeslagen wachtwoord wordt bij het lezen omgezet.
+ */
+class Storage(context: Context, private val cipher: SecretCipher = KeystoreCipher()) {
     private val prefs = context.getSharedPreferences("iptv", Context.MODE_PRIVATE)
 
     var credentials: Credentials?
         get() {
             val server = prefs.getString("server", null) ?: return null
             val user = prefs.getString("username", null) ?: return null
-            val pass = prefs.getString("password", null) ?: return null
+            val pass = prefs.getString("passwordEnc", null)?.let { enc ->
+                // Niet te ontsleutelen (sleutel weg): opnieuw inloggen, server en naam staan al ingevuld.
+                cipher.decrypt(enc) ?: return null
+            } ?: prefs.getString("password", null)?.also(::savePassword) ?: return null
             return Credentials(server, user, pass)
         }
         set(value) {
-            prefs.edit().apply {
-                if (value == null) {
-                    remove("password")
-                } else {
-                    putString("server", value.server)
-                    putString("username", value.username)
-                    putString("password", value.password)
-                }
-            }.apply()
+            if (value == null) {
+                prefs.edit().remove("password").remove("passwordEnc").apply()
+            } else {
+                prefs.edit().putString("server", value.server).putString("username", value.username).apply()
+                savePassword(value.password)
+            }
         }
+
+    /** Versleuteld bewaren; lukt dat op dit toestel niet, dan zoals vroeger, zodat inloggen blijft werken. */
+    private fun savePassword(password: String) {
+        val enc = runCatching { cipher.encrypt(password) }.getOrNull()
+        prefs.edit().apply {
+            if (enc != null) putString("passwordEnc", enc).remove("password")
+            else putString("password", password).remove("passwordEnc")
+        }.apply()
+    }
 
     /** Laatst gebruikte server en gebruikersnaam, om het inlogscherm voor te vullen. */
     val lastServer: String get() = prefs.getString("server", "") ?: ""
