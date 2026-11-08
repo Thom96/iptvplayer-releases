@@ -231,7 +231,6 @@ object De : Strings() {
     override val waitingForPayment = "Warte auf Zahlung…"
     override val galloOffline = "Gallo ist nicht erreichbar"
     override val galloOfflineHint = "Prüfe die Internetverbindung. Gallo muss sich mindestens alle 3 Tage verbinden."
-    override fun languageButton(name: String) = "Sprache: $name"
     override val licenseSection = "Gallo-Abo"
     override val licenseTrial = "Testzeitraum"
     override val licenseActive = "Aktiv"

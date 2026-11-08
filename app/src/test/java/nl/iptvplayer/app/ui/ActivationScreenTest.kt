@@ -3,6 +3,7 @@ package nl.iptvplayer.app.ui
 import android.graphics.Bitmap
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import nl.iptvplayer.app.Gate
@@ -36,8 +37,14 @@ class ActivationScreenTest {
     private fun show(name: String, license: License?, gate: Gate, checking: Boolean = false) {
         I18n.language = AppLanguage.NL
         rule.setContent {
-            AppTheme { ActivationContent(license, gate, checking, onContinue = {}, onCheck = {}, onNextLanguage = {}, now = now) }
+            AppTheme {
+                ActivationContent(license, gate, checking, onContinue = {}, onCheck = {}, onPickLanguage = { I18n.language = it }, now = now)
+            }
         }
+        snapshot(name)
+    }
+
+    private fun snapshot(name: String) {
         rule.waitForIdle()
         val dir = frameDir ?: return
         dir.mkdirs()
@@ -82,6 +89,19 @@ class ActivationScreenTest {
         show("geblokkeerd", license(LicenseStatus.BLOCKED, null), Gate.LOCKED)
         rule.onNodeWithText("Deze tv is geblokkeerd").assertIsDisplayed()
         rule.onNodeWithText("7K4P-X2RM").assertIsDisplayed()
+    }
+
+    @Test
+    fun globeOpensLanguageMenuAndSwitchesLanguage() {
+        show("proef", license(LicenseStatus.TRIAL, now + 5 * License.DAY_MS - 1), Gate.TRIAL_NOTICE)
+        rule.onNodeWithText("NL").performClick()
+        snapshot("taalmenu")
+        rule.onNodeWithText("Deutsch").assertIsDisplayed()
+        rule.onNodeWithText("Français").assertIsDisplayed()
+        rule.onNodeWithText("English").performClick()
+        rule.onNodeWithText("Activate Gallo on this TV").assertIsDisplayed()
+        rule.onNodeWithText("EN").assertIsDisplayed()
+        rule.onNodeWithText("Deutsch").assertDoesNotExist()
     }
 
     @Test

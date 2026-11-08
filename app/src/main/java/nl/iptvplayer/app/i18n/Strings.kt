@@ -266,7 +266,6 @@ abstract class Strings {
     abstract val waitingForPayment: String
     abstract val galloOffline: String
     abstract val galloOfflineHint: String
-    abstract fun languageButton(name: String): String
     abstract val licenseSection: String
     abstract val licenseTrial: String
     abstract val licenseActive: String

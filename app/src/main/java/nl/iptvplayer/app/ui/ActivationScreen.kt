@@ -2,6 +2,17 @@ package nl.iptvplayer.app.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.focusGroup
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.focus.focusProperties
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.Icon
+import androidx.tv.material3.Surface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -74,10 +85,7 @@ fun ActivationScreen(vm: AppViewModel, gate: Gate) {
         checking = vm.licenseChecking,
         onContinue = { vm.trialNoticeSeen = true },
         onCheck = vm::checkLicense,
-        onNextLanguage = {
-            val all = AppLanguage.entries
-            vm.setAppLanguage(all[(all.indexOf(I18n.language) + 1) % all.size])
-        },
+        onPickLanguage = vm::setAppLanguage,
     )
 }
 
@@ -89,7 +97,7 @@ fun ActivationContent(
     checking: Boolean,
     onContinue: () -> Unit,
     onCheck: () -> Unit,
-    onNextLanguage: () -> Unit,
+    onPickLanguage: (AppLanguage) -> Unit,
     now: Long = System.currentTimeMillis(),
 ) {
     val locked = gate == Gate.LOCKED
@@ -97,6 +105,9 @@ fun ActivationContent(
     // Te lang geen contact, of nog nooit: dan is het probleem de verbinding, niet de betaling.
     val offline = license == null || !license.isFresh(now)
     val primary = remember { FocusRequester() }
+    val globe = remember { FocusRequester() }
+    var languageMenuOpen by remember { mutableStateOf(false) }
+    var focusReturnsToGlobe by remember { mutableStateOf(false) }
 
     LaunchedEffect(gate) { primary.requestSafely() }
 
@@ -110,11 +121,14 @@ fun ActivationContent(
     }
     val showSteps = license != null && !blocked && !offline
 
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().padding(horizontal = 56.dp, vertical = 40.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             GalloWordmark(30.sp)
             Spacer(Modifier.weight(1f))
             StatusPill(license, now, locked)
+            Spacer(Modifier.width(12.dp))
+            GlobeButton(onClick = { languageMenuOpen = true; focusReturnsToGlobe = true }, modifier = Modifier.focusRequester(globe))
         }
 
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
@@ -152,7 +166,6 @@ fun ActivationContent(
                         ActionButton(S.checkStatus, Icons.Filled.Refresh, onCheck)
                     } else {
                         ActionButton(S.checkStatus, Icons.Filled.Refresh, onCheck, Modifier.focusRequester(primary), primary = true)
-                        ActionButton(S.languageButton(I18n.language.nativeName), Icons.Filled.Language, onNextLanguage)
                     }
                 }
             }
@@ -164,6 +177,81 @@ fun ActivationContent(
                     if (locked) Text(S.waitingForPayment, style = MaterialTheme.typography.bodySmall, color = Palette.textMuted)
                 }
             }
+        }
+    }
+
+    if (languageMenuOpen) {
+        LanguageMenu(
+            onPick = { language ->
+                languageMenuOpen = false
+                onPickLanguage(language)
+            },
+            onDismiss = { languageMenuOpen = false },
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 92.dp, end = 56.dp),
+        )
+    } else {
+        // Back on the globe after closing the menu.
+        LaunchedEffect(Unit) { if (focusReturnsToGlobe) globe.requestSafely() }
+    }
+    }
+}
+
+/** Round globe button with the current language code, top right. Opens [LanguageMenu]. */
+@Composable
+private fun GlobeButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val label = S.appLanguage
+    Surface(
+        onClick = onClick,
+        modifier = modifier.tapToClick(onClick).semantics { contentDescription = label },
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Palette.surface,
+            contentColor = Palette.textSoft,
+            focusedContainerColor = Palette.surfaceFocused,
+            focusedContentColor = Palette.text,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = RoundedCornerShape(50)),
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(Icons.Filled.Language, contentDescription = null, modifier = Modifier.size(20.dp))
+            Text(I18n.language.code.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+/** The five app languages, each in its own language. Focus stays inside; Back closes it. */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun LanguageMenu(onPick: (AppLanguage) -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    val current = remember { FocusRequester() }
+    BackHandler(onBack = onDismiss)
+    LaunchedEffect(Unit) { current.requestSafely() }
+    Column(
+        modifier
+            .width(220.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Palette.surface)
+            .padding(8.dp)
+            .focusGroup()
+            .focusProperties { exit = { FocusRequester.Cancel } },
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        AppLanguage.entries.forEach { language ->
+            val selected = language == I18n.language
+            ChipButton(
+                text = language.nativeName,
+                selected = selected,
+                onClick = { onPick(language) },
+                fill = true,
+                modifier = if (selected) Modifier.focusRequester(current) else Modifier,
+            )
         }
     }
 }
