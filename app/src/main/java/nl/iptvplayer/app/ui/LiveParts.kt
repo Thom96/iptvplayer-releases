@@ -129,8 +129,8 @@ internal fun ChannelRow(
                     ThinProgress(nowShowing.fraction(now))
                 }
             }
-            // Vaste ruimte voor hartje en bolletje: anders wordt de balk korter zodra de zender speelt en lijkt
-            // de voortgang te verspringen.
+            // Fixed space for the heart and the dot: otherwise the bar gets shorter as soon as the channel plays,
+            // and the progress seems to jump.
             Row(
                 Modifier.padding(start = 10.dp).width(36.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
@@ -256,7 +256,7 @@ internal tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/** Ingeklapte categoriekolom: een smalle strook met de naam van de gekozen categorie, van onder naar boven. */
+/** Collapsed category column: a narrow strip with the name of the selected category, reading bottom to top. */
 @Composable
 internal fun CollapsedCategory(name: String, modifier: Modifier = Modifier) {
     Box(modifier.background(Palette.surface, RoundedCornerShape(12.dp))) {
@@ -277,7 +277,7 @@ internal fun CollapsedCategory(name: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** Tekst een kwartslag gedraaid (van onder naar boven), met de afmetingen ook gedraaid. */
+/** Text rotated a quarter turn (bottom to top), with its measured size rotated too. */
 private fun Modifier.verticalText() = this
     .layout { measurable, constraints ->
         val placeable = measurable.measure(

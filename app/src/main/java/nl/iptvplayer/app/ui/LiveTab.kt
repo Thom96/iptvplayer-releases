@@ -158,7 +158,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
-            // Elke 10 s, zodat de voortgangsbalken bij de zenders actueel blijven.
+            // Every 10 s, so the progress bars next to the channels stay current.
             delay(10_000)
             now = System.currentTimeMillis()
         }
@@ -328,7 +328,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                 .fillMaxSize()
                 // Met de pijltjes mag de focus de lijsten niet uit naar de navigatiebalk (dan wissel je per ongeluk
                 // van tabblad); dat gaat met Terug.
-                // Uitzondering: links vanuit de categorieën gaat naar de zijbalk (die zet de focus op dit tabblad).
+                // Exception: left from the categories goes to the side rail (which puts focus on this tab).
                 .focusProperties {
                     exit = {
                         if (it in ARROWS && !(it == FocusDirection.Left && catHasFocus)) FocusRequester.Cancel
@@ -339,12 +339,12 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                 .alpha(if (fullscreen) 0f else 1f)
                 .padding(start = 40.dp, end = 40.dp, top = 8.dp),
         ) {
-            // Kolom 1: categorieën. Ingeklapt tot een smalle strook met de gekozen categorie zodra de focus
-            // in de zenderlijst staat; met links klapt hij weer uit.
+            // Column 1: categories. Collapses to a narrow strip with the selected category as soon as focus is
+            // in the channel list; left expands it again.
             val catWidth by animateDpAsState(if (catHasFocus) CAT_EXPANDED else CAT_COLLAPSED, label = "catWidth")
             val expandedness = ((catWidth - CAT_COLLAPSED) / (CAT_EXPANDED - CAT_COLLAPSED)).coerceIn(0f, 1f)
-            // Neemt in de rij altijd de smalle breedte in; uitgeklapt ligt de kolom over de zenderlijst heen (zoals de
-            // zijbalk), zodat die niet smaller wordt.
+            // Always takes the narrow width in the row; expanded, the column lies over the channel list (like the
+            // side rail), so the list doesn't get narrower.
             Box(Modifier.width(CAT_COLLAPSED).fillMaxHeight().zIndex(1f)) {
                 Box(
                     Modifier
@@ -355,13 +355,13 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                         .onFocusChanged { catHasFocus = it.hasFocus },
                 ) {
                     LazyColumn(
-                        // Ingeklapt onzichtbaar maar wel aanwezig: links vanuit de zenders komt hier uit (op de gekozen
-                        // categorie) en klapt de kolom weer uit.
+                        // Collapsed it is invisible but still there: left from the channels lands here (on the selected
+                        // category) and expands the column again.
                         Modifier
                             .fillMaxSize()
                             .clipToBounds()
                             .alpha(expandedness)
-                            // Boven- en onderaan de lijst niet doorschieten naar een zender onder de uitgeklapte kolom.
+                            // At the top and bottom of the list, don't jump to a channel under the expanded column.
                             .focusProperties {
                                 exit = { if (it == FocusDirection.Up || it == FocusDirection.Down) FocusRequester.Cancel else FocusRequester.Default }
                             }

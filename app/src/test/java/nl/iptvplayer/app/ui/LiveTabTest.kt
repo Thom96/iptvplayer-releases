@@ -21,9 +21,9 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * Live TV met de afstandsbediening: de categorieën klappen in zodra je in de zenderlijst bent, links klapt ze
- * weer uit, en nog een keer links gaat naar de zijbalk zonder van tabblad te wisselen.
- * Met -Pframes=/pad worden schermafbeeldingen bewaard.
+ * Live TV with the remote: the categories collapse once you're in the channel list, left expands them again,
+ * and left once more goes to the side rail without switching tabs.
+ * With -Pframes=/path, screenshots are saved.
  */
 @OptIn(ExperimentalTestApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -33,7 +33,7 @@ class LiveTabTest {
 
     private val frameDir = System.getProperty("scrollFrames")?.takeIf { it.isNotBlank() }?.let(::File)
 
-    /** Linkerrand van het element met focus, in dp (het testscherm heeft dichtheid 2). */
+    /** Left edge of the focused element, in dp (the test screen has density 2). */
     private fun focusedLeftDp(): Float =
         rule.onNode(isFocused(), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.left / 2f
 
@@ -65,34 +65,34 @@ class LiveTabTest {
             vm.state == AppState.Ready
         }
         rule.waitForIdle()
-        // Zijbalk: van Home omlaag naar Live, dan naar rechts: de zenderlijst, met de categorieën ingeklapt.
+        // Side rail: down from Home to Live, then right: the channel list, with the categories collapsed.
         rule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
         rule.waitForIdle()
         press(Key.DirectionRight)
         press(Key.DirectionDown)
-        rule.mainClock.advanceTimeBy(2_000) // voorbeeld start
+        rule.mainClock.advanceTimeBy(2_000) // preview starts
         val channels = focusedLeftDp()
-        assertTrue("zenderlijst direct naast de ingeklapte categorieën: $channels", channels in 150f..220f)
-        shot("live-zenders")
+        assertTrue("channel list right next to the collapsed categories: $channels", channels in 150f..220f)
+        shot("live-channels")
 
         press(Key.DirectionLeft)
         val categories = focusedLeftDp()
-        assertTrue("links: categorieën klappen uit, naast de zijbalk: $categories", categories in 100f..140f)
-        shot("live-categorieen")
+        assertTrue("left: categories expand, next to the side rail: $categories", categories in 100f..140f)
+        shot("live-categories")
 
         press(Key.DirectionRight)
-        assertTrue("rechts: weer de zenderlijst", focusedLeftDp() in 150f..220f)
+        assertTrue("right: back in the channel list", focusedLeftDp() in 150f..220f)
         press(Key.DirectionLeft)
 
         press(Key.DirectionLeft)
-        assertTrue("nog een keer links: in de zijbalk", focusedLeftDp() < 76f)
-        // Nog steeds op het Live-tabblad: de categorie "Alle zenders" staat in beeld.
+        assertTrue("left once more: in the side rail", focusedLeftDp() < 76f)
+        // Still on the Live tab: the "All channels" category is on screen.
         assertTrue(
-            "nog op het Live-tabblad",
+            "still on the Live tab",
             rule.onAllNodes(androidx.compose.ui.test.hasText(S.allChannels), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty(),
         )
 
-        // Netjes weg van Live (omhoog naar Home), zodat de voorbeeldspeler stopt en volgende tests er geen last van hebben.
+        // Leave Live cleanly (up to Home), so the preview player stops and doesn't affect later tests.
         press(Key.DirectionUp)
         rule.mainClock.advanceTimeBy(2_000)
     }
