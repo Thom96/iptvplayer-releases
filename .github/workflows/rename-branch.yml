@@ -1,0 +1,41 @@
+# Renames a work branch after its pull request is merged, so no duplicate branches are left behind.
+# Cloud sessions may not delete branches themselves (HTTP 403); GitHub's rename API here may.
+#
+# Usage: put a line in the pull request description
+#   Branch name: claude/<description>   (the older "Branchnaam:" also works)
+# If that name already exists, a sequence number is appended (claude/<description>-2).
+name: Rename branch
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    if: >-
+      github.event.pull_request.merged && github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rename
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OLD: ${{ github.event.pull_request.head.ref }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          NEW=$(printf '%s\n' "$BODY" | tr -d '\r' \
+            | sed -nE 's/^[[:space:]]*(Branch name|Branchnaam):[[:space:]]*`?(claude\/[a-z0-9-]+)`?[[:space:]]*$/\2/p' | head -n1)
+          if [ -z "$NEW" ]; then echo "::warning::No 'Branch name: claude/...' line in the pull request; not renamed."; exit 0; fi
+          if [ "$NEW" = "$OLD" ]; then echo "Branch is already called $NEW."; exit 0; fi
+          # Slashes in branch names must be encoded in the API URL.
+          enc() { printf '%s' "${1//\//%2F}"; }
+          if ! gh api "repos/$GITHUB_REPOSITORY/branches/$(enc "$OLD")" --silent 2>/dev/null; then
+            echo "::warning::Branch $OLD no longer exists; not renamed."; exit 0
+          fi
+          BASE="$NEW"; N=2
+          while gh api "repos/$GITHUB_REPOSITORY/branches/$(enc "$NEW")" --silent 2>/dev/null; do NEW="$BASE-$N"; N=$((N+1)); done
+          gh api -X POST "repos/$GITHUB_REPOSITORY/branches/$(enc "$OLD")/rename" -f new_name="$NEW" --silent
+          echo "Renamed: $OLD -> $NEW"

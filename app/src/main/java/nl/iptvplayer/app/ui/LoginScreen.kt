@@ -111,7 +111,7 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
  * met uitleg; bij een snelle start uit de bewaarde lijsten alleen het logo en een haan die één keer kraait.
  */
 @Composable
-fun LoadingScreen(state: AppState.Loading, onHaanDone: () -> Unit = {}) {
+fun LoadingScreen(state: AppState.Loading, onRoosterDone: () -> Unit = {}) {
     Column(
         Modifier.fillMaxSize().padding(48.dp),
         verticalArrangement = Arrangement.Center,
@@ -120,9 +120,9 @@ fun LoadingScreen(state: AppState.Loading, onHaanDone: () -> Unit = {}) {
         if (state.quick) {
             GalloLogo(64.sp)
             Spacer(Modifier.height(28.dp))
-            LaadHaan(state.progress, quick = true, finished = state.finished, onFinished = onHaanDone)
+            LoadingRooster(state.progress, quick = true, finished = state.finished, onFinished = onRoosterDone)
         } else {
-            LaadHaan(state.progress, finished = state.finished, onFinished = onHaanDone)
+            LoadingRooster(state.progress, finished = state.finished, onFinished = onRoosterDone)
             Spacer(Modifier.height(16.dp))
             Text(state.message, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
             Spacer(Modifier.height(10.dp))

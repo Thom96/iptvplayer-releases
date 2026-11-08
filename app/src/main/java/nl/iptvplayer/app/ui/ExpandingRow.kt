@@ -197,7 +197,7 @@ private fun ExpandingCard(
     val width by animateDpAsState(
         if (expanded) EXPANDED_WIDTH else POSTER_WIDTH,
         animationSpec = moveSpring(Dp.VisibilityThreshold),
-        label = "kaartbreedte",
+        label = "cardWidth",
     )
     Card(
         onClick = onClick,

@@ -17,17 +17,18 @@ Android TV-app (Kotlin, Jetpack Compose for TV) voor een Xtream Codes IPTV-abonn
   Nederlands. Het werk zelf is Engels: code (namen van klassen, functies, variabelen, bestanden en resources),
   commentaar, commitberichten, titels en beschrijvingen van pull requests, en branchnamen. Uitzonderingen: de
   teksten in de app staan per taal in `i18n/` (zie Talen), en de tekst na `[publiceren]` is voor de gebruiker.
-  Bestaande Nederlandse namen in de code (zoals `LaadHaan`) vertaal je alleen als de eigenaar daarom vraagt.
+  De namen in de code zijn al Engels. Ouder commentaar is nog deels Nederlands; vertaal het als je die code toch
+  aanpast. Webadressen in `web/` (zoals `/activeren`) blijven zoals ze zijn: die staan in QR-codes en links.
 - Publiceren als nieuwe versie (zie hieronder) is een aparte stap. Doe het als de eigenaar om een nieuwe versie
   of update op de tv vraagt.
 
 ## Publiceren
 
-De workflow `.github/workflows/publiceren.yml` bouwt, ondertekent (sleutel uit de repository secrets) en zet
+De workflow `.github/workflows/publish.yml` bouwt, ondertekent (sleutel uit de repository secrets) en zet
 een release online. De knop "Controleren op updates" in de app leest `version.json` uit de nieuwste release.
 
 - Publiceren kan alleen vanaf `main`. Zorg eerst dat de wijziging via een pull request op `main` staat.
-- Starten vanuit een cloudsessie: start de workflow "Publiceren" (`publiceren.yml`) op `main` via de GitHub-koppeling
+- Starten vanuit een cloudsessie: start de workflow "Publish" (`publish.yml`) op `main` via de GitHub-koppeling
   (workflow_dispatch) met als invoer `notes` de tekst "wat is er nieuw"; die ziet de gebruiker in de app. Vanaf een
   pc kan ook: een commit rechtstreeks op `main` pushen met een regel `[publiceren] <wat is er nieuw>` in het bericht.
 - Zet `[publiceren]` nooit in de titel of tekst van een merge commit of pull request: dan publiceert het
@@ -37,13 +38,13 @@ een release online. De knop "Controleren op updates" in de app leest `version.js
 
 ## Bouwen en controleren
 
-- De workflow `.github/workflows/controleren.yml` bouwt en test elke pull request. Voeg pas samen als die
+- De workflow `.github/workflows/check.yml` ("Check") bouwt en test elke pull request. Voeg pas samen als die
   geslaagd is.
 
 - `bash ./gradlew assembleDebug testDebugUnitTest` (de omgeving "iptvplayer-releases" installeert de Android SDK
   via het setup-script; `local.properties` wijst naar `/opt/android-sdk`). Build-uitvoer staat in
   `/tmp/IPTVPlayer-build`.
-- Geeft Maven Central "429 Too Many Requests", voeg dan `--init-script tools/maven-spiegel.gradle` toe aan het
+- Geeft Maven Central "429 Too Many Requests", voeg dan `--init-script tools/maven-mirror.gradle` toe aan het
   gradlew-commando: dan komt alles van Google's kopie van Maven Central.
 - Demomodus: inloggen met server `demo` geeft een nepbibliotheek, handig voor schermafbeeldingen.
 - Doelscherm: 1920×1080 bij dichtheid 2, dus 960×540 dp. Alles moet daarbinnen passen.
@@ -93,6 +94,6 @@ of `claude/smooth-scrolling`.
 - Werk niet verder op een samengevoegde branch: nieuw werk begint op een nieuwe branch vanaf de nieuwste `main`,
   met een nieuwe naam.
 - Staat er toch werk onder een automatische naam (bijvoorbeeld uit een oudere sessie), zet dan in de beschrijving
-  van de pull request een regel `Branchnaam: claude/<omschrijving>`. Na het samenvoegen hernoemt de workflow
-  `.github/workflows/branch-hernoemen.yml` de branch. Hernoem niet zelf met `git push`: verwijderen wordt vanuit
+  van de pull request een regel `Branch name: claude/<omschrijving>`. Na het samenvoegen hernoemt de workflow
+  `.github/workflows/rename-branch.yml` de branch. Hernoem niet zelf met `git push`: verwijderen wordt vanuit
   een cloudsessie geweigerd (HTTP 403) en dan blijven er dubbele branches staan.

@@ -21,7 +21,7 @@ Gallo is een eigen Android TV-app voor een Xtream Codes IPTV-abonnement, gericht
 3. Zoek het IP-adres op via **Instellingen → Netwerk en internet → (je wifi-netwerk)**.
 4. Op de pc, in deze map:
    ```powershell
-   powershell -ExecutionPolicy Bypass -File installeren.ps1 192.168.1.50
+   powershell -ExecutionPolicy Bypass -File install.ps1 192.168.1.50
    ```
    Bevestig op de tv de melding "USB-foutopsporing toestaan" (vink "altijd toestaan" aan).
 5. De app staat daarna in de lijst met apps op de Chromecast (eventueel via **Apps → Alle apps bekijken**).
@@ -44,7 +44,7 @@ dus hij hoeft nooit aangepast te worden. Daarna werkt de app zichzelf bij.
 
 ## Publiceren via GitHub (zonder pc)
 
-De workflow `.github/workflows/publiceren.yml` bouwt de app, ondertekent hem met de eigen sleutel en zet
+De workflow `.github/workflows/publish.yml` bouwt de app, ondertekent hem met de eigen sleutel en zet
 hem als release online. De knop **Controleren op updates** in de app ziet hem daarna meteen.
 
 Eenmalig instellen, onder **Settings → Secrets and variables → Actions** van deze repository:
@@ -56,7 +56,7 @@ Eenmalig instellen, onder **Settings → Secrets and variables → Actions** van
 | `KEY_ALIAS` | `keyAlias` uit `keystore.properties` |
 | `KEY_PASSWORD` | `keyPassword` uit `keystore.properties` |
 
-Starten kan alleen vanaf `main`: via **Actions → Publiceren → Run workflow** (vul "Wat is er nieuw" in;
+Starten kan alleen vanaf `main`: via **Actions → Publish → Run workflow** (vul bij "What's new" in wat er nieuw is;
 die tekst komt in de app), of door een commit op `main` te pushen met in het bericht een regel
 `[publiceren] Wat is er nieuw`. Zonder de secrets stopt de
 workflow in plaats van een APK met een andere sleutel te publiceren.
@@ -66,7 +66,7 @@ workflow in plaats van een APK met een andere sleutel te publiceren.
 De app werkt zichzelf bij: kort na het opstarten kijkt hij of er een nieuwe versie op GitHub staat en
 vraagt dan of je wilt bijwerken. Handmatig kan via **Instellingen → Controleren op updates**. Login,
 favorieten en kijkgeschiedenis blijven staan. Met een pc kan een nieuwe versie ook nog met
-`installeren.ps1` worden geïnstalleerd.
+`install.ps1` worden geïnstalleerd.
 
 **Bewaar `release.jks` en `keystore.properties` goed.** Daarmee wordt elke versie ondertekend; zonder
 deze sleutel kan de geïnstalleerde app niet meer bijgewerkt worden en moet je hem eerst verwijderen

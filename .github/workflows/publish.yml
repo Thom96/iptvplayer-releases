@@ -1,17 +1,17 @@
-# Bouwt de app, ondertekent hem met de eigen sleutel en zet hem online als GitHub-release.
-# De knop "Controleren op updates" in de app leest version.json uit de nieuwste release.
+# Builds the app, signs it with our own key and puts it online as a GitHub release.
+# The "check for updates" button in the app reads version.json from the latest release.
 #
-# Starten (alleen vanaf main, zodat er nooit een niet-samengevoegde versie op de tv komt):
-#  - Actions -> Publiceren -> Run workflow op main, met de "wat is er nieuw"-tekst, of
-#  - een commit op main pushen met in het bericht een regel die begint met "[publiceren]"; de rest van
-#    die regel wordt de "wat is er nieuw"-tekst.
+# Start (only from main, so an unmerged version never reaches the TV):
+#  - Actions -> Publish -> Run workflow on main, with the "what's new" text, or
+#  - push a commit to main whose message has a line starting with "[publiceren]"; the rest of that line
+#    becomes the "what's new" text. (The marker stays Dutch: it is the owner's command word.)
 #
-# Nodig (Settings -> Secrets and variables -> Actions):
-#   KEYSTORE_BASE64    release.jks als base64
-#   KEYSTORE_PASSWORD  storePassword uit keystore.properties
-#   KEY_ALIAS          keyAlias uit keystore.properties
-#   KEY_PASSWORD       keyPassword uit keystore.properties
-name: Publiceren
+# Required (Settings -> Secrets and variables -> Actions):
+#   KEYSTORE_BASE64    release.jks as base64
+#   KEYSTORE_PASSWORD  storePassword from keystore.properties
+#   KEY_ALIAS          keyAlias from keystore.properties
+#   KEY_PASSWORD       keyPassword from keystore.properties
+name: Publish
 
 on:
   push:
@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       notes:
-        description: "Wat is er nieuw"
+        description: "What's new (shown in the app)"
         required: false
         default: ""
 
@@ -27,17 +27,17 @@ permissions:
   contents: write
 
 concurrency:
-  group: publiceren
+  group: publish
   cancel-in-progress: false
 
 jobs:
-  publiceren:
+  publish:
     if: >-
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[publiceren]'))
     runs-on: ubuntu-latest
     env:
-      TZ: Europe/Amsterdam # versienaam bevat datum en tijd
+      TZ: Europe/Amsterdam # the version name contains date and time
     steps:
       - uses: actions/checkout@v5
         with:
@@ -50,9 +50,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
 
-      # Zonder de eigen sleutel valt de build terug op een debugsleutel; zo'n APK kan niet over de
-      # geïnstalleerde app heen. Dan liever stoppen.
-      - name: Sleutel klaarzetten
+      # Without our own key the build falls back to a debug key; such an APK cannot be installed over the
+      # existing app. Better to stop.
+      - name: Prepare signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -60,7 +60,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
-            if [ -z "${!v}" ]; then echo "::error::Secret $v ontbreekt"; exit 1; fi
+            if [ -z "${!v}" ]; then echo "::error::Secret $v is missing"; exit 1; fi
           done
           echo "$KEYSTORE_BASE64" | base64 -d > release.jks
           {
@@ -70,37 +70,37 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
           } > keystore.properties
 
-      - name: Bouwen
+      - name: Build
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          # Dezelfde tests als de controle bij pull requests (Controleren). De debugvariant bevat de
-          # testactiviteit die Compose-tests nodig hebben; unit tests gebruiken R8 toch niet.
+          # The same tests as the pull request check (Check). The debug variant contains the test
+          # activity the Compose tests need; unit tests don't use R8 anyway.
           bash ./gradlew --no-daemon assembleRelease testDebugUnitTest
-          # build.gradle.kts zet de build-uitvoer in java.io.tmpdir (/tmp) als LOCALAPPDATA ontbreekt.
+          # build.gradle.kts puts the build output in java.io.tmpdir (/tmp) when LOCALAPPDATA is not set.
           cp /tmp/IPTVPlayer-build/app/outputs/apk/release/app-release.apk IPTVPlayer.apk
 
-      - name: Versie en handtekening controleren
-        id: versie
+      - name: Verify version and signature
+        id: version
         run: |
           BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
           "$BT/apksigner" verify --print-certs IPTVPlayer.apk | tee certs.txt
-          if grep -q "CN=Android Debug" certs.txt; then echo "::error::APK is met de debugsleutel ondertekend"; exit 1; fi
+          if grep -q "CN=Android Debug" certs.txt; then echo "::error::APK is signed with the debug key"; exit 1; fi
           BADGING=$("$BT/aapt2" dump badging IPTVPlayer.apk | head -1)
           CODE=$(echo "$BADGING" | sed -E "s/.*versionCode='([0-9]+)'.*/\1/")
           NAME=$(echo "$BADGING" | sed -E "s/.*versionName='([^']*)'.*/\1/")
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
-      - name: Release maken
+      - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
-          CODE: ${{ steps.versie.outputs.code }}
-          NAME: ${{ steps.versie.outputs.name }}
+          CODE: ${{ steps.version.outputs.code }}
+          NAME: ${{ steps.version.outputs.name }}
           INPUT_NOTES: ${{ github.event.inputs.notes }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           NOTES="$INPUT_NOTES"
-          # Bij een push: de rest van de regel "[publiceren] ..." uit het commitbericht.
+          # On a push: the rest of the "[publiceren] ..." line from the commit message.
           if [ -z "$NOTES" ]; then
             NOTES=$(printf '%s\n' "$COMMIT_MESSAGE" | grep -m1 '^\[publiceren\]' | sed 's/^\[publiceren\][[:space:]]*//')
           fi
@@ -111,8 +111,8 @@ jobs:
           cat version.json
           gh release create "$TAG" IPTVPlayer.apk version.json \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "Versie $NAME" --notes "${NOTES:-Versie $NAME}" --latest
+            --title "Version $NAME" --notes "${NOTES:-Version $NAME}" --latest
 
-      - name: Sleutel weghalen
+      - name: Remove signing key
         if: always()
         run: rm -f release.jks keystore.properties

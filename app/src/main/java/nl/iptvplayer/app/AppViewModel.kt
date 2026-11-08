@@ -372,16 +372,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Wordt voltooid als de haan op het laadscherm zijn moment heeft gehad. */
-    private var haanDone = CompletableDeferred<Unit>()
+    private var roosterDone = CompletableDeferred<Unit>()
 
     /** Het laadscherm meldt dat de haan klaar is (alles opgegeten en gekraaid). */
     fun loadingAnimationDone() {
-        haanDone.complete(Unit)
+        roosterDone.complete(Unit)
     }
 
     private suspend fun loadLibrary(c: XtreamClient, forceDownload: Boolean) {
         val quick = !forceDownload && c.hasCache
-        haanDone = CompletableDeferred()
+        roosterDone = CompletableDeferred()
         state = AppState.Loading(S.loading, quick = quick)
         setLibrary(
             c.loadLibrary(forceDownload) { msg, fraction ->
@@ -394,7 +394,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
         // De haan zijn laadscherm laten afmaken, maar nooit langer dan even laten wachten.
         state = AppState.Loading(S.loading, 1f, quick, finished = true)
-        withTimeoutOrNull(if (quick) QUICK_FINISH_MAX_MS else FULL_FINISH_MAX_MS) { haanDone.await() }
+        withTimeoutOrNull(if (quick) QUICK_FINISH_MAX_MS else FULL_FINISH_MAX_MS) { roosterDone.await() }
         state = AppState.Ready
     }
 
