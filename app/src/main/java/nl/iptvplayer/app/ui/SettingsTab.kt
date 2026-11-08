@@ -68,7 +68,7 @@ fun SettingsTab(vm: AppViewModel, library: Library) {
                 ChipButton(
                     text = S.allLanguages,
                     selected = languages.isEmpty(),
-                    onClick = { languages.forEach(vm::toggleLanguage) },
+                    onClick = vm::showAllLanguages,
                 )
                 library.languageCounts.forEach { (tag, count) ->
                     ChipButton(

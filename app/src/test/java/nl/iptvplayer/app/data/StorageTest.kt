@@ -64,3 +64,54 @@ class StorageTest {
         assertEquals("jan", storage.lastUsername)
     }
 }
+
+/** Het wachtwoord staat nooit leesbaar in de opslag, ook niet na het omzetten van een oude installatie. */
+@RunWith(RobolectricTestRunner::class)
+class StoragePasswordTest {
+    private val app = RuntimeEnvironment.getApplication()
+    private val prefs get() = app.getSharedPreferences("iptv", android.content.Context.MODE_PRIVATE)
+
+    /** Nep-versleuteling (de Android Keystore bestaat niet in Robolectric). */
+    private class Reverse : SecretCipher {
+        var broken = false
+        override fun encrypt(plain: String) = "enc:" + plain.reversed()
+        override fun decrypt(encrypted: String) = if (broken) null else encrypted.removePrefix("enc:").reversed()
+    }
+
+    @Test
+    fun passwordIsStoredEncrypted() {
+        val cipher = Reverse()
+        Storage(app, cipher).credentials = Credentials("http://s", "jan", "geheim")
+        assertNull(prefs.getString("password", null))
+        assertEquals("enc:mieheg", prefs.getString("passwordEnc", null))
+        assertEquals("geheim", Storage(app, cipher).credentials!!.password)
+    }
+
+    @Test
+    fun oldPlainPasswordIsMigrated() {
+        prefs.edit().putString("server", "http://s").putString("username", "jan").putString("password", "geheim").commit()
+        val creds = Storage(app, Reverse()).credentials
+        assertEquals("geheim", creds!!.password)
+        assertNull(prefs.getString("password", null))
+        assertEquals("enc:mieheg", prefs.getString("passwordEnc", null))
+    }
+
+    @Test
+    fun lostKeyMeansLoginAgainWithNamePrefilled() {
+        val cipher = Reverse()
+        val storage = Storage(app, cipher)
+        storage.credentials = Credentials("http://s", "jan", "geheim")
+        cipher.broken = true
+        assertNull(storage.credentials)
+        assertEquals("jan", storage.lastUsername)
+    }
+
+    @Test
+    fun logoutRemovesPassword() {
+        val storage = Storage(app, Reverse())
+        storage.credentials = Credentials("http://s", "jan", "geheim")
+        storage.credentials = null
+        assertNull(prefs.getString("passwordEnc", null))
+        assertNull(prefs.getString("password", null))
+    }
+}

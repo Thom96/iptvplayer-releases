@@ -171,6 +171,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** [manual] = via de knop in Instellingen; dan tonen we ook "je hebt de nieuwste versie" en fouten. */
     fun checkForUpdates(manual: Boolean) {
         if (update is UpdateState.Checking || update is UpdateState.Downloading) return
+        // Een gevonden update niet overschrijven: dan blijft "Bijwerken" gewoon staan.
+        if (!manual && (update is UpdateState.Available || update is UpdateState.NeedsPermission)) return
+        lastUpdateCheck = System.currentTimeMillis()
         update = UpdateState.Checking
         viewModelScope.launch {
             update = try {
@@ -344,6 +347,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun setLibrary(lib: Library) {
+        filterJob?.cancel() // een taalfilter op de oude lijsten mag de nieuwe niet overschrijven
         // Gefilterde bibliotheek en de lijsten voor Home al op de achtergrond klaarzetten.
         val visible = withContext(Dispatchers.Default) {
             lib.filtered(storage.languages.value).also { it.newestMovies; it.newestSeries }
@@ -358,11 +362,42 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleLanguage(tag: String) {
         storage.toggleLanguage(tag)
+        applyLanguageFilter()
+    }
+
+    /** "Alle talen": het filter in één keer leegmaken (niet taal voor taal, dat rekent alles meerdere keren uit). */
+    fun showAllLanguages() {
+        storage.setLanguages(emptySet())
+        applyLanguageFilter()
+    }
+
+    private var filterJob: kotlinx.coroutines.Job? = null
+
+    /** Rekent de zichtbare bibliotheek opnieuw uit; een nieuwe keuze annuleert een berekening die nog loopt. */
+    private fun applyLanguageFilter() {
         val lib = library ?: return
-        viewModelScope.launch {
+        val languages = storage.languages.value
+        filterJob?.cancel()
+        filterJob = viewModelScope.launch {
             visibleLibrary = withContext(Dispatchers.Default) {
-                lib.filtered(storage.languages.value).also { it.newestMovies; it.newestSeries }
+                lib.filtered(languages).also { it.newestMovies; it.newestSeries }
             }
+        }
+    }
+
+    // ---------- Terugkomen in de app ----------
+
+    private var lastUpdateCheck = 0L
+
+    /**
+     * De app blijft op een tv vaak dagen in het geheugen (Home-knop sluit hem niet af). Daarom bij terugkomen:
+     * oude lijsten op de achtergrond verversen en af en toe op updates controleren.
+     */
+    fun onAppResumed() {
+        val c = client
+        if (state == AppState.Ready && c != null && c.cacheAgeMs > CACHE_MAX_AGE_MS) refreshInBackground()
+        if (lastUpdateCheck != 0L && System.currentTimeMillis() - lastUpdateCheck > UPDATE_CHECK_INTERVAL_MS) {
+            checkForUpdates(manual = false)
         }
     }
 
@@ -575,6 +610,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private companion object {
         const val CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000L
+        /** Bij terugkomen in de app hooguit zo vaak op updates controleren. */
+        const val UPDATE_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000L
         /** Snelle start: hooguit zo lang op de kraai wachten. */
         const val QUICK_FINISH_MAX_MS = 1_200L
         /** Na het downloaden: hooguit zo lang wachten tot de haan de laatste korrels op heeft en kraait. */

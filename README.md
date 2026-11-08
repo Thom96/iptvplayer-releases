@@ -87,6 +87,7 @@ Build-uitvoer staat bewust buiten Google Drive (`%LOCALAPPDATA%\IPTVPlayer-build
 
 | Knop | Films / series | Live TV |
 |---|---|---|
-| Links / rechts | 10 s terug / 30 s vooruit | – |
+| Links / rechts | 10 s terug / vooruit (vasthouden: 30 s, daarna 60 s per stap) | – |
+| Spoelknoppen | 10 s terug / 30 s vooruit | – |
 | Omhoog / omlaag | menu tonen | vorige / volgende zender |
 | OK | menu (pauze, ondertiteling, audiotrack) | menu |
