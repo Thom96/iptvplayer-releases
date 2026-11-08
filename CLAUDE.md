@@ -29,10 +29,18 @@ een release online. De knop "Controleren op updates" in de app leest `version.js
 
 - Publiceren kan alleen vanaf `main`. Zorg eerst dat de wijziging via een pull request op `main` staat.
 - Starten vanuit een cloudsessie: start de workflow "Publish" (`publish.yml`) op `main` via de GitHub-koppeling
-  (workflow_dispatch) met als invoer `notes` de tekst "wat is er nieuw"; die ziet de gebruiker in de app. Vanaf een
+  (workflow_dispatch) met als invoer `notes` de tekst "wat is er nieuw" (die ziet de gebruiker in de app) en
+  alleen bij een grote wijziging `version` (zie Versienummers). Vanaf een
   pc kan ook: een commit rechtstreeks op `main` pushen met een regel `[publiceren] <wat is er nieuw>` in het bericht.
 - Zet `[publiceren]` nooit in de titel of tekst van een merge commit of pull request: dan publiceert het
   samenvoegen nog een keer.
+- **Versienummers.** Elke release krijgt een nummer. Kleine wijzigingen (verbeteringen, fixes, een nieuwe knop of
+  scherm): laat het nummer leeg, de workflow telt dan 0.1 op bij de vorige release (1.4 → 1.5). Grote wijzigingen
+  (een nieuw design, een grote nieuwe functie of een andere opzet van de app): geef het volgende hoofdnummer op
+  (1.7 → 2.0), via de invoer `version` van de workflow of `[publiceren 2.0] <wat is er nieuw>`. Twijfel je of iets
+  groot is, vraag het de eigenaar. Lokale builds heten `dev (datum)`.
+- De releases op GitHub zijn de releasenotes: schrijf de tekst "wat is er nieuw" dus als korte, begrijpelijke
+  zin voor de gebruiker.
 - Controleer na afloop dat de run geslaagd is en dat `releases/latest/download/version.json` de nieuwe versie
   geeft.
 

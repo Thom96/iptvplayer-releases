@@ -6,6 +6,9 @@
 #  - push a commit to main whose message has a line starting with "[publiceren]"; the rest of that line
 #    becomes the "what's new" text. (The marker stays Dutch: it is the owner's command word.)
 #
+# Version number: by default the minor number of the latest release goes up by one (1.4 -> 1.5). For a big
+# change, give the new number: the "version" input, or "[publiceren 2.0] what's new" in the commit message.
+#
 # Required (Settings -> Secrets and variables -> Actions):
 #   KEYSTORE_BASE64    release.jks as base64
 #   KEYSTORE_PASSWORD  storePassword from keystore.properties
@@ -22,6 +25,10 @@ on:
         description: "What's new (shown in the app)"
         required: false
         default: ""
+      version:
+        description: "Version number, only for a big change (e.g. 2.0); empty = latest + 0.1"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -34,7 +41,7 @@ jobs:
   publish:
     if: >-
       github.ref == 'refs/heads/main' &&
-      (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[publiceren]'))
+      (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[publiceren'))
     runs-on: ubuntu-latest
     env:
       TZ: Europe/Amsterdam # the version name contains date and time
@@ -70,12 +77,51 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
           } > keystore.properties
 
+      - name: Determine version number and notes
+        id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_NOTES: ${{ github.event.inputs.notes }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          NOTES="$INPUT_NOTES"
+          VERSION="$INPUT_VERSION"
+          # On a push: "[publiceren] what's new" or "[publiceren 2.0] what's new" from the commit message.
+          LINE=$(printf '%s\n' "$COMMIT_MESSAGE" | tr -d '\r' | grep -m1 '^\[publiceren' || true)
+          if [ -n "$LINE" ]; then
+            if [ -z "$NOTES" ]; then NOTES=$(printf '%s' "$LINE" | sed -E 's/^\[publiceren[^]]*\][[:space:]]*//'); fi
+            if [ -z "$VERSION" ]; then
+              VERSION=$(printf '%s' "$LINE" | sed -nE 's/^\[publiceren[[:space:]]+([^]]+)\].*/\1/p')
+            fi
+          fi
+          if [ -z "$VERSION" ]; then
+            # Latest release + 0.1. Older releases were all "1.0 (date)", so those count as 1.0.
+            # A failed download must stop the run, not silently restart the numbering at 1.1.
+            LAST=""
+            if [ -n "$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1)" ]; then
+              gh release download --repo "$GITHUB_REPOSITORY" --pattern version.json --dir "$RUNNER_TEMP/prev" --clobber
+              LAST=$(jq -r '.versionName // ""' "$RUNNER_TEMP/prev/version.json")
+            fi
+            if [[ "$LAST" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+              VERSION="${BASH_REMATCH[1]}.$((10#${BASH_REMATCH[2]} + 1))"
+            else
+              VERSION="1.1"
+            fi
+          fi
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then echo "::error::Invalid version number: $VERSION"; exit 1; fi
+          echo "Version $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          { echo "notes<<END_OF_NOTES"; printf '%s\n' "$NOTES"; echo "END_OF_NOTES"; } >> "$GITHUB_OUTPUT"
+
       - name: Build
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           # The same tests as the pull request check (Check). The debug variant contains the test
           # activity the Compose tests need; unit tests don't use R8 anyway.
-          bash ./gradlew --no-daemon assembleRelease testDebugUnitTest
+          bash ./gradlew --no-daemon assembleRelease testDebugUnitTest -PappVersionName="$VERSION"
           # build.gradle.kts puts the build output in java.io.tmpdir (/tmp).
           cp /tmp/IPTVPlayer-build/app/outputs/apk/release/app-release.apk IPTVPlayer.apk
 
@@ -96,14 +142,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CODE: ${{ steps.version.outputs.code }}
           NAME: ${{ steps.version.outputs.name }}
-          INPUT_NOTES: ${{ github.event.inputs.notes }}
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          NOTES: ${{ steps.meta.outputs.notes }}
         run: |
-          NOTES="$INPUT_NOTES"
-          # On a push: the rest of the "[publiceren] ..." line from the commit message.
-          if [ -z "$NOTES" ]; then
-            NOTES=$(printf '%s\n' "$COMMIT_MESSAGE" | grep -m1 '^\[publiceren\]' | sed 's/^\[publiceren\][[:space:]]*//')
-          fi
           TAG="v$CODE"
           jq -n --argjson code "$CODE" --arg name "$NAME" --arg notes "$NOTES" \
             --arg url "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/IPTVPlayer.apk" \

@@ -24,7 +24,9 @@ android {
         targetSdk = 35
         // Every build gets a higher number (minutes since 2026), so a new version always installs over the old one.
         versionCode = ((System.currentTimeMillis() / 60_000) - 29_455_000).toInt()
-        versionName = "1.0 (" + SimpleDateFormat("d-M-yyyy HH:mm").format(Date()) + ")"
+        // The Publish workflow passes the release number (-PappVersionName=1.4); local builds are "dev (date)".
+        versionName = (findProperty("appVersionName") as String?)?.takeIf { it.isNotBlank() }
+            ?: ("dev (" + SimpleDateFormat("d-M-yyyy HH:mm").format(Date()) + ")")
     }
 
     signingConfigs {
