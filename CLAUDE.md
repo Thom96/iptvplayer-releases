@@ -13,6 +13,11 @@ Android TV-app (Kotlin, Jetpack Compose for TV) voor een Xtream Codes IPTV-abonn
   GitHub-koppeling. Een apart akkoord voor de pull request of het samenvoegen is niet nodig. Rechtstreeks naar
   `main` pushen kan niet vanuit een cloudsessie; gebruik altijd de pull request.
 - Laat de eigenaar daarna kort weten dat het op `main` staat, met de link naar de pull request.
+- **Nederlands praten, Engels werken.** De eigenaar vraagt alles in het Nederlands en jij antwoordt in het
+  Nederlands. Het werk zelf is Engels: code (namen van klassen, functies, variabelen, bestanden en resources),
+  commentaar, commitberichten, titels en beschrijvingen van pull requests, en branchnamen. Uitzonderingen: de
+  teksten in de app staan per taal in `i18n/` (zie Talen), en de tekst na `[publiceren]` is voor de gebruiker.
+  Bestaande Nederlandse namen in de code (zoals `LaadHaan`) vertaal je alleen als de eigenaar daarom vraagt.
 - Publiceren als nieuwe versie (zie hieronder) is een aparte stap. Doe het als de eigenaar om een nieuwe versie
   of update op de tv vraagt.
 
@@ -73,15 +78,21 @@ Brandbook en schermontwerpen staan in het Claude-artifact "Gallo — ontwerp". K
 hanenkamrood `#BC3E2E` alleen voor LIVE en de kam in het logo. Koppen in Young Serif, tekst in Outfit. Focus is
 overal een champagne rand van 3 dp.
 
-## Branches hernoemen na samenvoegen
+## Branchnamen
 
-Een samengevoegde werkbranch krijgt een korte Nederlandse omschrijving van wat erin is gebouwd, in de vorm
-`claude/<omschrijving>`: kleine letters en koppeltekens, bijvoorbeeld `claude/inlogscherm`, `claude/taalkeuze`
-of `claude/vloeiend-scrollen`.
+Werk komt op GitHub meteen onder een korte Engelse naam die bij de vraag past, in de vorm
+`claude/<omschrijving>`: kleine letters en koppeltekens, bijvoorbeeld `claude/login-screen`, `claude/language-picker`
+of `claude/smooth-scrolling`.
 
-- Zet in de beschrijving van de pull request een regel `Branchnaam: claude/<omschrijving>`. Na het samenvoegen
-  hernoemt de workflow `.github/workflows/branch-hernoemen.yml` de branch (echte rename, geen kopie). Bestaat de
-  naam al, dan krijgt hij een volgnummer (`claude/inlogscherm-2`).
-- Hernoem niet zelf met `git push` (nieuwe naam pushen + oude verwijderen): verwijderen wordt vanuit een
-  cloudsessie geweigerd (HTTP 403) en dan blijven er dubbele branches staan.
-- Werk niet verder op een samengevoegde branch: nieuw werk begint op een nieuwe branch vanaf de nieuwste `main`.
+- De cloudsessie geeft je bij de start een automatische branchnaam (zoals `claude/kind-cray-7fk90x`). Push daar
+  niet naartoe. De eigenaar geeft hierbij toestemming om in plaats daarvan naar `claude/<omschrijving>` te pushen:
+  `git push -u origin HEAD:claude/<omschrijving>`. Zo komt de automatische naam nooit op GitHub.
+- Kies de naam bij de eerste push, als duidelijk is waar de vraag over gaat. Kijk eerst of hij al bestaat
+  (`git ls-remote --heads origin claude/<omschrijving>`); zo ja, voeg een volgnummer toe (`claude/login-screen-2`).
+- Gebruik dezelfde naam voor alle volgende pushes en voor de pull request naar `main`.
+- Werk niet verder op een samengevoegde branch: nieuw werk begint op een nieuwe branch vanaf de nieuwste `main`,
+  met een nieuwe naam.
+- Staat er toch werk onder een automatische naam (bijvoorbeeld uit een oudere sessie), zet dan in de beschrijving
+  van de pull request een regel `Branchnaam: claude/<omschrijving>`. Na het samenvoegen hernoemt de workflow
+  `.github/workflows/branch-hernoemen.yml` de branch. Hernoem niet zelf met `git push`: verwijderen wordt vanuit
+  een cloudsessie geweigerd (HTTP 403) en dan blijven er dubbele branches staan.
