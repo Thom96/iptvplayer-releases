@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
@@ -70,6 +71,7 @@ enum class HomeTab(val icon: ImageVector) {
     SEARCH(Icons.Outlined.Search),
     HOME(Icons.Outlined.Home),
     LIVE(Icons.Outlined.LiveTv),
+    GUIDE(Icons.Outlined.DateRange),
     SERIES(Icons.Outlined.VideoLibrary),
     MOVIES(Icons.Outlined.Movie),
     FAVORITES(Icons.Outlined.FavoriteBorder),
@@ -80,6 +82,7 @@ enum class HomeTab(val icon: ImageVector) {
         SEARCH -> S.tabSearch
         HOME -> S.tabHome
         LIVE -> S.tabLive
+        GUIDE -> S.tabGuide
         SERIES -> S.tabSeries
         MOVIES -> S.tabMovies
         FAVORITES -> S.tabFavorites
@@ -139,6 +142,7 @@ fun HomeScreen(vm: AppViewModel) {
                     HomeTab.MOVIES -> CategoryRowsTab(vm, library, Kind.MOVIE)
                     HomeTab.SERIES -> CategoryRowsTab(vm, library, Kind.SERIES)
                     HomeTab.LIVE -> LiveTab(vm, library)
+                    HomeTab.GUIDE -> GuideTab(vm, library)
                     HomeTab.FAVORITES -> FavoritesTab(vm, library)
                     HomeTab.CATCHUP -> CatchupTab(vm, library)
                     HomeTab.SEARCH -> SearchTab(vm, library)

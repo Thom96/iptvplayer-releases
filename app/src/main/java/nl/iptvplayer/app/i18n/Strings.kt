@@ -57,6 +57,7 @@ abstract class Strings {
     abstract val tabMovies: String
     abstract val tabFavorites: String
     abstract val tabCatchup: String
+    abstract val tabGuide: String
     abstract val tabSettings: String
 
     // Algemeen
@@ -171,6 +172,12 @@ abstract class Strings {
     abstract val noGuide: String
     abstract fun laterAt(time: String, title: String): String
     abstract val zapHint: String
+
+    // TV guide
+    abstract val tomorrow: String
+    abstract val guideWatchLive: String
+    abstract val guideWatchArchive: String
+    abstract fun guideStartsAt(time: String): String
 
     // Terugkijken
     abstract val today: String

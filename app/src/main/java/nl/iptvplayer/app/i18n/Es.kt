@@ -14,6 +14,7 @@ object Es : Strings() {
     override val tabMovies = "Películas"
     override val tabFavorites = "Favoritos"
     override val tabCatchup = "Volver a ver"
+    override val tabGuide = "Guía TV"
     override val tabSettings = "Ajustes"
 
     override val movie = "Película"
@@ -136,6 +137,11 @@ object Es : Strings() {
     override val noGuide = "No hay información de guía para este canal."
     override fun laterAt(time: String, title: String) = "Después $time: $title"
     override val zapHint = "▲▼ cambiar canal  ·  Atrás = lista de canales"
+
+    override val tomorrow = "Mañana"
+    override val guideWatchLive = "OK: ver en directo"
+    override val guideWatchArchive = "OK: ver desde el principio"
+    override fun guideStartsAt(time: String) = "Empieza a las $time"
 
     override val today = "Hoy"
     override val yesterday = "Ayer"
