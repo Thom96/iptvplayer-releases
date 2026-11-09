@@ -3,6 +3,7 @@ package nl.iptvplayer.app
 import android.app.Application
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import nl.iptvplayer.app.data.IntroDb
 import nl.iptvplayer.app.data.Storage
 import nl.iptvplayer.app.i18n.AppLanguage
 import nl.iptvplayer.app.i18n.I18n
@@ -23,6 +24,9 @@ class App : Application(), ImageLoaderFactory {
     }
 
     val storage: Storage by lazy { Storage(this) }
+
+    /** Intro and credits times for the skip buttons. */
+    val introDb: IntroDb by lazy { IntroDb(http) }
 
     /** Queue for the player; passed through memory because channel lists are too big for an Intent. */
     var pendingQueue: PlaybackQueue? = null

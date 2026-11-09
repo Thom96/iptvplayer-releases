@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -161,36 +162,38 @@ private fun IntroButton(icon: ImageVector, text: String, onClick: () -> Unit, mo
 
 // ---------- Next episode ----------
 
-private const val NEXT_COUNTDOWN_MS = 5_000L
-
 /**
- * Button at the bottom right just before the credits. The button fills up in 5 seconds and then
- * starts the next episode by itself (only while playing). "Watch credits" cancels.
+ * Button at the bottom right at the start of the credits. The button fills up in [countdownMs] and then
+ * starts the next episode by itself (only while playing). "Watch credits" cancels. With [countdownMs] 0
+ * (set in Settings) nothing starts by itself.
  */
 @Composable
 internal fun NextEpisodePrompt(
     next: PlayItem,
     counting: Boolean,
+    countdownMs: Long,
     onPlay: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val auto = countdownMs > 0
     var elapsed by remember { mutableLongStateOf(0L) }
     var fired by remember { mutableStateOf(false) }
     val playFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { playFocus.requestSafely() }
     LaunchedEffect(counting) {
-        while (counting && elapsed < NEXT_COUNTDOWN_MS) {
+        if (!auto) return@LaunchedEffect
+        while (counting && elapsed < countdownMs) {
             delay(100)
             elapsed += 100
         }
         // Only once: a restart of this effect (buffering) must not skip another episode.
-        if (elapsed >= NEXT_COUNTDOWN_MS && !fired) {
+        if (elapsed >= countdownMs && !fired) {
             fired = true
             onPlay()
         }
     }
-    val seconds = ((NEXT_COUNTDOWN_MS - elapsed + 999) / 1000).coerceAtLeast(0)
+    val seconds = ((countdownMs - elapsed + 999) / 1000).coerceAtLeast(0)
 
     Column(modifier.width(380.dp), horizontalAlignment = Alignment.End) {
         Surface(
@@ -209,13 +212,15 @@ internal fun NextEpisodePrompt(
             scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
         ) {
             Box {
-                // Fills up with yellow in 5 seconds: that way you see when it starts by itself.
-                Box(
-                    Modifier
-                        .matchParentSize()
-                        .fillMaxWidth(elapsed.toFloat() / NEXT_COUNTDOWN_MS)
-                        .background(Palette.accent.copy(alpha = 0.45f)),
-                )
+                // Fills up with champagne during the countdown: that way you see when it starts by itself.
+                if (auto) {
+                    Box(
+                        Modifier
+                            .matchParentSize()
+                            .fillMaxWidth(elapsed.toFloat() / countdownMs)
+                            .background(Palette.accent.copy(alpha = 0.45f)),
+                    )
+                }
                 Row(Modifier.padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.PlayArrow, null, Modifier.size(30.dp))
                     Spacer(Modifier.width(12.dp))
@@ -223,11 +228,44 @@ internal fun NextEpisodePrompt(
                         Text(S.nextEpisode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         next.subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     }
-                    Text(if (counting) "${seconds}s" else "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(if (auto && counting) S.seconds(seconds.toInt()) else "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }
         Spacer(Modifier.height(10.dp))
         Pill(S.watchCredits, onClick = onDismiss)
+    }
+}
+
+// ---------- Skip intro / recap ----------
+
+/**
+ * "Skip intro" at the bottom right, during the intro or recap. With hidden controls, OK presses it
+ * (then it looks focused); with visible controls it is a normal button.
+ */
+@Composable
+internal fun SkipButton(text: String, pressedByOk: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(12.dp)
+    Surface(
+        onClick = onClick,
+        modifier = modifier.tapToClick(onClick),
+        shape = ClickableSurfaceDefaults.shape(shape),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = if (pressedByOk) Palette.text else Palette.glass,
+            contentColor = if (pressedByOk) Palette.background else Palette.text,
+            focusedContainerColor = Palette.text,
+            focusedContentColor = Palette.background,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            border = if (pressedByOk) androidx.tv.material3.Border(BorderStroke(3.dp, Palette.accent), shape = shape) else androidx.tv.material3.Border.None,
+            focusedBorder = androidx.tv.material3.Border(BorderStroke(3.dp, Palette.accent), shape = shape),
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
+    ) {
+        Row(Modifier.padding(horizontal = 22.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.SkipNext, null, Modifier.size(26.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
     }
 }

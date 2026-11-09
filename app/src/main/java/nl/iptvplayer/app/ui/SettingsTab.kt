@@ -105,6 +105,33 @@ fun SettingsTab(vm: AppViewModel, library: Library) {
         }
 
         item {
+            val autoNext by vm.storage.autoNextSeconds.collectAsState()
+            Heading(S.autoNext)
+            Text(S.autoNextHint, style = MaterialTheme.typography.bodyMedium, color = Palette.textMuted)
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(0, 5, 10, 15).forEach { seconds ->
+                    ChipButton(
+                        text = if (seconds == 0) S.autoNextOff else S.seconds(seconds),
+                        selected = autoNext == seconds,
+                        onClick = { vm.storage.setAutoNextSeconds(seconds) },
+                    )
+                }
+            }
+        }
+
+        item {
+            val passthrough by vm.storage.surroundPassthrough.collectAsState()
+            Heading(S.surroundSound)
+            Text(S.surroundSoundHint, style = MaterialTheme.typography.bodyMedium, color = Palette.textMuted)
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChipButton(text = S.surroundPassthrough, selected = passthrough, onClick = { vm.storage.setSurroundPassthrough(true) })
+                ChipButton(text = S.surroundStereo, selected = !passthrough, onClick = { vm.storage.setSurroundPassthrough(false) })
+            }
+        }
+
+        item {
             Heading(S.updates)
             UpdateSection(vm)
         }

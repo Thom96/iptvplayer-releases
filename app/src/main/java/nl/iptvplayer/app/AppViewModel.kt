@@ -555,6 +555,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 key = e.key, kind = Kind.EPISODE, url = c.episodeUrl(e.id, e.ext),
                 title = series.title, subtitle = "S${e.season} E${e.number} · ${TextMatch.episodeTitle(e.title)}",
                 image = e.image ?: series.image, ext = e.ext, seriesId = series.id,
+                tmdbId = e.seriesTmdbId, season = e.season, episode = e.number,
             )
         }
         val resume = if (fromStart) 0L else storage.progressFor(episodes[index].key)?.positionMs ?: 0L
