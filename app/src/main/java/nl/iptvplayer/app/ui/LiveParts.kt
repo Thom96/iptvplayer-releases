@@ -201,18 +201,26 @@ internal fun EpgPanel(vm: AppViewModel, channel: MediaItem, now: Long) {
 
 /** Info bar at the bottom in full screen (after zapping or OK). */
 @Composable
-internal fun FullscreenInfo(channel: MediaItem, epg: List<EpgEntry>, now: Long, index: Int) {
+internal fun FullscreenInfo(
+    channel: MediaItem,
+    epg: List<EpgEntry>,
+    now: Long,
+    index: Int,
+    hint: String = S.zapHint,
+    /** Under the info, e.g. the bar for pause and rewind. */
+    bottom: @Composable () -> Unit = {},
+) {
     val current = epg.firstOrNull { it.isNow(now) }
     val next = epg.firstOrNull { it.start >= (current?.end ?: now) }
     Box(Modifier.fillMaxSize()) {
-        Row(
+        Column(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .background(Brush.verticalGradient(listOf(Color.Transparent, Palette.scrim)))
                 .padding(start = 56.dp, end = 56.dp, top = 64.dp, bottom = 40.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 (if (channel.num > 0) channel.num else index + 1).toString(),
                 style = MaterialTheme.typography.displaySmall,
@@ -238,7 +246,9 @@ internal fun FullscreenInfo(channel: MediaItem, epg: List<EpgEntry>, now: Long, 
                     Text(S.laterAt(hhmm(next.start), next.title), style = MaterialTheme.typography.bodyMedium, color = Palette.textSoft)
                 }
             }
-            Text(S.zapHint, style = MaterialTheme.typography.labelMedium, color = Palette.textMuted)
+            Text(hint, style = MaterialTheme.typography.labelMedium, color = Palette.textMuted)
+        }
+        bottom()
         }
     }
 }

@@ -191,6 +191,12 @@ object Es : Strings() {
     override val surroundSoundHint = "El sonido Dolby y DTS va al televisor o a la barra de sonido si indica que puede reproducirlo. ¿Sin sonido en algunas películas? Elige estéreo: el aparato genera el sonido."
     override val surroundPassthrough = "Por TV o barra de sonido"
     override val surroundStereo = "Siempre estéreo"
+    override val timeshift = "Retroceder en directo"
+    override val timeshiftHint = "Mientras ves la TV en directo, el aparato guarda los últimos minutos para que puedas pausar y retroceder. Usa almacenamiento del aparato (30 minutos en HD son unos 1 a 2 GB). Desactivado: el directo se reproduce sin más."
+
+    override val backToLive = "Volver al directo"
+    override fun behindLive(time: String) = "$time por detrás del directo"
+    override val timeshiftKeys = "◀ ▶ retroceder  ·  OK pausa  ·  Atrás = directo"
     override val updates = "Actualizaciones"
     override val account = "Cuenta"
     override val server = "Servidor"

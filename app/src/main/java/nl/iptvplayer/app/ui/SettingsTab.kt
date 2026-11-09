@@ -123,6 +123,22 @@ fun SettingsTab(vm: AppViewModel, library: Library) {
         }
 
         item {
+            val timeshift by vm.storage.timeshiftMinutes.collectAsState()
+            Heading(S.timeshift)
+            Text(S.timeshiftHint, style = MaterialTheme.typography.bodyMedium, color = Palette.textMuted)
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(0, 15, 30, 60).forEach { minutes ->
+                    ChipButton(
+                        text = if (minutes == 0) S.autoNextOff else S.minutes(minutes),
+                        selected = timeshift == minutes,
+                        onClick = { vm.storage.setTimeshiftMinutes(minutes) },
+                    )
+                }
+            }
+        }
+
+        item {
             val passthrough by vm.storage.surroundPassthrough.collectAsState()
             Heading(S.surroundSound)
             Text(S.surroundSoundHint, style = MaterialTheme.typography.bodyMedium, color = Palette.textMuted)
