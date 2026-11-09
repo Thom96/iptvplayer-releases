@@ -171,13 +171,18 @@ internal fun LiveGuide(
     val earliest = now - XtreamClient.GUIDE_PAST_MS
     val latest = now + XtreamClient.GUIDE_FUTURE_MS
 
+    // The key handlers read the selection when the key arrives, not as it was at the last frame: quick
+    // presses can come in before the screen has been redrawn.
+    fun currentRow() = selRow.coerceIn(0, (channels.size - 1).coerceAtLeast(0))
+    fun currentChannel() = channels.getOrNull(currentRow())
+
     fun moveRow(delta: Int) {
         if (channels.isEmpty()) return
-        selRow = (row + delta).coerceIn(0, channels.size - 1)
+        selRow = (currentRow() + delta).coerceIn(0, channels.size - 1)
     }
 
     fun moveRight() {
-        val list = channel?.let { vm.guide[it.id] }.orEmpty()
+        val list = currentChannel()?.let { vm.guide[it.id] }.orEmpty()
         val after = list.at(focusTime)?.end ?: (focusTime + 1)
         val t = list.firstOrNull { it.start >= after }?.start ?: (floorHalfHour(focusTime) + HALF_HOUR)
         if (t >= latest) return
@@ -187,7 +192,7 @@ internal fun LiveGuide(
 
     /** False = already at the start of the guide (focus may then leave the grid). */
     fun moveLeft(): Boolean {
-        val list = channel?.let { vm.guide[it.id] }.orEmpty()
+        val list = currentChannel()?.let { vm.guide[it.id] }.orEmpty()
         val before = list.at(focusTime)?.start ?: focusTime
         if (before <= earliest) return false
         val prev = list.lastOrNull { it.start < before }
@@ -204,8 +209,8 @@ internal fun LiveGuide(
     }
 
     fun activate() {
-        val ch = channel ?: return
-        val e = selected
+        val ch = currentChannel() ?: return
+        val e = vm.guide[ch.id]?.at(focusTime)
         when {
             e != null && canReplay(ch, e, now) -> vm.playCatchup(context, ch, e)
             e == null || (e.start <= now && e.end > now) -> onWatchLive(ch)
@@ -261,7 +266,7 @@ internal fun LiveGuide(
                 .onPreviewKeyEvent { e ->
                     if (e.type != KeyEventType.KeyDown || vm.liveFullscreen) return@onPreviewKeyEvent false
                     when (e.key) {
-                        Key.DirectionUp -> if (row == 0) false else { moveRow(-1); true }
+                        Key.DirectionUp -> if (currentRow() == 0) false else { moveRow(-1); true }
                         Key.DirectionDown -> { moveRow(1); true }
                         Key.ChannelUp, Key.PageUp -> { moveRow(-PAGE_ROWS); true }
                         Key.ChannelDown, Key.PageDown -> { moveRow(PAGE_ROWS); true }

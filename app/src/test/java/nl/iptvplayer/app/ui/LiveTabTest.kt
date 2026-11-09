@@ -142,7 +142,6 @@ class LiveTabTest {
         press(Key.DirectionLeft)
         press(Key.DirectionLeft)
         shot("live-guide-past")
-        println("DBG focused=" + focusedBounds() + " q=" + (rule.activity.application as nl.iptvplayer.app.App).pendingQueue)
         rule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
         rule.waitForIdle()
         val app = rule.activity.application as nl.iptvplayer.app.App
