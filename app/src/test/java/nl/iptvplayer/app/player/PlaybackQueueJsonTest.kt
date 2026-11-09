@@ -39,6 +39,13 @@ class PlaybackQueueJsonTest {
     }
 
     @Test
+    fun episodeKeepsIntroDbLookup() {
+        val q = PlaybackQueue(listOf(PlayItem("EPISODE:9", Kind.EPISODE, "http://e.mkv", "Serie", tmdbId = 1399, season = 2, episode = 5)))
+        val back = playbackQueueFromJson(q.toJson())!!.items.single()
+        assertEquals(listOf(1399, 2, 5), listOf(back.tmdbId, back.season, back.episode))
+    }
+
+    @Test
     fun brokenFileGivesNull() {
         assertNull(playbackQueueFromJson("{kapot"))
         assertNull(playbackQueueFromJson("""{"startIndex":0,"startPositionMs":0,"items":[]}"""))

@@ -41,6 +41,14 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import nl.iptvplayer.app.AppState
 import nl.iptvplayer.app.AppViewModel
+import nl.iptvplayer.app.data.PhoneLoginServer
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
@@ -59,7 +67,30 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
         if (server.isNotEmpty() && username.isNotEmpty()) loginButton.requestSafely() else first.requestSafely()
     }
 
-    Row(Modifier.fillMaxSize().padding(horizontal = 96.dp), verticalAlignment = Alignment.CenterVertically) {
+    // Sign in from a phone on the same Wi-Fi: the details are filled in here and sent right away.
+    val currentState by rememberUpdatedState(state)
+    val scope = rememberCoroutineScope()
+    var phoneUrl by remember { mutableStateOf<String?>(null) }
+    val phoneServer = remember {
+        PhoneLoginServer { s, u, p ->
+            scope.launch {
+                server = s
+                username = u
+                password = p
+                if (!currentState.busy) vm.login(s, u, p)
+            }
+        }
+    }
+    LaunchedEffect(phoneServer) {
+        if (!withContext(Dispatchers.IO) { phoneServer.start() }) return@LaunchedEffect
+        while (true) {
+            phoneUrl = phoneServer.newCode()
+            delay(PhoneLoginServer.CODE_VALID_MS)
+        }
+    }
+    DisposableEffect(phoneServer) { onDispose { phoneServer.stop() } }
+
+    Row(Modifier.fillMaxSize().padding(horizontal = 64.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             GalloLogo(size = 72.sp)
             Spacer(Modifier.height(12.dp))
@@ -69,8 +100,8 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
                 color = Palette.textMuted,
             )
         }
-        Spacer(Modifier.width(64.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Spacer(Modifier.width(40.dp))
+        Column(Modifier.weight(1.15f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             TvTextField(
                 value = server,
                 onValueChange = { server = it },
@@ -102,6 +133,21 @@ fun LoginScreen(vm: AppViewModel, state: AppState.Login) {
                 onClick = submit,
                 modifier = Modifier.focusRequester(loginButton),
             )
+        }
+        phoneUrl?.let { url ->
+            Spacer(Modifier.width(40.dp))
+            Column(Modifier.width(196.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                QrCode(url, Modifier.size(168.dp))
+                Spacer(Modifier.height(14.dp))
+                Text(S.phoneLoginTitle, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    S.phoneLoginHint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Palette.textMuted,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }

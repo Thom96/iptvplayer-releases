@@ -147,6 +147,44 @@ class Storage(private val context: Context, private val cipher: SecretCipher = K
         prefs.edit().putString("liveFormat", format).apply()
     }
 
+    // ---------- Playback ----------
+
+    private val _autoNextSeconds = MutableStateFlow(prefs.getInt("autoNextSeconds", 5))
+    /** Countdown before the next episode starts by itself; 0 = never automatically. */
+    val autoNextSeconds: StateFlow<Int> = _autoNextSeconds
+
+    fun setAutoNextSeconds(seconds: Int) {
+        _autoNextSeconds.value = seconds
+        prefs.edit().putInt("autoNextSeconds", seconds).apply()
+    }
+
+    private val _surroundPassthrough = MutableStateFlow(prefs.getBoolean("surroundPassthrough", true))
+    /**
+     * Pass Dolby/DTS sound on to the TV or soundbar when the TV says it can play it. Off = the box
+     * always makes stereo itself (for TVs that claim support but stay silent).
+     */
+    val surroundPassthrough: StateFlow<Boolean> = _surroundPassthrough
+
+    fun setSurroundPassthrough(on: Boolean) {
+        _surroundPassthrough.value = on
+        prefs.edit().putBoolean("surroundPassthrough", on).apply()
+    }
+
+    /** Where the intro of a series is, learned from the viewer's seeking: start and end in ms. */
+    fun learnedIntro(seriesId: Int): Pair<Long, Long>? =
+        learnedIntros().optJSONArray(seriesId.toString())?.let { it.optLong(0) to it.optLong(1) }
+
+    fun saveLearnedIntro(seriesId: Int, startMs: Long, endMs: Long) {
+        val all = learnedIntros()
+        all.put(seriesId.toString(), JSONArray().put(startMs).put(endMs))
+        // Keep the 200 most recent series; the JSON object keeps the insertion order.
+        while (all.length() > 200) all.remove(all.keys().next())
+        prefs.edit().putString("learnedIntros", all.toString()).apply()
+    }
+
+    private fun learnedIntros(): JSONObject =
+        runCatching { JSONObject(prefs.getString("learnedIntros", "{}") ?: "{}") }.getOrElse { JSONObject() }
+
     /** Live format the server recommended last time ("ts" or "m3u8"), so zapping starts right away. */
     var serverLiveFormat: String?
         get() = prefs.getString("serverLiveFormat", null)

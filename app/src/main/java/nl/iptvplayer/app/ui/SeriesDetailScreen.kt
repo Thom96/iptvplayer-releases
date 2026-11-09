@@ -55,6 +55,7 @@ import nl.iptvplayer.app.data.Episode
 import nl.iptvplayer.app.data.MediaItem
 import nl.iptvplayer.app.data.Progress
 import nl.iptvplayer.app.data.SeriesInfo
+import nl.iptvplayer.app.data.withTmdb
 import nl.iptvplayer.app.data.TextMatch
 
 /**
@@ -71,12 +72,21 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
     val progressList by vm.storage.progress.collectAsState()
     val playFocus = remember { FocusRequester() }
 
+    var fromTmdb by remember { mutableStateOf(false) }
+
     LaunchedEffect(item.id) {
-        try {
-            info = vm.client?.seriesInfo(item.id)
+        val client = vm.client
+        val provider = try {
+            client?.seriesInfo(item.id)
         } catch (e: Exception) {
             error = true
+            null
         }
+        // Without the provider's details there are no episodes to play, so TMDB only improves a loaded series.
+        if (provider == null) return@LaunchedEffect
+        val meta = fetchTmdb(context, client, series = true, provider.tmdbId, item.title, item.year)
+        info = provider.withTmdb(meta)
+        fromTmdb = meta != null
     }
 
     val seasons = info?.seasons.orEmpty()
@@ -203,6 +213,12 @@ fun SeriesDetailScreen(vm: AppViewModel, item: MediaItem) {
                         .listFocusTarget(episodeFocus, e == target),
                 )
             }
+        }
+    }
+    // Top right: the episode row fills the bottom of this screen.
+    if (fromTmdb) {
+        Box(Modifier.fillMaxSize().padding(horizontal = 40.dp, vertical = 20.dp)) {
+            TmdbBadge(Modifier.align(Alignment.TopEnd))
         }
     }
 }

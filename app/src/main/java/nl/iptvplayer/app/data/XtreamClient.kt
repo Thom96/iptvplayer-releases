@@ -41,7 +41,7 @@ class XtreamClient(
 
     private val cacheDir = File(cacheRoot, "lists-" + (creds.server + "|" + creds.username).hashCode().toUInt().toString(16))
 
-    private val demo = creds.server == DEMO_SERVER
+    val demo = creds.server == DEMO_SERVER
 
     /**
      * Format for live streams that the server recommends: ts, or m3u8 if ts isn't allowed. Determined at
@@ -320,6 +320,7 @@ class XtreamClient(
             backdrop = info.backdrop(),
             poster = info.text("movie_image", "cover_big"),
             ext = data.text("container_extension"),
+            tmdbId = info.text("tmdb_id", "tmdb")?.toIntOrNull()?.takeIf { it > 0 },
         )
     }
 
@@ -327,6 +328,7 @@ class XtreamClient(
         if (demo) return@withContext DemoData.seriesInfo(id)
         val root = JSONObject(getString(base.newBuilder().addQueryParameter("action", "get_series_info").addQueryParameter("series_id", id.toString()).build()))
         val info = root.optJSONObject("info") ?: JSONObject()
+        val tmdbId = info.text("tmdb", "tmdb_id")?.toIntOrNull()?.takeIf { it > 0 }
 
         val seasonNames = HashMap<Int, String>()
         root.optJSONArray("seasons")?.let { arr ->
@@ -361,6 +363,7 @@ class XtreamClient(
                     image = eInfo.text("movie_image", "cover_big"),
                     plot = eInfo.text("plot"),
                     durationSecs = eInfo.optString("duration_secs").toIntOrNull()?.takeIf { it >= 60 },
+                    seriesTmdbId = tmdbId,
                 )
             }
         }
@@ -377,6 +380,7 @@ class XtreamClient(
             backdrop = info.backdrop(),
             poster = info.text("cover"),
             seasons = seasons,
+            tmdbId = info.text("tmdb", "tmdb_id")?.toIntOrNull()?.takeIf { it > 0 },
         )
     }
 
@@ -435,6 +439,21 @@ class XtreamClient(
     }
 
     /**
+     * Guide for the TV guide screen: the full table (past and future, with archive flags) and, if the server
+     * doesn't offer that, the upcoming programmes. Only the window around [now] is kept, to save memory.
+     */
+    suspend fun guideEpg(streamId: Int, now: Long = System.currentTimeMillis()): List<CatchupEntry> {
+        if (demo) return DemoData.guide(streamId, now)
+        val from = now - GUIDE_PAST_MS
+        val to = now + GUIDE_FUTURE_MS
+        val full = runCatching { archiveEpg(streamId) }.getOrDefault(emptyList())
+        val entries = full.ifEmpty {
+            shortEpg(streamId, limit = 20).map { CatchupEntry(it.title, it.description, it.start, it.end, "", false) }
+        }
+        return entries.filter { it.end > from && it.start < to }
+    }
+
+    /**
      * Catch-up URL: /timeshift/{user}/{pass}/{duration in minutes}/{start as yyyy-mm-dd:hh-mm}/{id}.ts.
      * The start time must be in the server's time zone; we take it literally from the guide.
      */
@@ -481,6 +500,9 @@ class XtreamClient(
     private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 
     companion object {
+        /** How far back and ahead the TV guide keeps programmes. */
+        const val GUIDE_PAST_MS = 24 * 3_600_000L
+        const val GUIDE_FUTURE_MS = 48 * 3_600_000L
         /** Enter "demo" as the server to view the app with fake data. */
         const val DEMO_SERVER = "http://demo"
 

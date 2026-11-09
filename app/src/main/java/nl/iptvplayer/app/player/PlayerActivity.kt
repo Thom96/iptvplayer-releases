@@ -26,6 +26,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -37,6 +38,8 @@ import nl.iptvplayer.app.App
 import nl.iptvplayer.app.R
 import nl.iptvplayer.app.data.Kind
 import nl.iptvplayer.app.data.Progress
+import nl.iptvplayer.app.data.SegmentType
+import nl.iptvplayer.app.data.SkipSegment
 import nl.iptvplayer.app.ui.AppTheme
 
 @OptIn(UnstableApi::class)
@@ -86,6 +89,7 @@ class PlayerActivity : ComponentActivity() {
         setContent {
             AppTheme {
                 val favorites by app.storage.favorites.collectAsState()
+                val autoNextSeconds by app.storage.autoNextSeconds.collectAsState()
                 AndroidView(factory = { playerView }, modifier = Modifier.fillMaxSize())
                 player?.let { exo ->
                     PlayerControls(
@@ -101,6 +105,11 @@ class PlayerActivity : ComponentActivity() {
                         },
                         isFavorite = queue.intro?.seriesKey?.let { it in favorites } == true,
                         onToggleFavorite = { queue.intro?.seriesKey?.let(app.storage::toggleFavorite) },
+                        loadSegments = ::loadSegments,
+                        learnedIntro = { item ->
+                            item.seriesId?.let(app.storage::learnedIntro)?.let { (start, end) -> SkipSegment(SegmentType.INTRO, start, end) }
+                        },
+                        autoNextMs = autoNextSeconds * 1000L,
                     )
                 }
             }
@@ -150,9 +159,22 @@ class PlayerActivity : ComponentActivity() {
     private fun restoreQueue(): PlaybackQueue? =
         runCatching { playbackQueueFromJson(queueFile().readText()) }.getOrNull()
 
+    private suspend fun loadSegments(item: PlayItem): List<SkipSegment> {
+        val tmdb = item.tmdbId ?: return emptyList()
+        return app.introDb.episode(tmdb, item.season ?: return emptyList(), item.episode ?: return emptyList())
+    }
+
+    /** Learns the intro of a series from seeking forward at the start of an episode. */
+    private val introLearner = IntroLearner { start, end ->
+        currentItem()?.takeIf { it.kind == Kind.EPISODE }?.seriesId?.let { app.storage.saveLearnedIntro(it, start, end) }
+    }
+
+    /** Media item for which the "can't play this sound" notice was already shown. */
+    private var audioNoticeFor: String? = null
+
     private fun initPlayer() {
         val dataSource = OkHttpDataSource.Factory(app.http).setUserAgent(App.USER_AGENT)
-        val exo = ExoPlayer.Builder(this)
+        val exo = ExoPlayer.Builder(this, playerRenderersFactory(this, app.storage.surroundPassthrough.value))
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
             .setLoadControl(fastStartLoadControl())
             .setSeekBackIncrementMs(10_000)
@@ -168,7 +190,23 @@ class PlayerActivity : ComponentActivity() {
         exo.setMediaItems(queue.items.map { toMediaItem(it, it.url) }, resumeIndex, resumePosition)
         exo.repeatMode = if (queue.isLive) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF
         exo.addListener(object : Player.Listener {
+            override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) {
+                if (reason != Player.DISCONTINUITY_REASON_SEEK || queue.isLive) return
+                if (oldPosition.mediaItemIndex != newPosition.mediaItemIndex) return
+                introLearner.onSeek(oldPosition.positionMs, newPosition.positionMs, android.os.SystemClock.elapsedRealtime())
+            }
+
+            override fun onTracksChanged(tracks: Tracks) {
+                // No audio track this device can play (often Dolby or DTS on cheap boxes): say so, once per video.
+                val name = unsupportedAudioName(tracks) ?: return
+                val key = exo.currentMediaItem?.mediaId
+                if (key == audioNoticeFor) return
+                audioNoticeFor = key
+                Toast.makeText(this@PlayerActivity, S.audioUnsupported(name), Toast.LENGTH_LONG).show()
+            }
+
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                introLearner.reset()
                 // Only reset the attempts; which channels already got the other format is kept
                 // (a replaced item also causes a transition, and must not fall back again then).
                 recovery.onPlaying()

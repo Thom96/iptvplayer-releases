@@ -57,6 +57,7 @@ abstract class Strings {
     abstract val tabMovies: String
     abstract val tabFavorites: String
     abstract val tabCatchup: String
+    abstract val tabGuide: String
     abstract val tabSettings: String
 
     // Algemeen
@@ -172,6 +173,12 @@ abstract class Strings {
     abstract fun laterAt(time: String, title: String): String
     abstract val zapHint: String
 
+    // TV guide
+    abstract val tomorrow: String
+    abstract val guideWatchLive: String
+    abstract val guideWatchArchive: String
+    abstract fun guideStartsAt(time: String): String
+
     // Terugkijken
     abstract val today: String
     abstract val yesterday: String
@@ -212,6 +219,14 @@ abstract class Strings {
     abstract val playback: String
     abstract val playbackHint: String
     abstract val formatAuto: String
+    abstract val autoNext: String
+    abstract val autoNextHint: String
+    abstract val autoNextOff: String
+    abstract fun seconds(n: Int): String
+    abstract val surroundSound: String
+    abstract val surroundSoundHint: String
+    abstract val surroundPassthrough: String
+    abstract val surroundStereo: String
     abstract val updates: String
     abstract val account: String
     abstract val server: String
@@ -241,6 +256,9 @@ abstract class Strings {
     abstract val audioAndSubtitles: String
     abstract val addToFavorites: String
     abstract val watchCredits: String
+    abstract val skipIntro: String
+    abstract val skipRecap: String
+    abstract fun audioUnsupported(format: String): String
     abstract val pause: String
     abstract val audio: String
     abstract val subtitles: String
@@ -322,4 +340,14 @@ abstract class Strings {
     abstract val showAll: String
     abstract val hideAll: String
     abstract val noCategories: String
+    // Phone login and TMDB
+    abstract val phoneLoginTitle: String
+    abstract val phoneLoginHint: String
+    abstract val phonePageIntro: String
+    abstract val phonePageSend: String
+    abstract val phonePageSent: String
+    abstract val phonePageExpired: String
+    abstract val phonePageMissing: String
+    abstract val tmdbSource: String
+    abstract val tmdbNotice: String
 }

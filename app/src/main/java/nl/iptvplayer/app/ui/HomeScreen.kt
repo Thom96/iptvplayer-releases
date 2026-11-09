@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
@@ -71,6 +72,7 @@ enum class HomeTab(val icon: ImageVector) {
     SEARCH(Icons.Outlined.Search),
     HOME(Icons.Outlined.Home),
     LIVE(Icons.Outlined.LiveTv),
+    GUIDE(Icons.Outlined.DateRange),
     SERIES(Icons.Outlined.VideoLibrary),
     MOVIES(Icons.Outlined.Movie),
     FAVORITES(Icons.Outlined.FavoriteBorder),
@@ -81,6 +83,7 @@ enum class HomeTab(val icon: ImageVector) {
         SEARCH -> S.tabSearch
         HOME -> S.tabHome
         LIVE -> S.tabLive
+        GUIDE -> S.tabGuide
         SERIES -> S.tabSeries
         MOVIES -> S.tabMovies
         FAVORITES -> S.tabFavorites
@@ -92,6 +95,8 @@ enum class HomeTab(val icon: ImageVector) {
 /** Width of the collapsed side rail; the content starts to the right of it. */
 private val RailWidth = 76.dp
 private val RailExpandedWidth = 248.dp
+/** Nine tabs plus the profile avatar must fit within 540 dp: 20 + 44 + 4 + 10 × 40 + 12 × 4 + 20 = 536. */
+private val RailItemHeight = 40.dp
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -140,6 +145,7 @@ fun HomeScreen(vm: AppViewModel) {
                     HomeTab.MOVIES -> CategoryRowsTab(vm, library, Kind.MOVIE)
                     HomeTab.SERIES -> CategoryRowsTab(vm, library, Kind.SERIES)
                     HomeTab.LIVE -> LiveTab(vm, library)
+                    HomeTab.GUIDE -> GuideTab(vm, library)
                     HomeTab.FAVORITES -> FavoritesTab(vm, library)
                     HomeTab.CATCHUP -> CatchupTab(vm, library)
                     HomeTab.SEARCH -> SearchTab(vm, library)
@@ -201,7 +207,7 @@ private fun NavRail(
                     Image(painterResource(R.drawable.gallo_o), contentDescription = "Gallo", modifier = Modifier.size(width = 36.dp, height = 33.dp))
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             HomeTab.entries.forEach { t ->
                 if (t == HomeTab.SETTINGS) {
                     Spacer(Modifier.weight(1f))
@@ -226,7 +232,7 @@ private fun RailItem(tab: HomeTab, selected: Boolean, expanded: Boolean, onSelec
     Surface(
         onClick = onSelect,
         modifier = modifier
-            .height(44.dp)
+            .height(RailItemHeight)
             .fillMaxWidth()
             .onFocusChanged { if (it.isFocused) onSelect() }
             .tapToClick(onSelect),
@@ -264,7 +270,7 @@ private fun RailProfileItem(vm: AppViewModel, expanded: Boolean) {
     val open = { vm.profileScreen = ProfileMode.PICK }
     Surface(
         onClick = open,
-        modifier = Modifier.height(44.dp).fillMaxWidth().tapToClick(open),
+        modifier = Modifier.height(RailItemHeight).fillMaxWidth().tapToClick(open),
         shape = ClickableSurfaceDefaults.shape(shape),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,

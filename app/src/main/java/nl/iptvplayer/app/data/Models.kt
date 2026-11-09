@@ -133,6 +133,7 @@ data class MovieInfo(
     val backdrop: String?,
     val poster: String?,
     val ext: String?,
+    val tmdbId: Int? = null,
 )
 
 data class Episode(
@@ -144,6 +145,8 @@ data class Episode(
     val image: String?,
     val plot: String?,
     val durationSecs: Int?,
+    /** TMDB id of the series (from the provider), to look up intro and credits times. */
+    val seriesTmdbId: Int? = null,
 ) {
     val key: String get() = MediaItem.keyOf(Kind.EPISODE, id)
 }
@@ -175,6 +178,7 @@ data class SeriesInfo(
     val backdrop: String?,
     val poster: String?,
     val seasons: List<Season>,
+    val tmdbId: Int? = null,
 )
 
 /** Watch progress of a movie or episode, for "Continue watching". */

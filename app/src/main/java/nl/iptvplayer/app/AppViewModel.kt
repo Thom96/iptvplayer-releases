@@ -360,6 +360,33 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // ---------- TV guide screen ----------
+
+    /** Guide per channel id for the TV guide screen; only the most recently viewed channels are kept. */
+    val guide = mutableStateMapOf<Int, List<CatchupEntry>>()
+    private val guideFetchedAt = LinkedHashMap<Int, Long>(16, 0.75f, true)
+    private val guideLimiter = Semaphore(4)
+
+    /** Fetches the guide of a channel for the guide screen (at most once per 30 minutes, max. 4 at a time). */
+    suspend fun loadGuide(streamId: Int) {
+        val c = client ?: return
+        val last = guideFetchedAt[streamId]
+        if (last != null && System.currentTimeMillis() - last < 30 * 60_000) return
+        guideLimiter.withPermit {
+            guideFetchedAt[streamId] = System.currentTimeMillis()
+            runCatching { c.guideEpg(streamId) }
+                .onSuccess { guide[streamId] = it }
+                // Network error: try again after a minute.
+                .onFailure { guideFetchedAt[streamId] = System.currentTimeMillis() - 29 * 60_000 }
+            // Large lists: keep memory small by forgetting the channels that were viewed longest ago.
+            while (guideFetchedAt.size > GUIDE_CACHE_SIZE) {
+                val oldest = guideFetchedAt.keys.first()
+                guideFetchedAt.remove(oldest)
+                guide.remove(oldest)
+            }
+        }
+    }
+
     // ---------- Activation (Gallo server) ----------
 
     private val licenseClient = LicenseClient(app.http)
@@ -648,6 +675,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 key = e.key, kind = Kind.EPISODE, url = c.episodeUrl(e.id, e.ext),
                 title = series.title, subtitle = "S${e.season} E${e.number} · ${TextMatch.episodeTitle(e.title)}",
                 image = e.image ?: series.image, ext = e.ext, seriesId = series.id,
+                tmdbId = e.seriesTmdbId, season = e.season, episode = e.number,
             )
         }
         val resume = if (fromStart) 0L else storage.progressFor(episodes[index].key)?.positionMs ?: 0L
@@ -755,6 +783,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private companion object {
+        /** Number of channels whose guide the TV guide screen keeps in memory. */
+        const val GUIDE_CACHE_SIZE = 150
         const val CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000L
         /** Check for updates at most this often when coming back to the app. */
         const val UPDATE_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000L
