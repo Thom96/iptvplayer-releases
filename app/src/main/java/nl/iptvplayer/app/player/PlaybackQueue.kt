@@ -15,6 +15,10 @@ class PlayItem(
     val seriesId: Int? = null,
     /** Alternative URL if the first doesn't work (live: .ts instead of .m3u8). */
     val fallbackUrl: String? = null,
+    /** Episodes: TMDB id of the series with season and episode number, for intro and credits times. */
+    val tmdbId: Int? = null,
+    val season: Int? = null,
+    val episode: Int? = null,
 )
 
 /**
@@ -61,6 +65,9 @@ fun PlaybackQueue.toJson(): String = JSONObject().apply {
                 i.ext?.let { put("ext", it) }
                 i.seriesId?.let { put("seriesId", it) }
                 i.fallbackUrl?.let { put("fallbackUrl", it) }
+                i.tmdbId?.let { put("tmdbId", it) }
+                i.season?.let { put("season", it) }
+                i.episode?.let { put("episode", it) }
             })
         }
     })
@@ -81,6 +88,7 @@ fun playbackQueueFromJson(json: String): PlaybackQueue? = runCatching {
     val o = JSONObject(json)
     val arr = o.getJSONArray("items")
     fun JSONObject.textOrNull(name: String) = if (has(name)) getString(name) else null
+    fun JSONObject.intOrNull(name: String) = if (has(name)) getInt(name) else null
     val items = List(arr.length()) { n ->
         val i = arr.getJSONObject(n)
         PlayItem(
@@ -93,6 +101,9 @@ fun playbackQueueFromJson(json: String): PlaybackQueue? = runCatching {
             ext = i.textOrNull("ext"),
             seriesId = if (i.has("seriesId")) i.getInt("seriesId") else null,
             fallbackUrl = i.textOrNull("fallbackUrl"),
+            tmdbId = i.intOrNull("tmdbId"),
+            season = i.intOrNull("season"),
+            episode = i.intOrNull("episode"),
         )
     }
     val intro = o.optJSONObject("intro")?.let { s ->
