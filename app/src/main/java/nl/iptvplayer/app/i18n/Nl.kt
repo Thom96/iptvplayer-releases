@@ -239,4 +239,14 @@ object Nl : Strings() {
     override val licenseBlocked = "Geblokkeerd"
     override val validUntil = "Geldig tot"
     override val noEndDate = "Geen einddatum"
+
+    override val phoneLoginTitle = "Inloggen met je telefoon"
+    override val phoneLoginHint = "Scan de code met de camera van je telefoon. Je telefoon moet op dezelfde wifi zitten als deze tv."
+    override val phonePageIntro = "Vul de gegevens van je IPTV-provider in. Ze gaan rechtstreeks via je eigen wifi naar je tv."
+    override val phonePageSend = "Naar de tv sturen"
+    override val phonePageSent = "Verstuurd! Je tv logt nu in. Je kunt deze pagina sluiten."
+    override val phonePageExpired = "Deze code is verlopen. Scan de nieuwe code op je tv."
+    override val phonePageMissing = "Vul de server en gebruikersnaam in."
+    override val tmdbSource = "Info en afbeeldingen van TMDB"
+    override val tmdbNotice = "Dit product gebruikt de TMDB-API, maar is niet goedgekeurd of gecertificeerd door TMDB."
 }

@@ -239,4 +239,14 @@ object Es : Strings() {
     override val licenseBlocked = "Bloqueada"
     override val validUntil = "Válida hasta"
     override val noEndDate = "Sin fecha de fin"
+
+    override val phoneLoginTitle = "Inicia sesión con tu móvil"
+    override val phoneLoginHint = "Escanea el código con la cámara del móvil. El móvil debe estar en la misma wifi que esta tele."
+    override val phonePageIntro = "Rellena los datos de tu proveedor de IPTV. Van directamente a tu tele a través de tu propia wifi."
+    override val phonePageSend = "Enviar a la tele"
+    override val phonePageSent = "¡Enviado! Tu tele está iniciando sesión. Ya puedes cerrar esta página."
+    override val phonePageExpired = "Este código ha caducado. Escanea el nuevo código de tu tele."
+    override val phonePageMissing = "Rellena el servidor y el usuario."
+    override val tmdbSource = "Información e imágenes de TMDB"
+    override val tmdbNotice = "Este producto utiliza la API de TMDB, pero no está avalado ni certificado por TMDB."
 }

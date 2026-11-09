@@ -41,7 +41,7 @@ class XtreamClient(
 
     private val cacheDir = File(cacheRoot, "lists-" + (creds.server + "|" + creds.username).hashCode().toUInt().toString(16))
 
-    private val demo = creds.server == DEMO_SERVER
+    val demo = creds.server == DEMO_SERVER
 
     /**
      * Format for live streams that the server recommends: ts, or m3u8 if ts isn't allowed. Determined at
@@ -320,6 +320,7 @@ class XtreamClient(
             backdrop = info.backdrop(),
             poster = info.text("movie_image", "cover_big"),
             ext = data.text("container_extension"),
+            tmdbId = info.text("tmdb_id", "tmdb")?.toIntOrNull()?.takeIf { it > 0 },
         )
     }
 
@@ -377,6 +378,7 @@ class XtreamClient(
             backdrop = info.backdrop(),
             poster = info.text("cover"),
             seasons = seasons,
+            tmdbId = info.text("tmdb", "tmdb_id")?.toIntOrNull()?.takeIf { it > 0 },
         )
     }
 

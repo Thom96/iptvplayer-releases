@@ -239,4 +239,14 @@ object De : Strings() {
     override val licenseBlocked = "Gesperrt"
     override val validUntil = "Gültig bis"
     override val noEndDate = "Kein Enddatum"
+
+    override val phoneLoginTitle = "Mit dem Handy anmelden"
+    override val phoneLoginHint = "Scanne den Code mit der Handykamera. Dein Handy muss im selben WLAN sein wie dieser Fernseher."
+    override val phonePageIntro = "Gib die Daten deines IPTV-Anbieters ein. Sie gehen direkt über dein eigenes WLAN an deinen Fernseher."
+    override val phonePageSend = "An den Fernseher senden"
+    override val phonePageSent = "Gesendet! Dein Fernseher meldet sich jetzt an. Du kannst diese Seite schließen."
+    override val phonePageExpired = "Dieser Code ist abgelaufen. Scanne den neuen Code auf deinem Fernseher."
+    override val phonePageMissing = "Gib den Server und den Benutzernamen ein."
+    override val tmdbSource = "Infos und Bilder von TMDB"
+    override val tmdbNotice = "Dieses Produkt verwendet die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert."
 }

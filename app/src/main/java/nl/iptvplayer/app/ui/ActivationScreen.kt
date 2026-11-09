@@ -288,7 +288,7 @@ private fun StatusPill(license: License?, now: Long, locked: Boolean) {
 private fun shortUrl(url: String): String = url.substringAfter("://").substringBefore("?")
 
 @Composable
-private fun QrCode(content: String, modifier: Modifier = Modifier) {
+internal fun QrCode(content: String, modifier: Modifier = Modifier) {
     val matrix: BitMatrix? = remember(content) {
         runCatching {
             QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, 0, 0, mapOf(EncodeHintType.MARGIN to 0))

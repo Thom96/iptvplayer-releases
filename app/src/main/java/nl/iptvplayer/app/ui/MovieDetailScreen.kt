@@ -47,6 +47,7 @@ import coil.compose.AsyncImage
 import nl.iptvplayer.app.AppViewModel
 import nl.iptvplayer.app.data.MediaItem
 import nl.iptvplayer.app.data.MovieInfo
+import nl.iptvplayer.app.data.withTmdb
 
 /** Movie detail in the same layout as series detail: image on the right, title, details and buttons on the left. */
 @Composable
@@ -59,8 +60,15 @@ fun MovieDetailScreen(vm: AppViewModel, item: MediaItem) {
     val progress = progressList.firstOrNull { it.key == item.key }
     val playFocus = remember { FocusRequester() }
 
+    var fromTmdb by remember { mutableStateOf(false) }
+
     LaunchedEffect(item.id) {
-        info = runCatching { vm.client?.movieInfo(item.id) }.getOrNull()
+        val client = vm.client
+        val provider = runCatching { client?.movieInfo(item.id) }.getOrNull()
+        val meta = fetchTmdb(context, client, series = false, provider?.tmdbId, item.title, item.year)
+        info = (provider ?: MovieInfo(null, null, null, null, null, null, null, null, null, null)).withTmdb(meta)
+            .takeIf { provider != null || meta != null }
+        fromTmdb = meta != null
         loading = false
     }
     LaunchedEffect(Unit) { playFocus.requestSafely() }
@@ -121,6 +129,11 @@ fun MovieDetailScreen(vm: AppViewModel, item: MediaItem) {
                     modifier = Modifier.padding(start = 14.dp),
                 )
             }
+        }
+    }
+    if (fromTmdb) {
+        Box(Modifier.fillMaxSize().padding(horizontal = 40.dp, vertical = 24.dp)) {
+            TmdbBadge(Modifier.align(Alignment.BottomEnd))
         }
     }
 }
