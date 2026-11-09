@@ -133,6 +133,7 @@ data class MovieInfo(
     val backdrop: String?,
     val poster: String?,
     val ext: String?,
+    val tmdbId: Int? = null,
 )
 
 data class Episode(
@@ -177,6 +178,7 @@ data class SeriesInfo(
     val backdrop: String?,
     val poster: String?,
     val seasons: List<Season>,
+    val tmdbId: Int? = null,
 )
 
 /** Watch progress of a movie or episode, for "Continue watching". */

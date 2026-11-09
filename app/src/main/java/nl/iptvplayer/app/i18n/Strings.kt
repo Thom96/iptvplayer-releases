@@ -285,4 +285,15 @@ abstract class Strings {
     abstract val licenseBlocked: String
     abstract val validUntil: String
     abstract val noEndDate: String
+
+    // Phone login and TMDB
+    abstract val phoneLoginTitle: String
+    abstract val phoneLoginHint: String
+    abstract val phonePageIntro: String
+    abstract val phonePageSend: String
+    abstract val phonePageSent: String
+    abstract val phonePageExpired: String
+    abstract val phonePageMissing: String
+    abstract val tmdbSource: String
+    abstract val tmdbNotice: String
 }

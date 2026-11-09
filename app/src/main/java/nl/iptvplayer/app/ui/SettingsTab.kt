@@ -192,6 +192,8 @@ fun SettingsTab(vm: AppViewModel, library: Library) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = Palette.textMuted,
             )
+            Spacer(Modifier.height(10.dp))
+            TmdbBadge(text = S.tmdbNotice)
         }
     }
 }

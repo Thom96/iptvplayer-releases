@@ -61,6 +61,11 @@ const SCHEMA = [
      key           TEXT PRIMARY KEY,
      value         TEXT NOT NULL
    )`,
+  `CREATE TABLE IF NOT EXISTS meta_cache (
+     key           TEXT PRIMARY KEY,
+     data          TEXT,
+     fetched_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+   )`,
   `CREATE INDEX IF NOT EXISTS devices_created ON devices (created_at)`,
   `CREATE INDEX IF NOT EXISTS payments_created ON payments (created_at)`,
   `CREATE INDEX IF NOT EXISTS events_created ON events (created_at)`,
