@@ -439,19 +439,19 @@ class XtreamClient(
     }
 
     /**
-     * Guide for the TV guide screen: the full table (past and future, with archive flags) and, if the server
-     * doesn't offer that, the upcoming programmes. Only the window around [now] is kept, to save memory.
+     * Guide for the TV guide: the full table (past and future, with archive flags), or the upcoming programmes
+     * if the server has no table for this channel. Only the window around [now] is kept, to save memory.
+     * Throws when the full table can't be fetched, so the caller can try again instead of settling for less.
      */
     suspend fun guideEpg(streamId: Int, now: Long = System.currentTimeMillis()): List<CatchupEntry> {
         if (demo) return DemoData.guide(streamId, now)
-        val from = now - GUIDE_PAST_MS
-        val to = now + GUIDE_FUTURE_MS
-        val full = runCatching { archiveEpg(streamId) }.getOrDefault(emptyList())
-        val entries = full.ifEmpty {
-            shortEpg(streamId, limit = 20).map { CatchupEntry(it.title, it.description, it.start, it.end, "", false) }
-        }
-        return entries.filter { it.end > from && it.start < to }
+        val entries = archiveEpg(streamId).ifEmpty { shortGuide(streamId) }
+        return entries.filter { it.end > now - GUIDE_PAST_MS && it.start < now + GUIDE_FUTURE_MS }
     }
+
+    /** Now and the next programmes only (quick, small); for when the full table fails. */
+    suspend fun shortGuide(streamId: Int): List<CatchupEntry> =
+        shortEpg(streamId, limit = 20).map { CatchupEntry(it.title, it.description, it.start, it.end, "", false) }
 
     /**
      * Catch-up URL: /timeshift/{user}/{pass}/{duration in minutes}/{start as yyyy-mm-dd:hh-mm}/{id}.ts.

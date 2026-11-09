@@ -104,9 +104,9 @@ internal fun ChannelRow(
             Text(
                 number.toString(),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.width(44.dp).alpha(0.6f),
+                modifier = Modifier.width(36.dp).alpha(0.6f),
             )
-            Box(Modifier.size(width = 80.dp, height = 48.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(width = 64.dp, height = 40.dp), contentAlignment = Alignment.Center) {
                 AsyncImage(
                     model = channel.image,
                     contentDescription = null,
@@ -114,7 +114,7 @@ internal fun ChannelRow(
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(channel.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (nowShowing != null) {
@@ -266,38 +266,4 @@ internal tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/** Collapsed category column: a narrow strip with the name of the selected category, reading bottom to top. */
-@Composable
-internal fun CollapsedCategory(name: String, modifier: Modifier = Modifier) {
-    Box(modifier.background(Palette.surface, RoundedCornerShape(12.dp))) {
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            null,
-            Modifier.align(Alignment.TopCenter).padding(top = 10.dp).size(22.dp),
-            tint = Palette.textMuted,
-        )
-        Text(
-            name,
-            style = MaterialTheme.typography.titleSmall,
-            color = Palette.text,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.align(Alignment.Center).padding(vertical = 44.dp).verticalText(),
-        )
-    }
-}
 
-/** Text rotated a quarter turn (bottom to top), with its measured size rotated too. */
-private fun Modifier.verticalText() = this
-    .layout { measurable, constraints ->
-        val placeable = measurable.measure(
-            Constraints(maxWidth = constraints.maxHeight, maxHeight = constraints.maxWidth),
-        )
-        layout(placeable.height, placeable.width) {
-            placeable.place(
-                x = -(placeable.width / 2 - placeable.height / 2),
-                y = -(placeable.height / 2 - placeable.width / 2),
-            )
-        }
-    }
-    .rotate(-90f)

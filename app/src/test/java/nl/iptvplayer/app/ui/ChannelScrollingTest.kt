@@ -75,13 +75,13 @@ class ChannelScrollingTest {
     fun focusedChannelStaysAtTheSameHeight() {
         openLiveChannels()
         repeat(3) { press(Key.DirectionUp) } // to the top of the list
-        val tops = (1..5).map {
+        val tops = (1..7).map {
             press(Key.DirectionDown)
             focusedTopDp()
         }
         println("Focus height per step (dp): $tops")
         // After the first steps the list slides under the focus instead of the focus moving down.
-        val settled = tops.drop(2)
+        val settled = tops.drop(4)
         assertTrue("focus stays put: $tops", settled.max() - settled.min() < 4f)
         assertTrue("focus sits in the upper half: $tops", settled.first() in 120f..240f)
         leaveLive()

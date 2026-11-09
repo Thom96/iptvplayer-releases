@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -55,6 +56,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.focusGroup
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
@@ -114,14 +116,15 @@ private const val CHANNEL_PIVOT = 0.35f
 private class ChannelListPosition(val index: Int, val offset: Int, val focusedKey: String?)
 
 private val liveCategoryMemory = java.util.WeakHashMap<Library, HashMap<String, ChannelListPosition>>()
-private val CAT_EXPANDED = 220.dp
-private val CAT_COLLAPSED = 52.dp
+private val CAT_WIDTH = 190.dp
 private val ARROWS = setOf(FocusDirection.Up, FocusDirection.Down, FocusDirection.Left, FocusDirection.Right)
 
 
 /**
- * Live TV in three columns: categories, channels (with what's on now) and a preview with guide.
+ * Live TV, with at the top a choice between the channel list and the TV guide ([LiveGuide]).
+ * Channel list: three columns with categories, channels (with what's on now) and a preview with guide.
  * OK = the same picture full screen; there you zap with up/down and Back takes you to the list again.
+ * One player serves the preview in both views and full screen.
  */
 @OptIn(UnstableApi::class)
 @kotlin.OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
@@ -344,6 +347,8 @@ fun LiveTab(vm: AppViewModel, library: Library) {
 
     val catFocus = rememberListFocusMemory()
     val channelFocus = rememberListFocusMemory()
+    val guideCatFocus = rememberListFocusMemory()
+    val channelListFocus = remember { FocusRequester() }
     // If "Favourites" or "Recently watched" appears at the top, scroll it into view instead of hiding it above.
     val catListState = rememberLazyListState()
     LaunchedEffect(favChannels.isEmpty(), recentChannels.isEmpty()) {
@@ -352,6 +357,24 @@ fun LiveTab(vm: AppViewModel, library: Library) {
 
     var rootCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var previewRect by remember { mutableStateOf<Rect?>(null) }
+    /** Marks the box where the preview picture goes (in the channel list or in the TV guide). */
+    val previewBox = Modifier.onGloballyPositioned { c -> rootCoords?.let { previewRect = it.localBoundingBoxOf(c) } }
+
+    var guideMode by rememberSaveable { mutableStateOf(false) }
+    val listTabFocus = remember { FocusRequester() }
+    val guideTabFocus = remember { FocusRequester() }
+
+    fun selectCategory(id: String) {
+        if (selectedCat == id) return
+        catMemory[selectedCat] = ChannelListPosition(
+            channelListState.firstVisibleItemIndex,
+            channelListState.firstVisibleItemScrollOffset,
+            if (focusedCat == selectedCat) focusedKey else catMemory[selectedCat]?.focusedKey,
+        )
+        selectedCat = id
+        val saved = catMemory[id]
+        scope.launch { channelListState.scrollToItem(saved?.index ?: 0, saved?.offset ?: 0) }
+    }
 
     Box(
         Modifier
@@ -370,88 +393,106 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                 }
             },
     ) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                // From the side rail straight into the channel list (where you were), not into the categories.
+                .focusProperties { enter = { if (guideMode) FocusRequester.Default else channelFocus.target ?: channelListFocus } }
+                .focusGroup()
+                .alpha(if (fullscreen) 0f else 1f)
+                .padding(start = 32.dp, end = 32.dp, top = 4.dp),
+        ) {
+        // Channels or TV guide. Coming up from below always lands on the active one; focus = select.
+        Row(
+            Modifier
+                .focusProperties { enter = { if (guideMode) guideTabFocus else listTabFocus } }
+                .focusGroup(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ChipButton(
+                text = S.channels,
+                selected = !guideMode,
+                onClick = { guideMode = false },
+                modifier = Modifier.focusRequester(listTabFocus).onFocusChanged { if (it.isFocused) guideMode = false },
+            )
+            ChipButton(
+                text = S.tabGuide,
+                selected = guideMode,
+                onClick = { guideMode = true },
+                modifier = Modifier.focusRequester(guideTabFocus).onFocusChanged { if (it.isFocused) guideMode = true },
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+
+        if (guideMode) {
+            LiveGuide(
+                vm = vm,
+                channels = channels,
+                previewBox = previewBox,
+                onPreview = { ch ->
+                    focusedKey = ch.key
+                    focusedCat = selectedCat
+                    play(ch)
+                },
+                onWatchLive = ::enterFullscreen,
+                categories = {
+                    // Coming from above or below lands on the chosen category, not on whatever is nearest.
+                    LazyRow(Modifier.enterFocusAt(guideCatFocus), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(catEntries, key = { it.first }) { (id, name, _) ->
+                            ChipButton(
+                                text = name,
+                                selected = selectedCat == id,
+                                onClick = { selectCategory(id) },
+                                modifier = Modifier
+                                    .onFocusChanged { if (it.isFocused) selectCategory(id) }
+                                    .listFocusTarget(guideCatFocus, selectedCat == id),
+                            )
+                        }
+                    }
+                },
+            )
+        } else {
         Row(
             Modifier
                 .fillMaxSize()
                 // With the arrow keys the focus must not leave the lists to the navigation rail (you'd switch
-                // tabs by accident); that goes with Back.
-                // Exception: left from the categories goes to the side rail (which puts focus on this tab).
+                // tabs by accident); that goes with Back. Up goes to "Channels / TV guide"; left from the
+                // categories goes to the side rail (which puts focus on this tab).
                 .focusProperties {
                     exit = {
-                        if (it in ARROWS && !(it == FocusDirection.Left && catHasFocus)) FocusRequester.Cancel
-                        else FocusRequester.Default
+                        val allowed = it == FocusDirection.Up || (it == FocusDirection.Left && catHasFocus)
+                        if (it in ARROWS && !allowed) FocusRequester.Cancel else FocusRequester.Default
                     }
                 }
-                .focusGroup()
-                .alpha(if (fullscreen) 0f else 1f)
-                .padding(start = 40.dp, end = 40.dp, top = 8.dp),
+                .focusGroup(),
         ) {
-            // Column 1: categories. Collapses to a narrow strip with the selected category as soon as focus is
-            // in the channel list; left expands it again.
-            val catWidth by animateDpAsState(if (catHasFocus) CAT_EXPANDED else CAT_COLLAPSED, label = "catWidth")
-            val expandedness = ((catWidth - CAT_COLLAPSED) / (CAT_EXPANDED - CAT_COLLAPSED)).coerceIn(0f, 1f)
-            // Always takes the narrow width in the row; expanded, the column lies over the channel list (like the
-            // side rail), so the list doesn't get narrower.
-            Box(Modifier.width(CAT_COLLAPSED).fillMaxHeight().zIndex(1f)) {
-                Box(
-                    Modifier
-                        .wrapContentWidth(Alignment.Start, unbounded = true)
-                        .width(catWidth)
-                        .fillMaxHeight()
-                        .background(Palette.background.copy(alpha = expandedness))
-                        .onFocusChanged { catHasFocus = it.hasFocus },
-                ) {
-                    LazyColumn(
-                        // Collapsed it is invisible but still there: left from the channels lands here (on the selected
-                        // category) and expands the column again.
-                        Modifier
-                            .fillMaxSize()
-                            .clipToBounds()
-                            .alpha(expandedness)
-                            // At the top and bottom of the list, don't jump to a channel under the expanded column.
-                            .focusProperties {
-                                exit = { if (it == FocusDirection.Up || it == FocusDirection.Down) FocusRequester.Cancel else FocusRequester.Default }
-                            }
-                            .enterFocusAt(catFocus),
-                        state = catListState,
-                        contentPadding = PaddingValues(bottom = 32.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        items(catEntries, key = { it.first }) { (id, name, count) ->
-                            fun select() {
-                                if (selectedCat == id) return
-                                catMemory[selectedCat] = ChannelListPosition(
-                                    channelListState.firstVisibleItemIndex,
-                                    channelListState.firstVisibleItemScrollOffset,
-                                    if (focusedCat == selectedCat) focusedKey else catMemory[selectedCat]?.focusedKey,
-                                )
-                                selectedCat = id
-                                val saved = catMemory[id]
-                                scope.launch { channelListState.scrollToItem(saved?.index ?: 0, saved?.offset ?: 0) }
-                            }
-                            ChipButton(
-                                text = name,
-                                selected = selectedCat == id,
-                                onClick = ::select,
-                                trailing = formatCount(count),
-                                fill = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .onFocusChanged { if (it.isFocused) select() }
-                                    .listFocusTarget(catFocus, selectedCat == id),
-                            )
-                        }
-                    }
-                    if (expandedness < 1f) {
-                        CollapsedCategory(
-                            name = catEntries.firstOrNull { it.first == selectedCat }?.second.orEmpty(),
-                            modifier = Modifier.width(CAT_COLLAPSED).fillMaxHeight().padding(bottom = 32.dp).alpha(1f - expandedness),
-                        )
-                    }
+            // Column 1: categories, always as a plain list.
+            LazyColumn(
+                Modifier
+                    .width(CAT_WIDTH)
+                    .fillMaxHeight()
+                    .onFocusChanged { catHasFocus = it.hasFocus }
+                    .enterFocusAt(catFocus),
+                state = catListState,
+                contentPadding = PaddingValues(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                items(catEntries, key = { it.first }) { (id, name, count) ->
+                    ChipButton(
+                        text = name,
+                        selected = selectedCat == id,
+                        onClick = { selectCategory(id) },
+                        trailing = formatCount(count),
+                        fill = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { if (it.isFocused) selectCategory(id) }
+                            .listFocusTarget(catFocus, selectedCat == id),
+                    )
                 }
             }
 
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(12.dp))
 
             // Column 2: channels. The focused channel stays at the same height and the list slides underneath;
             // holding an arrow key moves at a calm pace.
@@ -461,7 +502,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
             }
             CompositionLocalProvider(LocalBringIntoViewSpec provides pivot) {
             LazyColumn(
-                Modifier.weight(1f).fillMaxHeight().calmHeldKeys().enterFocusAt(channelFocus),
+                Modifier.weight(1f).fillMaxHeight().calmHeldKeys().focusRequester(channelListFocus).enterFocusAt(channelFocus),
                 state = channelListState,
                 contentPadding = PaddingValues(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -494,20 +535,21 @@ fun LiveTab(vm: AppViewModel, library: Library) {
             }
             }
 
-            Spacer(Modifier.width(20.dp))
+            Spacer(Modifier.width(16.dp))
 
             // Column 3: preview + guide
-            Column(Modifier.width(330.dp).fillMaxHeight()) {
+            Column(Modifier.width(280.dp).fillMaxHeight()) {
                 Box(
-                    Modifier
+                    previewBox
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f)
-                        .background(Palette.video, RoundedCornerShape(12.dp))
-                        .onGloballyPositioned { c -> rootCoords?.let { previewRect = it.localBoundingBoxOf(c) } },
+                        .background(Palette.video, RoundedCornerShape(12.dp)),
                 )
                 val info = focused ?: playing
                 if (info != null) EpgPanel(vm, info, now)
             }
+        }
+        }
         }
 
         // Player layer: lies over the preview box, or over the whole screen. Same view = no reloading.
