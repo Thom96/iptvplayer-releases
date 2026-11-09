@@ -152,6 +152,30 @@ internal object DemoData {
         }
     }
 
+    /** Guide for the TV guide screen: programmes of varying length from yesterday until the day after tomorrow. */
+    fun guide(id: Int, now: Long): List<CatchupEntry> {
+        val shows = listOf("Journaal", "Studio Sport", "Weerbericht", "Documentaire", "Talkshow", "Film van de week", "Quiz", "Kookprogramma")
+        val lengths = listOf(15, 30, 45, 60, 90, 25, 50, 120)
+        val minute = 60_000L
+        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.ROOT)
+        var start = (now - XtreamClient.GUIDE_PAST_MS) / (30 * minute) * (30 * minute) + (id % 4) * 5 * minute
+        var i = id
+        val out = ArrayList<CatchupEntry>()
+        while (start < now + XtreamClient.GUIDE_FUTURE_MS) {
+            val end = start + lengths[(i * 7) % lengths.size] * minute
+            out += CatchupEntry(
+                title = shows[i % shows.size],
+                description = "Beschrijving van het programma in de demomodus.",
+                start = start, end = end,
+                serverStart = fmt.format(java.util.Date(start)),
+                hasArchive = id % 3 == 0 && end < now,
+            )
+            start = end
+            i++
+        }
+        return out
+    }
+
     private fun poster(id: Int) = "https://picsum.photos/seed/p$id/300/450"
     private fun backdrop(id: Int) = "https://picsum.photos/seed/b$id/1280/720"
 }
