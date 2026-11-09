@@ -52,6 +52,7 @@ class App : Application(), ImageLoaderFactory {
             .okHttpClient(http)
             .crossfade(false) // crossfading costs drawing work while scrolling
             .respectCacheHeaders(false)
+            .components { add(TmdbSizeInterceptor()) }
             .build()
 
     companion object {
