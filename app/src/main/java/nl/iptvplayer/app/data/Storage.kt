@@ -7,11 +7,33 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Local storage: login details, favourites and watch progress. The password is stored encrypted
+ * Local storage: login details, favourites and watch progress (the latter per profile, see [useProfile]). The password is stored encrypted
  * (see [SecretCipher]); an old password stored in plain text is converted when it is read.
  */
-class Storage(context: Context, private val cipher: SecretCipher = KeystoreCipher()) {
+class Storage(private val context: Context, private val cipher: SecretCipher = KeystoreCipher()) {
     private val prefs = context.getSharedPreferences("iptv", Context.MODE_PRIVATE)
+
+    /**
+     * Storage of the active profile: favourites, watched, continue watching, recent channels and languages.
+     * The first profile uses the same file as before profiles existed, so an update keeps everything.
+     */
+    private var profilePrefs = prefs
+
+    /** Switches to the data of another profile; the flows below then show that profile's lists. */
+    fun useProfile(id: String) {
+        profilePrefs = if (id == Profile.MAIN) prefs else context.getSharedPreferences("iptv_profile_$id", Context.MODE_PRIVATE)
+        _favorites.value = profilePrefs.getStringSet("favorites", emptySet())!!.toSet()
+        _watched.value = profilePrefs.getStringSet("watched", emptySet())!!.toSet()
+        _progress.value = loadProgress()
+        _recentLive.value = loadRecentLive()
+        _languages.value = profilePrefs.getStringSet("languages", emptySet())!!.toSet()
+    }
+
+    /** Removes everything a deleted profile had stored. */
+    fun deleteProfileData(id: String) {
+        if (id == Profile.MAIN) return
+        context.getSharedPreferences("iptv_profile_$id", Context.MODE_PRIVATE).edit().clear().apply()
+    }
 
     var credentials: Credentials?
         get() {
@@ -47,18 +69,18 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
 
     // ---------- Favourites ----------
 
-    private val _favorites = MutableStateFlow(prefs.getStringSet("favorites", emptySet())!!.toSet())
+    private val _favorites = MutableStateFlow(profilePrefs.getStringSet("favorites", emptySet())!!.toSet())
     val favorites: StateFlow<Set<String>> = _favorites
 
     fun toggleFavorite(key: String) {
         val next = _favorites.value.let { if (key in it) it - key else it + key }
         _favorites.value = next
-        prefs.edit().putStringSet("favorites", next).apply()
+        profilePrefs.edit().putStringSet("favorites", next).apply()
     }
 
     // ---------- Watched ----------
 
-    private val _watched = MutableStateFlow(prefs.getStringSet("watched", emptySet())!!.toSet())
+    private val _watched = MutableStateFlow(profilePrefs.getStringSet("watched", emptySet())!!.toSet())
     val watched: StateFlow<Set<String>> = _watched
 
     // ---------- Continue watching ----------
@@ -99,9 +121,7 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
 
     // ---------- Recently watched channels ----------
 
-    private val _recentLive = MutableStateFlow(
-        (prefs.getString("recentLive", "") ?: "").split(',').filter { it.isNotEmpty() },
-    )
+    private val _recentLive = MutableStateFlow(loadRecentLive())
     /** Last watched channels, newest first (max. 10). */
     val recentLive: StateFlow<List<String>> = _recentLive
 
@@ -109,9 +129,11 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
 
     fun removeRecentLive(key: String) = setRecentLive(_recentLive.value.filterNot { it == key })
 
+    private fun loadRecentLive() = (profilePrefs.getString("recentLive", "") ?: "").split(',').filter { it.isNotEmpty() }
+
     private fun setRecentLive(list: List<String>) {
         _recentLive.value = list
-        prefs.edit().putString("recentLive", list.joinToString(",")).apply()
+        profilePrefs.edit().putString("recentLive", list.joinToString(",")).apply()
     }
 
     // ---------- Stream format ----------
@@ -172,8 +194,9 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
 
     /** Code of the chosen app language (e.g. "en"); null as long as nothing was chosen on first start. */
     var appLanguage: String?
-        get() = prefs.getString("appLanguage", null)
-        set(value) { prefs.edit().putString("appLanguage", value).apply() }
+        // A new profile starts in the language of the device's first profile.
+        get() = profilePrefs.getString("appLanguage", null) ?: prefs.getString("appLanguage", null)
+        set(value) { profilePrefs.edit().putString("appLanguage", value).apply() }
 
     // ---------- Activation ----------
 
@@ -190,7 +213,7 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
 
     // ---------- Languages of the catalogue ----------
 
-    private val _languages = MutableStateFlow(prefs.getStringSet("languages", emptySet())!!.toSet())
+    private val _languages = MutableStateFlow(profilePrefs.getStringSet("languages", emptySet())!!.toSet())
     /** Chosen language labels (e.g. "NL", "MULTI"); empty = show all languages. */
     val languages: StateFlow<Set<String>> = _languages
 
@@ -199,13 +222,13 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
     /** All chosen languages at once; empty = show all languages. */
     fun setLanguages(tags: Set<String>) {
         _languages.value = tags
-        prefs.edit().putStringSet("languages", tags).apply()
+        profilePrefs.edit().putStringSet("languages", tags).apply()
     }
 
     private fun markWatched(key: String) {
         val next = _watched.value + key
         _watched.value = next
-        prefs.edit().putStringSet("watched", next).apply()
+        profilePrefs.edit().putStringSet("watched", next).apply()
     }
 
     private fun setProgress(list: List<Progress>) {
@@ -224,12 +247,12 @@ class Storage(context: Context, private val cipher: SecretCipher = KeystoreCiphe
                 put("updated", p.updatedAt)
             })
         }
-        prefs.edit().putString("progress", arr.toString()).apply()
+        profilePrefs.edit().putString("progress", arr.toString()).apply()
     }
 
     private fun loadProgress(): List<Progress> {
         val arr = try {
-            JSONArray(prefs.getString("progress", "[]"))
+            JSONArray(profilePrefs.getString("progress", "[]"))
         } catch (e: Exception) {
             return emptyList()
         }

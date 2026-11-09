@@ -293,6 +293,53 @@ abstract class Strings {
     abstract val validUntil: String
     abstract val noEndDate: String
 
+    // Profiles and parental control
+    abstract val whoIsWatching: String
+    abstract val manageProfiles: String
+    abstract val addProfile: String
+    abstract val done: String
+    abstract val profileDefaultName: String
+    abstract val kidBadge: String
+    abstract val editProfile: String
+    abstract val newProfile: String
+    abstract val profileNameHint: String
+    abstract val profileColor: String
+    abstract val kidProfile: String
+    abstract val kidProfileHint: String
+    abstract val lockProfile: String
+    abstract val lockProfileHint: String
+    abstract val allowedContent: String
+    abstract val save: String
+    abstract val deleteProfile: String
+    abstract val deleteProfileQuestion: String
+    abstract fun deleteProfileWarning(name: String): String
+    abstract val enterPin: String
+    abstract val newPin: String
+    abstract val newPinKidHint: String
+    abstract val confirmPin: String
+    abstract val wrongPin: String
+    abstract val pinsDontMatch: String
+    abstract val forgotPin: String
+    abstract val forgotPinHint: String
+    abstract val wrongPassword: String
+    abstract val next: String
+    abstract val settingsLockedTitle: String
+    abstract val settingsLockedHint: String
+    abstract val unlock: String
+    abstract val profilesSection: String
+    abstract val profilesHint: String
+    abstract val currentProfile: String
+    abstract val switchProfile: String
+    abstract val setPin: String
+    abstract val changePin: String
+    abstract val removePin: String
+    abstract fun parentalTitle(name: String): String
+    abstract val parentalHint: String
+    abstract val visibleLabel: String
+    abstract val hiddenLabel: String
+    abstract val showAll: String
+    abstract val hideAll: String
+    abstract val noCategories: String
     // Phone login and TMDB
     abstract val phoneLoginTitle: String
     abstract val phoneLoginHint: String

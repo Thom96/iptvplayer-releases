@@ -3,6 +3,7 @@ package nl.iptvplayer.app
 import android.app.Application
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import nl.iptvplayer.app.data.ProfileStore
 import nl.iptvplayer.app.data.IntroDb
 import nl.iptvplayer.app.data.MetadataClient
 import nl.iptvplayer.app.data.Storage
@@ -24,7 +25,10 @@ class App : Application(), ImageLoaderFactory {
             .build()
     }
 
-    val storage: Storage by lazy { Storage(this) }
+    val profiles: ProfileStore by lazy { ProfileStore(this) }
+
+    /** Opens on the profile that was used last; the profile picker can switch at start. */
+    val storage: Storage by lazy { Storage(this).also { it.useProfile(profiles.activeId) } }
 
     /** Intro and credits times for the skip buttons. */
     val introDb: IntroDb by lazy { IntroDb(http) }

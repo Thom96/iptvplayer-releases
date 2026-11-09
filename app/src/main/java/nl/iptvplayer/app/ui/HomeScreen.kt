@@ -63,6 +63,7 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import kotlinx.coroutines.launch
 import nl.iptvplayer.app.AppViewModel
+import nl.iptvplayer.app.ProfileMode
 import nl.iptvplayer.app.R
 import nl.iptvplayer.app.data.Kind
 
@@ -94,6 +95,8 @@ enum class HomeTab(val icon: ImageVector) {
 /** Width of the collapsed side rail; the content starts to the right of it. */
 private val RailWidth = 76.dp
 private val RailExpandedWidth = 248.dp
+/** Nine tabs plus the profile avatar must fit within 540 dp: 20 + 44 + 4 + 10 × 40 + 12 × 4 + 20 = 536. */
+private val RailItemHeight = 40.dp
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -146,7 +149,7 @@ fun HomeScreen(vm: AppViewModel) {
                     HomeTab.FAVORITES -> FavoritesTab(vm, library)
                     HomeTab.CATCHUP -> CatchupTab(vm, library)
                     HomeTab.SEARCH -> SearchTab(vm, library)
-                    HomeTab.SETTINGS -> SettingsTab(vm, vm.library ?: library)
+                    HomeTab.SETTINGS -> if (vm.settingsLocked) SettingsLockedPane(vm) else SettingsTab(vm, vm.library ?: library)
                 }
             }
         }
@@ -156,6 +159,9 @@ fun HomeScreen(vm: AppViewModel) {
                 expanded = navFocused,
                 tabFocus = tabFocus,
                 onSelect = { tab = it },
+                profile = if (vm.profiles.size > 1) {
+                    { expanded -> RailProfileItem(vm, expanded) }
+                } else null,
                 modifier = Modifier
                     .zIndex(1f)
                     // From the content, always land on the active tab, not on the item that happens to be
@@ -179,6 +185,7 @@ private fun NavRail(
     tabFocus: Map<HomeTab, FocusRequester>,
     onSelect: (HomeTab) -> Unit,
     modifier: Modifier = Modifier,
+    profile: (@Composable (expanded: Boolean) -> Unit)? = null,
 ) {
     val width by animateDpAsState(if (expanded) RailExpandedWidth else RailWidth, label = "rail")
     Box(modifier.fillMaxHeight().width(width)) {
@@ -200,9 +207,12 @@ private fun NavRail(
                     Image(painterResource(R.drawable.gallo_o), contentDescription = "Gallo", modifier = Modifier.size(width = 36.dp, height = 33.dp))
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             HomeTab.entries.forEach { t ->
-                if (t == HomeTab.SETTINGS) Spacer(Modifier.weight(1f))
+                if (t == HomeTab.SETTINGS) {
+                    Spacer(Modifier.weight(1f))
+                    profile?.invoke(expanded)
+                }
                 RailItem(
                     tab = t,
                     selected = t == current,
@@ -222,7 +232,7 @@ private fun RailItem(tab: HomeTab, selected: Boolean, expanded: Boolean, onSelec
     Surface(
         onClick = onSelect,
         modifier = modifier
-            .height(44.dp)
+            .height(RailItemHeight)
             .fillMaxWidth()
             .onFocusChanged { if (it.isFocused) onSelect() }
             .tapToClick(onSelect),
@@ -247,6 +257,39 @@ private fun RailItem(tab: HomeTab, selected: Boolean, expanded: Boolean, onSelec
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(start = 16.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Avatar of the current profile in the side rail (only with two or more profiles); opens "Who's watching?". */
+@Composable
+private fun RailProfileItem(vm: AppViewModel, expanded: Boolean) {
+    val shape = RoundedCornerShape(12.dp)
+    val open = { vm.profileScreen = ProfileMode.PICK }
+    Surface(
+        onClick = open,
+        modifier = Modifier.height(RailItemHeight).fillMaxWidth().tapToClick(open),
+        shape = ClickableSurfaceDefaults.shape(shape),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color.Transparent,
+            contentColor = Palette.textMuted,
+            focusedContainerColor = Palette.surfaceFocused,
+            focusedContentColor = Palette.text,
+        ),
+        border = ClickableSurfaceDefaults.border(focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = shape)),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
+    ) {
+        Row(Modifier.fillMaxSize().padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+            ProfileAvatar(vm.activeProfile, vm.profileName(vm.activeProfile), 26.dp)
+            if (expanded) {
+                Text(
+                    vm.profileName(vm.activeProfile),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 15.dp),
                 )
             }
         }
