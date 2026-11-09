@@ -144,10 +144,12 @@ class LiveTabTest {
         shot("live-guide-past")
         rule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
         val app = rule.activity.application as nl.iptvplayer.app.App
-        rule.waitUntil(5_000) {
-            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
-            app.pendingQueue != null
-        }
+        // Only check that the player is asked for (it is not started in this test).
+        rule.waitUntil(5_000) { app.pendingQueue != null }
+        assertEquals(
+            nl.iptvplayer.app.player.PlayerActivity::class.java.name,
+            org.robolectric.Shadows.shadowOf(rule.activity).nextStartedActivity?.component?.className,
+        )
         assertEquals(nl.iptvplayer.app.data.Kind.CATCHUP, app.pendingQueue?.items?.single()?.kind)
         assertTrue(vm.guide.isNotEmpty())
         leave()
