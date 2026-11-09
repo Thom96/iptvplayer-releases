@@ -144,6 +144,8 @@ data class Episode(
     val image: String?,
     val plot: String?,
     val durationSecs: Int?,
+    /** TMDB id of the series (from the provider), to look up intro and credits times. */
+    val seriesTmdbId: Int? = null,
 ) {
     val key: String get() = MediaItem.keyOf(Kind.EPISODE, id)
 }
