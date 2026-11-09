@@ -204,7 +204,7 @@ private fun NavRail(
                 if (expanded) {
                     GalloWordmark(size = 30.sp)
                 } else {
-                    Image(painterResource(R.drawable.gallo_o), contentDescription = "Gallo", modifier = Modifier.size(width = 36.dp, height = 33.dp))
+                    Image(painterResource(R.drawable.gallo_o), contentDescription = "GalloTV", modifier = Modifier.size(width = 36.dp, height = 33.dp))
                 }
             }
             Spacer(Modifier.height(4.dp))

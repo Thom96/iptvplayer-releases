@@ -1,6 +1,6 @@
-# Gallo: IPTV-speler voor Android TV
+# GalloTV: IPTV-speler voor Android TV
 
-Gallo ("GalloPlayer") is een eigen Android TV-app voor een Xtream Codes IPTV-abonnement, gemaakt voor
+GalloTV is een eigen Android TV-app voor een Xtream Codes IPTV-abonnement, gemaakt voor
 Chromecast met Google TV en de Google TV Streamer (1920×1080). Hij is gericht op makkelijk zoeken in films en series.
 
 ## Functies
@@ -34,7 +34,7 @@ https://gallo-heermoes-13.vercel.app). Elk apparaat krijgt een code (`XXXX-XXXX`
 2. Sta Downloader toe apps te installeren: Instellingen → Apps → Beveiliging en beperkingen → Onbekende bronnen.
 3. Open Downloader, typ code **3370517** en kies **Go**.
 4. Kies **Installeren** (bij een waarschuwing van Play Protect: *Toch installeren*).
-5. Open **Gallo**, kies je taal en log in met je eigen IPTV-gegevens.
+5. Open **GalloTV**, kies je taal en log in met je eigen IPTV-gegevens.
 
 De code wijst naar de nieuwste versie op GitHub
 (`https://github.com/Thom96/iptvplayer-releases/releases/latest/download/IPTVPlayer.apk`),

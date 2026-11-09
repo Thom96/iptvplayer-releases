@@ -1,7 +1,7 @@
-# Gallo (IPTV Player voor Android TV)
+# GalloTV (IPTV Player voor Android TV)
 
-Android TV-app (Kotlin, Jetpack Compose for TV) voor een Xtream Codes IPTV-abonnement. Merknaam: **Gallo**,
-"GalloPlayer" op de banner. Het technische app-ID blijft `nl.iptvplayer.app`, en de releasebestanden heten
+Android TV-app (Kotlin, Jetpack Compose for TV) voor een Xtream Codes IPTV-abonnement. Merknaam: **GalloTV**; het logo
+is het woord "Gallo" met een retro-tv met haankop erachter (Gallo + TV). Het technische app-ID blijft `nl.iptvplayer.app`, en de releasebestanden heten
 `IPTVPlayer.apk`. Verander die niet, anders werken updates en de Downloader-code niet meer.
 
 ## Afspraken met de eigenaar

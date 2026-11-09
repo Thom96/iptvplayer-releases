@@ -22,15 +22,15 @@ import androidx.tv.material3.Text
 import nl.iptvplayer.app.R
 
 /**
- * Wordmark from the brandbook: "Gall" in Young Serif, followed by the o: a small retro TV with a
- * rooster head on the screen. The bottom of the TV sits on the baseline of the letters.
+ * GalloTV wordmark from the brandbook: "Gallo" in Young Serif, followed by a small retro TV with a
+ * rooster head on the screen (Gallo + TV). The bottom of the TV sits on the baseline of the letters.
  */
 @Composable
 fun GalloWordmark(size: TextUnit, modifier: Modifier = Modifier) {
     val em = with(LocalDensity.current) { size.toDp() }
-    Row(modifier.clearAndSetSemantics { contentDescription = "Gallo" }) {
+    Row(modifier.clearAndSetSemantics { contentDescription = "GalloTV" }) {
         Text(
-            "Gall",
+            "Gallo",
             style = TextStyle(fontFamily = YoungSerif, fontSize = size, color = Palette.text),
             modifier = Modifier.alignByBaseline(),
         )
@@ -38,7 +38,7 @@ fun GalloWordmark(size: TextUnit, modifier: Modifier = Modifier) {
             painterResource(R.drawable.gallo_o),
             contentDescription = null,
             modifier = Modifier
-                .padding(start = em * 0.036f)
+                .padding(start = em * 0.12f)
                 .size(width = em * 0.84f, height = em * 0.77f)
                 // The TV ends 1/92 above the bottom of the image: that line goes on the baseline.
                 .alignBy { it.measuredHeight * 91 / 92 },
@@ -46,20 +46,8 @@ fun GalloWordmark(size: TextUnit, modifier: Modifier = Modifier) {
     }
 }
 
-/** Wordmark with "PLAYER" below it, for the login screen. */
+/** Large wordmark for the login and language screens. The TV says "TV", so no extra subtitle. */
 @Composable
 fun GalloLogo(size: TextUnit, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        GalloWordmark(size)
-        Text(
-            "PLAYER",
-            style = TextStyle(
-                fontFamily = Outfit,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = size * 0.14f,
-                letterSpacing = 0.5.em,
-                color = Palette.accent,
-            ),
-        )
-    }
+    GalloWordmark(size, modifier)
 }

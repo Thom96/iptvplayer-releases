@@ -146,7 +146,7 @@ class PhoneLoginServer(private val onCredentials: (server: String, username: Str
     private fun page(content: String) = """
         <!doctype html><html lang="${I18n.language.code}"><head><meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>Gallo</title>
+        <title>GalloTV</title>
         <style>
           body{margin:0;background:#0B1A22;color:#EDF3F2;font:16px/1.5 system-ui,sans-serif;padding:32px 20px}
           main{max-width:420px;margin:0 auto}
@@ -158,7 +158,7 @@ class PhoneLoginServer(private val onCredentials: (server: String, username: Str
           input:focus{outline:3px solid #E8CC94;border-color:transparent}
           button{font:600 16px system-ui,sans-serif;background:#E8CC94;color:#07131A;border:0;border-radius:24px;padding:14px;margin-top:6px}
         </style></head>
-        <body><main><h1>Gall<b>o</b></h1><h2>${esc(S.phoneLoginTitle)}</h2>$content</main></body></html>
+        <body><main><h1>Gallo<b>TV</b></h1><h2>${esc(S.phoneLoginTitle)}</h2>$content</main></body></html>
     """.trimIndent()
 
     private class Request(val method: String, val path: String, val body: String)
