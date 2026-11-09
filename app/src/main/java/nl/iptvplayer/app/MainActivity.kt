@@ -16,6 +16,7 @@ import nl.iptvplayer.app.ui.LanguageScreen
 import nl.iptvplayer.app.ui.LoadingScreen
 import nl.iptvplayer.app.ui.LoginScreen
 import nl.iptvplayer.app.ui.MovieDetailScreen
+import nl.iptvplayer.app.ui.ProfileScreen
 import nl.iptvplayer.app.ui.SeriesDetailScreen
 import nl.iptvplayer.app.ui.BrowseTab
 import nl.iptvplayer.app.ui.UpdatePrompt
@@ -35,7 +36,7 @@ class MainActivity : ComponentActivity() {
                         is AppState.Loading -> LoadingScreen(s, onRoosterDone = vm::loadingAnimationDone)
                         is AppState.Failed -> FailedScreen(s.message, onRetry = vm::retry, onLogout = vm::logout)
                         AppState.Ready -> when (val gate = vm.gate) {
-                            Gate.NONE -> Navigation(vm)
+                            Gate.NONE -> vm.profileScreen?.let { ProfileScreen(vm, it) } ?: Navigation(vm)
                             else -> ActivationScreen(vm, gate)
                         }
                     }

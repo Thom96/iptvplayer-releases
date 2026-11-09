@@ -35,6 +35,8 @@ import nl.iptvplayer.app.data.LicenseClient
 import nl.iptvplayer.app.data.LicenseStatus
 import nl.iptvplayer.app.data.Library
 import nl.iptvplayer.app.data.MediaItem
+import nl.iptvplayer.app.data.ParentalFilter
+import nl.iptvplayer.app.data.Profile
 import nl.iptvplayer.app.data.Progress
 import nl.iptvplayer.app.data.TextMatch
 import nl.iptvplayer.app.data.XtreamClient
@@ -64,6 +66,9 @@ sealed interface AppState {
     data class Failed(val message: String) : AppState
     data object Ready : AppState
 }
+
+/** See [AppViewModel.profileScreen]: choosing who watches, or adding and changing profiles. */
+enum class ProfileMode { PICK, MANAGE }
 
 /** See [AppViewModel.gate]. */
 enum class Gate { NONE, TRIAL_NOTICE, LOCKED }
@@ -111,6 +116,90 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         storage.appLanguage = language.code
         I18n.language = language
         languageChosen = true
+    }
+
+    // ---------- Profiles and parental control ----------
+
+    private val profileStore get() = app.profiles
+    var profiles by mutableStateOf(app.profiles.profiles)
+        private set
+    var activeProfile by mutableStateOf(app.profiles.active)
+        private set
+    var hasPin by mutableStateOf(app.profiles.hasPin)
+        private set
+    /** All lists without the parental filter, to choose what a kid profile may see. */
+    var fullLibrary by mutableStateOf<Library?>(null)
+        private set
+    /** Profile screen in front of the app: at every start once there are two or more profiles. */
+    var profileScreen by mutableStateOf(if (app.profiles.profiles.size > 1) ProfileMode.PICK else null)
+    /** Someone chose a profile since the app started (or there was nothing to choose). */
+    var profileChosen by mutableStateOf(app.profiles.profiles.size <= 1)
+        private set
+    /** Settings were opened with the PIN; until another profile is chosen. */
+    var settingsUnlocked by mutableStateOf(false)
+    val settingsLocked: Boolean get() = hasPin && !settingsUnlocked
+
+    /** A locked profile only needs the PIN as long as there is one. */
+    fun needsPin(profile: Profile) = hasPin && (profile.locked && !profile.kid)
+
+    fun selectProfile(profile: Profile) {
+        profileScreen = null
+        profileChosen = true
+        if (profile.id == activeProfile.id) return
+        profileStore.activeId = profile.id
+        storage.useProfile(profile.id)
+        AppLanguage.fromCode(storage.appLanguage)?.let { I18n.language = it }
+        activeProfile = profile
+        settingsUnlocked = false
+        nav.clear()
+        nav.add(Screen.Home)
+        refilter()
+    }
+
+    /** Adds or changes a profile. The first kid profile locks the grown-up profiles, so a child can't pick them. */
+    fun saveProfile(profile: Profile) {
+        val firstKid = profile.kid && profiles.none { it.kid }
+        profileStore.save(profile)
+        if (firstKid) profileStore.profiles.filter { !it.kid }.forEach { profileStore.save(it.copy(locked = true)) }
+        profiles = profileStore.profiles
+        if (profile.id == activeProfile.id) {
+            activeProfile = profileStore.active
+            refilter()
+        }
+    }
+
+    fun deleteProfile(id: String) {
+        if (id == activeProfile.id) {
+            val screen = profileScreen
+            selectProfile(profiles.first { it.id == Profile.MAIN })
+            profileScreen = screen
+        }
+        profileStore.delete(id)
+        storage.deleteProfileData(id)
+        profiles = profileStore.profiles
+    }
+
+    fun newProfileId() = profileStore.newId()
+
+    fun checkPin(pin: String) = profileStore.checkPin(pin)
+
+    /** null removes the PIN. */
+    fun setPin(pin: String?) {
+        profileStore.setPin(pin)
+        hasPin = profileStore.hasPin
+    }
+
+    /** "Forgot PIN": the password of the subscription proves it's the owner. */
+    fun checkAccountPassword(password: String) = storage.credentials?.password == password
+
+    /** Name on screen: the first profile is called after the account until it gets its own name. */
+    fun profileName(profile: Profile): String = profile.name.ifBlank {
+        if (profile.id == Profile.MAIN) storage.lastUsername.ifBlank { S.profileDefaultName } else S.profileDefaultName
+    }
+
+    private fun refilter() {
+        val full = fullLibrary ?: return
+        viewModelScope.launch { setLibrary(full) }
     }
 
     var state by mutableStateOf<AppState>(AppState.Login())
@@ -398,12 +487,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         state = AppState.Ready
     }
 
-    private suspend fun setLibrary(lib: Library) {
+    private suspend fun setLibrary(full: Library) {
         filterJob?.cancel() // a language filter on the old lists must not overwrite the new ones
         // Prepare the filtered library and the lists for Home in the background already.
+        val profile = activeProfile
+        val lib = withContext(Dispatchers.Default) { ParentalFilter.apply(full, profile) }
         val visible = withContext(Dispatchers.Default) {
             lib.filtered(storage.languages.value).also { it.newestMovies; it.newestSeries }
         }
+        fullLibrary = full
         library = lib
         visibleLibrary = visible
         viewModelScope.launch(Dispatchers.Default) {
@@ -486,6 +578,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         client = null
         storage.credentials = null
         library = null
+        fullLibrary = null
         visibleLibrary = null
         account = null
         nav.clear()

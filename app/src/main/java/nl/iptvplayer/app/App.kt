@@ -3,6 +3,7 @@ package nl.iptvplayer.app
 import android.app.Application
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import nl.iptvplayer.app.data.ProfileStore
 import nl.iptvplayer.app.data.Storage
 import nl.iptvplayer.app.i18n.AppLanguage
 import nl.iptvplayer.app.i18n.I18n
@@ -22,7 +23,10 @@ class App : Application(), ImageLoaderFactory {
             .build()
     }
 
-    val storage: Storage by lazy { Storage(this) }
+    val profiles: ProfileStore by lazy { ProfileStore(this) }
+
+    /** Opens on the profile that was used last; the profile picker can switch at start. */
+    val storage: Storage by lazy { Storage(this).also { it.useProfile(profiles.activeId) } }
 
     /** Queue for the player; passed through memory because channel lists are too big for an Intent. */
     var pendingQueue: PlaybackQueue? = null

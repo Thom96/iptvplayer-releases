@@ -46,6 +46,8 @@ fun SettingsTab(vm: AppViewModel, library: Library) {
     var confirmLogout by remember { mutableStateOf(false) }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 56.dp, end = 56.dp, top = 16.dp, bottom = 48.dp)) {
+        item { ProfileSettings(vm) }
+
         item {
             Heading(S.appLanguage)
             Text(S.appLanguageHint, style = MaterialTheme.typography.bodyMedium, color = Palette.textMuted)
