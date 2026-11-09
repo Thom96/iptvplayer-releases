@@ -191,6 +191,12 @@ object De : Strings() {
     override val surroundSoundHint = "Dolby- und DTS-Ton geht an den Fernseher oder die Soundbar, wenn diese ihn abspielen können. Bei manchen Filmen kein Ton? Wähle Stereo: Die Box erzeugt den Ton dann selbst."
     override val surroundPassthrough = "Über TV oder Soundbar"
     override val surroundStereo = "Immer Stereo"
+    override val timeshift = "Live zurückspulen"
+    override val timeshiftHint = "Beim Live-Fernsehen speichert die Box die letzten Minuten, damit du pausieren und zurückspulen kannst. Das braucht Speicher auf der Box (30 Minuten HD sind etwa 1 bis 2 GB). Aus: Live-TV läuft direkt."
+
+    override val backToLive = "Zurück zu live"
+    override fun behindLive(time: String) = "$time hinter live"
+    override val timeshiftKeys = "◀ ▶ spulen  ·  OK Pause  ·  Zurück = live"
     override val updates = "Updates"
     override val account = "Konto"
     override val server = "Server"

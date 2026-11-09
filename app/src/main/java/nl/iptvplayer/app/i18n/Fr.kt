@@ -191,6 +191,12 @@ object Fr : Strings() {
     override val surroundSoundHint = "Le son Dolby et DTS est envoyé à la TV ou à la barre de son si elle indique pouvoir le lire. Pas de son sur certains films ? Choisissez stéréo : le boîtier produit alors le son lui-même."
     override val surroundPassthrough = "Par la TV ou la barre de son"
     override val surroundStereo = "Toujours stéréo"
+    override val timeshift = "Retour en arrière en direct"
+    override val timeshiftHint = "Pendant le direct, le boîtier garde les dernières minutes pour que tu puisses mettre en pause et revenir en arrière. Cela utilise du stockage sur le boîtier (30 minutes en HD font environ 1 à 2 Go). Désactivé : le direct est lu tel quel."
+
+    override val backToLive = "Retour au direct"
+    override fun behindLive(time: String) = "$time de retard sur le direct"
+    override val timeshiftKeys = "◀ ▶ avancer/reculer  ·  OK pause  ·  Retour = direct"
     override val updates = "Mises à jour"
     override val account = "Compte"
     override val server = "Serveur"

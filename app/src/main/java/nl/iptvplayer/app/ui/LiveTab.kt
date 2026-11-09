@@ -93,6 +93,10 @@ import nl.iptvplayer.app.data.TextMatch
 import nl.iptvplayer.app.player.PlaybackSession
 import nl.iptvplayer.app.player.StreamRecovery
 import nl.iptvplayer.app.player.fastStartLoadControl
+import nl.iptvplayer.app.player.timeshift.LiveTimeshift
+import nl.iptvplayer.app.player.timeshift.TimeshiftBar
+import nl.iptvplayer.app.player.timeshift.liveMediaItem
+import nl.iptvplayer.app.player.timeshift.rememberTimeshiftState
 
 
 
@@ -166,10 +170,15 @@ fun LiveTab(vm: AppViewModel, library: Library) {
 
     // ---------- Player (one player for both preview and full screen) ----------
 
+    // Pause and rewind: the channel is recorded on the device while it plays (off in Settings = direct).
+    val timeshift = remember {
+        val minutes = vm.storage.timeshiftMinutes.value
+        if (minutes > 0) LiveTimeshift(context, app.http, App.USER_AGENT, minutes * 60_000L) else null
+    }
     val player = remember {
         val dataSource = OkHttpDataSource.Factory(app.http).setUserAgent(App.USER_AGENT)
         ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(timeshift?.dataSourceFactory(dataSource) ?: dataSource))
             .setLoadControl(fastStartLoadControl())
             .build()
     }
@@ -178,7 +187,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
     var retryJob by remember { mutableStateOf<Job?>(null) }
     val currentPlaying by rememberUpdatedState(playing)
 
-    fun exoItem(url: String) = ExoItem.Builder().setUri(url)
+    fun exoItem(url: String) = timeshift.liveMediaItem(ExoItem.Builder(), url)
         .apply { if (url.endsWith(".m3u8")) setMimeType(MimeTypes.APPLICATION_M3U8) }
         .build()
 
@@ -236,6 +245,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
             player.removeListener(listener)
             session?.release()
             player.release()
+            timeshift?.release()
             vm.liveFullscreen = false
         }
     }
@@ -244,6 +254,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         if (vm.liveFullscreen) playingKey?.let(vm.storage::addRecentLive)
         retryJob?.cancel() // otherwise a scheduled restart starts the channel in the background
         player.stop()
+        timeshift?.stopRecording() // frees the connection; playing again starts a new recording
     }
     LifecycleEventEffect(Lifecycle.Event.ON_START) {
         if (player.mediaItemCount > 0) {
@@ -271,6 +282,14 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         infoVisible = false
     }
 
+    val shift by rememberTimeshiftState(timeshift, player)
+    var paused by remember { mutableStateOf(false) }
+    fun togglePause() {
+        if (player.isPlaying) player.pause() else player.play()
+        paused = !player.playWhenReady
+        infoTick++
+    }
+
     fun enterFullscreen(ch: MediaItem) {
         play(ch)
         vm.storage.addRecentLive(ch.key)
@@ -283,6 +302,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         val idx = channels.indexOfFirst { it.key == playingKey }.coerceAtLeast(0)
         val next = channels[(idx + delta).mod(channels.size)]
         focusedKey = next.key
+        paused = false
         play(next)
         infoTick++
     }
@@ -291,9 +311,18 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         // Only update when leaving: otherwise "Recently watched" shifts while zapping.
         playingKey?.let(vm.storage::addRecentLive)
         vm.liveFullscreen = false
+        player.play()
+        paused = false
         pendingFocusKey = playingKey
         val idx = channels.indexOfFirst { it.key == playingKey }
         if (idx >= 0) scope.launch { channelListState.scrollToItem(idx) }
+    }
+    // Rewound: Back first returns to live (registered later, so it goes first).
+    BackHandler(enabled = fullscreen && shift?.isLive == false) {
+        timeshift?.goLive(player)
+        player.play()
+        paused = false
+        infoTick++
     }
 
     // ---------- Layout ----------
@@ -318,7 +347,10 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                 when (e.key) {
                     Key.DirectionUp, Key.ChannelUp -> { zap(-1); true }
                     Key.DirectionDown, Key.ChannelDown -> { zap(1); true }
-                    Key.DirectionCenter, Key.Enter, Key.DirectionLeft, Key.DirectionRight -> { infoTick++; true }
+                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.MediaPlayPause ->
+                        { if (shift != null) togglePause() else infoTick++; true }
+                    Key.DirectionLeft, Key.MediaRewind -> { timeshift?.seekBy(player, -LiveTimeshift.STEP_MS); infoTick++; true }
+                    Key.DirectionRight, Key.MediaFastForward -> { timeshift?.seekBy(player, LiveTimeshift.STEP_MS); infoTick++; true }
                     else -> false
                 }
             },
@@ -483,8 +515,19 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                 playError -> CenterNote(S.channelUnavailable)
                 playingKey == null && !fullscreen -> CenterNote(S.previewHint)
             }
-            if (fullscreen && infoVisible && playing != null) {
-                FullscreenInfo(playing, vm.epg[playing.id].orEmpty(), now, channels.indexOfFirst { it.key == playing.key })
+            val liveShift = shift
+            // While paused or rewound the bar stays, so you can see how far behind live you are.
+            val keepInfo = liveShift != null && (paused || !liveShift.isLive)
+            if (fullscreen && (infoVisible || keepInfo) && playing != null) {
+                FullscreenInfo(
+                    playing, vm.epg[playing.id].orEmpty(), now, channels.indexOfFirst { it.key == playing.key },
+                    hint = if (liveShift != null) S.timeshiftKeys else S.zapHint,
+                ) {
+                    if (liveShift != null) {
+                        Spacer(Modifier.height(16.dp))
+                        TimeshiftBar(liveShift)
+                    }
+                }
             }
         }
     }

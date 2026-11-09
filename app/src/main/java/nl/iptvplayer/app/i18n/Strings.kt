@@ -227,6 +227,13 @@ abstract class Strings {
     abstract val surroundSoundHint: String
     abstract val surroundPassthrough: String
     abstract val surroundStereo: String
+    abstract val timeshift: String
+    abstract val timeshiftHint: String
+
+    // Live pause and rewind
+    abstract val backToLive: String
+    abstract fun behindLive(time: String): String
+    abstract val timeshiftKeys: String
     abstract val updates: String
     abstract val account: String
     abstract val server: String
