@@ -158,6 +158,15 @@ class Storage(private val context: Context, private val cipher: SecretCipher = K
         prefs.edit().putInt("autoNextSeconds", seconds).apply()
     }
 
+    private val _timeshiftMinutes = MutableStateFlow(prefs.getInt("timeshiftMinutes", 30))
+    /** How much of live TV the box keeps for pause and rewind; 0 = off (live plays directly). */
+    val timeshiftMinutes: StateFlow<Int> = _timeshiftMinutes
+
+    fun setTimeshiftMinutes(minutes: Int) {
+        _timeshiftMinutes.value = minutes
+        prefs.edit().putInt("timeshiftMinutes", minutes).apply()
+    }
+
     private val _surroundPassthrough = MutableStateFlow(prefs.getBoolean("surroundPassthrough", true))
     /**
      * Pass Dolby/DTS sound on to the TV or soundbar when the TV says it can play it. Off = the box

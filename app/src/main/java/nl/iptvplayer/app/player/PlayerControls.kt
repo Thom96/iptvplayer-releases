@@ -2,6 +2,9 @@ package nl.iptvplayer.app.player
 
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import nl.iptvplayer.app.player.timeshift.LiveTimeshift
+import nl.iptvplayer.app.player.timeshift.TimeshiftBar
+import nl.iptvplayer.app.player.timeshift.rememberTimeshiftState
 import nl.iptvplayer.app.i18n.S
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
@@ -99,6 +102,8 @@ fun PlayerControls(
     learnedIntro: (PlayItem) -> SkipSegment? = { null },
     /** Countdown before the next episode starts by itself; 0 = never automatically. */
     autoNextMs: Long = 5_000,
+    /** Pause and rewind for live TV; null = live plays without a recording. */
+    timeshift: LiveTimeshift? = null,
 ) {
     // ---------- Player state ----------
     var isPlaying by remember { mutableStateOf(player.isPlaying) }
@@ -136,6 +141,7 @@ fun PlayerControls(
 
     val item = queue.items.getOrNull(index)
     val isLive = queue.isLive
+    val shift by rememberTimeshiftState(timeshift, player)
     val hasNext = !isLive && index < queue.items.size - 1
     val nextItem = if (hasNext) queue.items[index + 1].takeIf { it.kind == Kind.EPISODE } else null
 
@@ -221,6 +227,10 @@ fun PlayerControls(
     BackHandler(enabled = visible && panel == Panel.NONE && !introVisible) { visible = false }
     BackHandler(enabled = !visible && !introVisible) { onExit() }
     BackHandler(enabled = introVisible && panel == Panel.NONE) { onExit() }
+    // Live and rewound: Back first returns to live.
+    BackHandler(enabled = !visible && !introVisible && panel == Panel.NONE && shift?.isLive == false) {
+        timeshift?.goLive(player)
+    }
 
     // Update seeking and the shown times right away (not only at the next poll), so the
     // remaining time is correct immediately.
@@ -244,8 +254,8 @@ fun PlayerControls(
                     Key.MediaPlayPause -> { togglePlay(); show(); return@onPreviewKeyEvent true }
                     Key.MediaPlay -> { player.play(); return@onPreviewKeyEvent true }
                     Key.MediaPause -> { player.pause(); show(); return@onPreviewKeyEvent true }
-                    Key.MediaFastForward -> { player.seekForward(); show(); return@onPreviewKeyEvent true }
-                    Key.MediaRewind -> { player.seekBack(); show(); return@onPreviewKeyEvent true }
+                    Key.MediaFastForward -> { if (shift != null) timeshift?.seekBy(player, LiveTimeshift.STEP_MS) else player.seekForward(); show(); return@onPreviewKeyEvent true }
+                    Key.MediaRewind -> { if (shift != null) timeshift?.seekBy(player, -LiveTimeshift.STEP_MS) else player.seekBack(); show(); return@onPreviewKeyEvent true }
                 }
                 if (visible || showNextPrompt || introVisible || panel != Panel.NONE) {
                     interaction++
@@ -255,8 +265,8 @@ fun PlayerControls(
                 when (e.key) {
                     Key.DirectionUp, Key.ChannelUp -> if (isLive && queue.items.size > 1) zap(next = false) else show()
                     Key.DirectionDown, Key.ChannelDown -> if (isLive && queue.items.size > 1) zap(next = true) else show()
-                    Key.DirectionLeft -> if (!isLive) { seekBy(-10_000); showAtSeekBar() }
-                    Key.DirectionRight -> if (!isLive) { seekBy(10_000); showAtSeekBar() }
+                    Key.DirectionLeft -> if (!isLive) { seekBy(-10_000); showAtSeekBar() } else if (shift != null) { timeshift?.seekBy(player, -LiveTimeshift.STEP_MS); show() }
+                    Key.DirectionRight -> if (!isLive) { seekBy(10_000); showAtSeekBar() } else if (shift != null) { timeshift?.seekBy(player, LiveTimeshift.STEP_MS); show() }
                     // During the intro OK skips it (the button looks focused); otherwise it shows the controls.
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> if (skip != null) doSkip() else show()
                     else -> return@onPreviewKeyEvent false
@@ -296,7 +306,10 @@ fun PlayerControls(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         PlayPauseButton(isPlaying, onClick = { togglePlay() }, modifier = Modifier.focusRequester(playFocus))
                         Spacer(Modifier.width(28.dp))
-                        if (isLive) {
+                        val liveShift = shift
+                        if (isLive && liveShift != null) {
+                            TimeshiftBar(liveShift, Modifier.weight(1f))
+                        } else if (isLive) {
                             Text(
                                 "LIVE",
                                 style = MaterialTheme.typography.labelLarge,
@@ -327,6 +340,10 @@ fun PlayerControls(
                     }
                     Spacer(Modifier.height(28.dp)) // room for the time label under the knob
                     Row(Modifier.align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (shift?.isLive == false) {
+                            RoundIconButton(Icons.Filled.Replay10, S.rewind10, small = true, onClick = { timeshift?.seekBy(player, -LiveTimeshift.STEP_MS); interaction++ })
+                            Pill(S.backToLive, onClick = { timeshift?.goLive(player); interaction++ })
+                        }
                         Pill(trackSummary(tracks), checked = true, onClick = { panel = Panel.TRACKS })
                         Pill(S.otherTracks, onClick = { panel = Panel.TRACKS })
                         // Faster or slower playback isn't possible for live: the buffer then runs empty or falls behind.

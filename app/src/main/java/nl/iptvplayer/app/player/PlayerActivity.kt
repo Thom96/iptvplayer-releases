@@ -5,6 +5,8 @@ import nl.iptvplayer.app.i18n.I18n
 import nl.iptvplayer.app.i18n.S
 import android.graphics.Color
 import android.os.Bundle
+import nl.iptvplayer.app.player.timeshift.LiveTimeshift
+import nl.iptvplayer.app.player.timeshift.liveMediaItem
 import android.os.Handler
 import android.os.Looper
 import android.view.ViewGroup
@@ -50,6 +52,8 @@ class PlayerActivity : ComponentActivity() {
     private lateinit var playerView: PlayerView
     /** The player; Compose draws the controls as soon as it exists. */
     private var player by mutableStateOf<ExoPlayer?>(null)
+    /** Pause and rewind for live TV (recording on the device); null for movies, series and when turned off. */
+    private var timeshift by mutableStateOf<LiveTimeshift?>(null)
     /** Screen on and media session while something is playing. */
     private var session: PlaybackSession? = null
 
@@ -110,6 +114,7 @@ class PlayerActivity : ComponentActivity() {
                             item.seriesId?.let(app.storage::learnedIntro)?.let { (start, end) -> SkipSegment(SegmentType.INTRO, start, end) }
                         },
                         autoNextMs = autoNextSeconds * 1000L,
+                        timeshift = timeshift,
                     )
                 }
             }
@@ -174,8 +179,11 @@ class PlayerActivity : ComponentActivity() {
 
     private fun initPlayer() {
         val dataSource = OkHttpDataSource.Factory(app.http).setUserAgent(App.USER_AGENT)
+        val minutes = app.storage.timeshiftMinutes.value
+        val shift = if (queue.isLive && minutes > 0) LiveTimeshift(this, app.http, App.USER_AGENT, minutes * 60_000L) else null
+        timeshift = shift
         val exo = ExoPlayer.Builder(this, playerRenderersFactory(this, app.storage.surroundPassthrough.value))
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(shift?.dataSourceFactory(dataSource) ?: dataSource))
             .setLoadControl(fastStartLoadControl())
             .setSeekBackIncrementMs(10_000)
             .setSeekForwardIncrementMs(30_000)
@@ -273,13 +281,15 @@ class PlayerActivity : ComponentActivity() {
         session = null
         playerView.player = null
         exo.release()
+        timeshift?.release()
+        timeshift = null
     }
 
     private fun toMediaItem(item: PlayItem, url: String): MediaItem {
         val builder = MediaItem.Builder()
-            .setUri(url)
             .setMediaId(item.key)
             .setMediaMetadata(MediaMetadata.Builder().setTitle(item.title).setSubtitle(item.subtitle).build())
+        if (item.kind == Kind.LIVE) timeshift.liveMediaItem(builder, url) else builder.setUri(url)
         if (url.endsWith(".m3u8")) builder.setMimeType(MimeTypes.APPLICATION_M3U8)
         return builder.build()
     }
