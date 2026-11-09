@@ -103,3 +103,32 @@ suspend fun FocusRequester.requestSafely() {
     withFrameNanos { }
     runCatching { requestFocus() }
 }
+
+/**
+ * Remembers the last focused item of a long list or grid by key, without recomposing anything when the focus
+ * moves. Entering the list (e.g. from the categories) lands on that item if it is on screen.
+ */
+class KeyedFocusMemory internal constructor() {
+    /** Key of the item that last had the focus. */
+    var lastKey: String? = null
+    internal val requesters = HashMap<String, FocusRequester>()
+}
+
+@Composable
+fun rememberKeyedFocusMemory(): KeyedFocusMemory = remember { KeyedFocusMemory() }
+
+/** On the list itself: on entering, go to the remembered item, otherwise just the nearest one. */
+@OptIn(ExperimentalComposeUiApi::class)
+fun Modifier.enterFocusAt(memory: KeyedFocusMemory): Modifier =
+    focusProperties { enter = { memory.lastKey?.let(memory.requesters::get) ?: FocusRequester.Default } }.focusGroup()
+
+/** On every item of the list. */
+@Composable
+fun Modifier.keyedFocusTarget(memory: KeyedFocusMemory, key: String): Modifier {
+    val requester = remember { FocusRequester() }
+    DisposableEffect(key, requester) {
+        memory.requesters[key] = requester
+        onDispose { if (memory.requesters[key] === requester) memory.requesters.remove(key) }
+    }
+    return focusRequester(requester).onFocusChanged { if (it.isFocused) memory.lastKey = key }
+}

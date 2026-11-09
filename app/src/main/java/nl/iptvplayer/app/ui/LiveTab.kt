@@ -1,5 +1,8 @@
 package nl.iptvplayer.app.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import nl.iptvplayer.app.i18n.S
@@ -104,6 +107,13 @@ private const val CAT_FAV = "__fav__"
 private const val CAT_RECENT = "__recent__"
 private const val CAT_ALL = "__all__"
 private const val PREVIEW_DELAY_MS = 500L
+
+/** Height (fraction of the list) where the focused channel stays. */
+private const val CHANNEL_PIVOT = 0.35f
+
+private class ChannelListPosition(val index: Int, val offset: Int, val focusedKey: String?)
+
+private val liveCategoryMemory = java.util.WeakHashMap<Library, HashMap<String, ChannelListPosition>>()
 private val CAT_EXPANDED = 220.dp
 private val CAT_COLLAPSED = 52.dp
 private val ARROWS = setOf(FocusDirection.Up, FocusDirection.Down, FocusDirection.Left, FocusDirection.Right)
@@ -114,7 +124,7 @@ private val ARROWS = setOf(FocusDirection.Up, FocusDirection.Down, FocusDirectio
  * OK = the same picture full screen; there you zap with up/down and Back takes you to the list again.
  */
 @OptIn(UnstableApi::class)
-@kotlin.OptIn(ExperimentalComposeUiApi::class)
+@kotlin.OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun LiveTab(vm: AppViewModel, library: Library) {
     val context = LocalContext.current
@@ -152,10 +162,14 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         }
     }
     val channelListState = rememberLazyListState()
+    // Per category: scroll position and the channel you were on. Survives switching tabs.
+    val catMemory = remember(library) { liveCategoryMemory.getOrPut(library) { HashMap() } }
 
     var focusedKey by rememberSaveable { mutableStateOf<String?>(null) }
     var playingKey by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingFocusKey by remember { mutableStateOf<String?>(null) }
+    /** Category in which [focusedKey] was focused. */
+    var focusedCat by rememberSaveable { mutableStateOf<String?>(null) }
     val focused = focusedKey?.let { all.byKey[it] }
     val playing = playingKey?.let { all.byKey[it] }
 
@@ -268,6 +282,7 @@ fun LiveTab(vm: AppViewModel, library: Library) {
         val ch = focused ?: return@LaunchedEffect
         if (vm.liveFullscreen) return@LaunchedEffect
         delay(PREVIEW_DELAY_MS)
+        while (HeldKey.isHeld) delay(100) // only start the preview once you let go
         play(ch)
     }
 
@@ -405,8 +420,14 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                         items(catEntries, key = { it.first }) { (id, name, count) ->
                             fun select() {
                                 if (selectedCat == id) return
+                                catMemory[selectedCat] = ChannelListPosition(
+                                    channelListState.firstVisibleItemIndex,
+                                    channelListState.firstVisibleItemScrollOffset,
+                                    if (focusedCat == selectedCat) focusedKey else catMemory[selectedCat]?.focusedKey,
+                                )
                                 selectedCat = id
-                                scope.launch { channelListState.scrollToItem(0) }
+                                val saved = catMemory[id]
+                                scope.launch { channelListState.scrollToItem(saved?.index ?: 0, saved?.offset ?: 0) }
                             }
                             ChipButton(
                                 text = name,
@@ -432,9 +453,15 @@ fun LiveTab(vm: AppViewModel, library: Library) {
 
             Spacer(Modifier.width(16.dp))
 
-            // Column 2: channels
+            // Column 2: channels. The focused channel stays at the same height and the list slides underneath;
+            // holding an arrow key moves at a calm pace.
+            val channelTarget = if (focusedCat == selectedCat) focusedKey else catMemory[selectedCat]?.focusedKey ?: playingKey
+            val pivot = remember(channelListState) {
+                PivotBringIntoView(CHANNEL_PIVOT, { channelListState.canScrollBackward }, { channelListState.canScrollForward })
+            }
+            CompositionLocalProvider(LocalBringIntoViewSpec provides pivot) {
             LazyColumn(
-                Modifier.weight(1f).fillMaxHeight().enterFocusAt(channelFocus),
+                Modifier.weight(1f).fillMaxHeight().calmHeldKeys().enterFocusAt(channelFocus),
                 state = channelListState,
                 contentPadding = PaddingValues(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -449,16 +476,22 @@ fun LiveTab(vm: AppViewModel, library: Library) {
                         isFavorite = ch.key in favorites,
                         requestFocus = pendingFocusKey == ch.key,
                         onFocusRequested = { pendingFocusKey = null },
-                        onFocused = { focusedKey = ch.key },
+                        onFocused = {
+                            focusedKey = ch.key
+                            focusedCat = selectedCat
+                        },
                         onClick = { enterFullscreen(ch) },
                         onLongClick = { vm.storage.toggleFavorite(ch.key) },
-                        modifier = Modifier.listFocusTarget(channelFocus, ch.key == (focusedKey ?: playingKey)),
+                        modifier = Modifier.listFocusTarget(channelFocus, ch.key == channelTarget),
                     )
                     LaunchedEffect(ch.id) {
                         delay(250)
+                        // While an arrow key is held the list flies past: only fetch the guide where you stop.
+                        while (HeldKey.isHeld) delay(100)
                         vm.loadEpg(ch.id)
                     }
                 }
+            }
             }
 
             Spacer(Modifier.width(20.dp))

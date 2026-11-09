@@ -10,6 +10,8 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -76,6 +78,8 @@ val EXPANDING_ROW_BASE_HEIGHT = CARD_HEIGHT + ROW_PADDING * 2
 private val POSTER_WIDTH = 128.dp
 private val EXPANDED_WIDTH = 341.dp // 16:9 at the same height
 private val cardShape = RoundedCornerShape(10.dp)
+/** How much darker the other cards in the focused row get. */
+private const val DIMMED_ALPHA = 0.5f
 
 /**
  * Row like on Netflix: the title you are on expands to a wide card, shifts to the left,
@@ -152,6 +156,7 @@ fun ExpandingPosterRow(
                     item = item,
                     details = vm.detailsFor(item),
                     expanded = rowFocused && item.key == focusedKey,
+                    dimmed = rowFocused && item.key != focusedKey,
                     isFavorite = item.key in favorites,
                     isWatched = item.key in watched,
                     onClick = { vm.open(item, context) },
@@ -188,6 +193,8 @@ private fun ExpandingCard(
     item: MediaItem,
     details: ItemDetails?,
     expanded: Boolean,
+    /** Another card in this row has the focus: shown darker, so the chosen title stands out. */
+    dimmed: Boolean,
     isFavorite: Boolean,
     isWatched: Boolean,
     onClick: () -> Unit,
@@ -199,10 +206,19 @@ private fun ExpandingCard(
         animationSpec = moveSpring(Dp.VisibilityThreshold),
         label = "cardWidth",
     )
+    val dim by animateFloatAsState(if (dimmed) DIMMED_ALPHA else 0f, animationSpec = moveSpring(), label = "cardDim")
     Card(
         onClick = onClick,
         onLongClick = onLongClick,
-        modifier = modifier.tapToClick(onClick, onLongClick).width(width).height(CARD_HEIGHT),
+        modifier = modifier
+            .tapToClick(onClick, onLongClick)
+            .width(width)
+            .height(CARD_HEIGHT)
+            // Read in the draw phase only: the animation redraws the card without recomposing it.
+            .drawWithContent {
+                drawContent()
+                if (dim > 0.01f) drawRect(Color.Black.copy(alpha = dim))
+            },
         shape = CardDefaults.shape(cardShape),
         scale = CardDefaults.scale(focusedScale = 1f),
         border = CardDefaults.border(focusedBorder = Border(BorderStroke(3.dp, Palette.accent), shape = cardShape)),
