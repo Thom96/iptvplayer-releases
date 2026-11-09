@@ -75,9 +75,14 @@ class LiveTabTest {
     }
 
     private fun leave() {
-        // Leave Live cleanly (back to the rail, up to Home), so the preview player stops.
-        rule.onRoot().performKeyInput { pressKey(Key.Back) }
-        rule.mainClock.advanceTimeBy(1_000)
+        // Leave Live cleanly (Back until the side rail: in the guide the first Back returns to now; then up to
+        // Home), so the preview player stops and doesn't keep later tests busy.
+        repeat(3) {
+            if (focusedLeftDp() >= 76f) {
+                rule.onRoot().performKeyInput { pressKey(Key.Back) }
+                rule.mainClock.advanceTimeBy(1_000)
+            }
+        }
         press(Key.DirectionUp)
         rule.mainClock.advanceTimeBy(2_000)
     }
@@ -143,7 +148,8 @@ class LiveTabTest {
         press(Key.DirectionLeft)
         shot("live-guide-past")
         rule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
-        val app = rule.activity.application as nl.iptvplayer.app.App
+        // The app the view model starts the player with (in a test run this can differ from rule.activity.application).
+        val app = vm.getApplication<nl.iptvplayer.app.App>()
         // Only check that the player is asked for (it is not started in this test).
         rule.waitUntil(5_000) { app.pendingQueue != null }
         assertEquals(
