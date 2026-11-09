@@ -62,6 +62,8 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
 import nl.iptvplayer.app.data.Kind
+import nl.iptvplayer.app.data.SegmentType
+import nl.iptvplayer.app.data.SkipSegment
 import nl.iptvplayer.app.ui.Palette
 import nl.iptvplayer.app.ui.formatTime
 import nl.iptvplayer.app.ui.requestSafely
@@ -91,6 +93,12 @@ fun PlayerControls(
     onMoreEpisodes: () -> Unit = {},
     isFavorite: Boolean = false,
     onToggleFavorite: () -> Unit = {},
+    /** Intro, recap and credits times of an episode (from the database); empty if unknown. */
+    loadSegments: suspend (PlayItem) -> List<SkipSegment> = { emptyList() },
+    /** The intro the app learned for this series from the viewer's seeking. */
+    learnedIntro: (PlayItem) -> SkipSegment? = { null },
+    /** Countdown before the next episode starts by itself; 0 = never automatically. */
+    autoNextMs: Long = 5_000,
 ) {
     // ---------- Player state ----------
     var isPlaying by remember { mutableStateOf(player.isPlaying) }
@@ -131,9 +139,24 @@ fun PlayerControls(
     val hasNext = !isLive && index < queue.items.size - 1
     val nextItem = if (hasNext) queue.items[index + 1].takeIf { it.kind == Kind.EPISODE } else null
 
-    // ---------- Next episode (just before the credits) ----------
-    // The provider doesn't say where the credits start: last 5% (min. 30 s, max. 90 s).
-    val creditsAt = (duration * 0.05).toLong().coerceIn(30_000, 90_000)
+    // ---------- Skip intro and credits ----------
+    var segments by remember { mutableStateOf(emptyList<SkipSegment>()) }
+    LaunchedEffect(index) {
+        segments = emptyList()
+        segments = item?.takeIf { it.kind == Kind.EPISODE }?.let { loadSegments(it) }.orEmpty()
+    }
+    // Read once per episode: what is learned while watching applies from the next episode.
+    val learned = remember(index) { item?.takeIf { it.kind == Kind.EPISODE }?.let(learnedIntro) }
+    val skip = if (isLive) null else skipActionAt(position, duration, segments, learned, item?.kind == Kind.EPISODE)
+    fun doSkip() {
+        val target = skip?.targetMs ?: return
+        player.seekTo(target)
+        position = target
+    }
+
+    // ---------- Next episode (at the start of the credits) ----------
+    // From the database if known, otherwise a guess; always long enough for the countdown.
+    val creditsAt = creditsLeadMs(duration, segments, minLeadMs = autoNextMs + 5_000)
     var dismissedIndex by remember { mutableIntStateOf(-1) }
     val showNextPrompt = nextItem != null && duration > 0 && duration - position <= creditsAt && dismissedIndex != index
 
@@ -234,7 +257,8 @@ fun PlayerControls(
                     Key.DirectionDown, Key.ChannelDown -> if (isLive && queue.items.size > 1) zap(next = true) else show()
                     Key.DirectionLeft -> if (!isLive) { seekBy(-10_000); showAtSeekBar() }
                     Key.DirectionRight -> if (!isLive) { seekBy(10_000); showAtSeekBar() }
-                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> show()
+                    // During the intro OK skips it (the button looks focused); otherwise it shows the controls.
+                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> if (skip != null) doSkip() else show()
                     else -> return@onPreviewKeyEvent false
                 }
                 true
@@ -328,12 +352,22 @@ fun PlayerControls(
             )
         }
 
+        if (skip != null && !showNextPrompt && panel == Panel.NONE && !introVisible) {
+            SkipButton(
+                text = if (skip.type == SegmentType.RECAP) S.skipRecap else S.skipIntro,
+                pressedByOk = !visible,
+                onClick = { doSkip(); interaction++ },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 56.dp, bottom = if (visible) 190.dp else 56.dp),
+            )
+        }
+
         if (showNextPrompt && nextItem != null && panel == Panel.NONE && !introVisible) {
             // A new prompt per episode, so the countdown never carries over to the next one.
             key(index) {
                 NextEpisodePrompt(
                     next = nextItem,
                     counting = isPlaying,
+                    countdownMs = autoNextMs,
                     onPlay = onNextEpisode,
                     onDismiss = { dismissedIndex = index; show() },
                     modifier = Modifier.align(Alignment.BottomEnd).padding(end = 56.dp, bottom = if (visible) 190.dp else 56.dp),

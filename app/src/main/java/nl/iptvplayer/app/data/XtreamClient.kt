@@ -328,6 +328,7 @@ class XtreamClient(
         if (demo) return@withContext DemoData.seriesInfo(id)
         val root = JSONObject(getString(base.newBuilder().addQueryParameter("action", "get_series_info").addQueryParameter("series_id", id.toString()).build()))
         val info = root.optJSONObject("info") ?: JSONObject()
+        val tmdbId = info.text("tmdb", "tmdb_id")?.toIntOrNull()?.takeIf { it > 0 }
 
         val seasonNames = HashMap<Int, String>()
         root.optJSONArray("seasons")?.let { arr ->
@@ -362,6 +363,7 @@ class XtreamClient(
                     image = eInfo.text("movie_image", "cover_big"),
                     plot = eInfo.text("plot"),
                     durationSecs = eInfo.optString("duration_secs").toIntOrNull()?.takeIf { it >= 60 },
+                    seriesTmdbId = tmdbId,
                 )
             }
         }

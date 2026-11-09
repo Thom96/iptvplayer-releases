@@ -3,6 +3,7 @@ package nl.iptvplayer.app
 import android.app.Application
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import nl.iptvplayer.app.data.IntroDb
 import nl.iptvplayer.app.data.MetadataClient
 import nl.iptvplayer.app.data.Storage
 import nl.iptvplayer.app.i18n.AppLanguage
@@ -24,6 +25,9 @@ class App : Application(), ImageLoaderFactory {
     }
 
     val storage: Storage by lazy { Storage(this) }
+
+    /** Intro and credits times for the skip buttons. */
+    val introDb: IntroDb by lazy { IntroDb(http) }
 
     /** TMDB details for the detail screens, through the Gallo server. */
     val metadata: MetadataClient by lazy { MetadataClient(http) }

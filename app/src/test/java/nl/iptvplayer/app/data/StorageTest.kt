@@ -63,6 +63,16 @@ class StorageTest {
         assertEquals("http://s", storage.lastServer)
         assertEquals("jan", storage.lastUsername)
     }
+
+    @Test
+    fun learnedIntroIsKeptPerSeries() {
+        assertNull(storage.learnedIntro(7))
+        storage.saveLearnedIntro(7, 12_000, 95_000)
+        storage.saveLearnedIntro(8, 0, 60_000)
+        storage.saveLearnedIntro(7, 15_000, 90_000)
+        assertEquals(15_000L to 90_000L, storage.learnedIntro(7))
+        assertEquals(0L to 60_000L, storage.learnedIntro(8))
+    }
 }
 
 /** The password is never stored in readable form, not even after converting an old installation. */

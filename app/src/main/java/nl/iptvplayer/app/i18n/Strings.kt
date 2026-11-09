@@ -212,6 +212,14 @@ abstract class Strings {
     abstract val playback: String
     abstract val playbackHint: String
     abstract val formatAuto: String
+    abstract val autoNext: String
+    abstract val autoNextHint: String
+    abstract val autoNextOff: String
+    abstract fun seconds(n: Int): String
+    abstract val surroundSound: String
+    abstract val surroundSoundHint: String
+    abstract val surroundPassthrough: String
+    abstract val surroundStereo: String
     abstract val updates: String
     abstract val account: String
     abstract val server: String
@@ -241,6 +249,9 @@ abstract class Strings {
     abstract val audioAndSubtitles: String
     abstract val addToFavorites: String
     abstract val watchCredits: String
+    abstract val skipIntro: String
+    abstract val skipRecap: String
+    abstract fun audioUnsupported(format: String): String
     abstract val pause: String
     abstract val audio: String
     abstract val subtitles: String
