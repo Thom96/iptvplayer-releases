@@ -178,6 +178,7 @@ abstract class Strings {
     abstract val guideWatchLive: String
     abstract val guideWatchArchive: String
     abstract fun guideStartsAt(time: String): String
+    abstract val guideNoReplay: String
 
     // Terugkijken
     abstract val today: String

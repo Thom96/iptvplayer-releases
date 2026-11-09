@@ -142,6 +142,7 @@ object Es : Strings() {
     override val guideWatchLive = "OK: ver en directo"
     override val guideWatchArchive = "OK: ver desde el principio"
     override fun guideStartsAt(time: String) = "Empieza a las $time"
+    override val guideNoReplay = "Este canal no se puede volver a ver"
 
     override val today = "Hoy"
     override val yesterday = "Ayer"

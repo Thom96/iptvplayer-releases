@@ -360,24 +360,36 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ---------- TV guide screen ----------
+    // ---------- TV guide (in the Live tab) ----------
 
-    /** Guide per channel id for the TV guide screen; only the most recently viewed channels are kept. */
+    /** Guide per channel id for the TV guide; only the most recently viewed channels are kept. */
     val guide = mutableStateMapOf<Int, List<CatchupEntry>>()
     private val guideFetchedAt = LinkedHashMap<Int, Long>(16, 0.75f, true)
-    private val guideLimiter = Semaphore(4)
+    /** Rows on screen load two at a time; the selected channel has its own lane, so it never waits for them. */
+    private val guideLimiter = Semaphore(2)
+    private val guidePriorityLimiter = Semaphore(1)
 
-    /** Fetches the guide of a channel for the guide screen (at most once per 30 minutes, max. 4 at a time). */
-    suspend fun loadGuide(streamId: Int) {
+    /**
+     * Fetches the guide of a channel (at most once per 30 minutes). If the full table fails, now and next are
+     * shown meanwhile and the full table is tried again after a minute, so past programmes still appear.
+     */
+    suspend fun loadGuide(streamId: Int, priority: Boolean = false) {
         val c = client ?: return
-        val last = guideFetchedAt[streamId]
-        if (last != null && System.currentTimeMillis() - last < 30 * 60_000) return
-        guideLimiter.withPermit {
+        fun fresh() = guideFetchedAt[streamId]?.let { System.currentTimeMillis() - it < 30 * 60_000 } == true
+        if (fresh()) return
+        (if (priority) guidePriorityLimiter else guideLimiter).withPermit {
+            if (fresh()) return
             guideFetchedAt[streamId] = System.currentTimeMillis()
-            runCatching { c.guideEpg(streamId) }
-                .onSuccess { guide[streamId] = it }
-                // Network error: try again after a minute.
-                .onFailure { guideFetchedAt[streamId] = System.currentTimeMillis() - 29 * 60_000 }
+            try {
+                guide[streamId] = c.guideEpg(streamId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                guideFetchedAt.remove(streamId) // scrolled away: load again when it comes back into view
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.w("IPTV", "Guide for $streamId failed: ${e.message}")
+                if (guide[streamId].isNullOrEmpty()) runCatching { c.shortGuide(streamId) }.onSuccess { guide[streamId] = it }
+                guideFetchedAt[streamId] = System.currentTimeMillis() - 29 * 60_000
+            }
             // Large lists: keep memory small by forgetting the channels that were viewed longest ago.
             while (guideFetchedAt.size > GUIDE_CACHE_SIZE) {
                 val oldest = guideFetchedAt.keys.first()

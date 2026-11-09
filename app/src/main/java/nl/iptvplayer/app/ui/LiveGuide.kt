@@ -93,11 +93,9 @@ private const val MINUTE = 60_000L
 private const val HALF_HOUR = 30 * MINUTE
 private const val DAY = 24 * 60 * MINUTE
 /** Visible part of the timeline. */
-private const val WINDOW_MS = 2 * 60 * MINUTE
+private const val WINDOW_MS = 150 * MINUTE
 private const val PREVIEW_DELAY_MS = 700L
 private const val PAGE_ROWS = 5
-private const val GUIDE_ALL = "__all__"
-private const val GUIDE_FAV = "__fav__"
 
 private val ChannelColumn = 168.dp
 private val RowHeight = 46.dp
@@ -105,7 +103,8 @@ private val RowGap = 4.dp
 private val Shape = RoundedCornerShape(8.dp)
 
 private fun floorHalfHour(ms: Long) = ms / HALF_HOUR * HALF_HOUR
-private fun defaultWindowStart(now: Long) = floorHalfHour(now) - HALF_HOUR
+/** An hour of the past is in view, so earlier programmes are easy to find. */
+private fun defaultWindowStart(now: Long) = floorHalfHour(now) - 2 * HALF_HOUR
 
 private fun dayKey(ms: Long): Int = Calendar.getInstance().run {
     timeInMillis = ms
@@ -126,40 +125,25 @@ private fun canReplay(channel: MediaItem, e: CatchupEntry, now: Long) =
     channel.archiveDays > 0 && e.serverStart.isNotEmpty() && e.end <= now && e.start >= now - channel.archiveDays * DAY
 
 /**
- * TV guide: preview and programme details at the top, below that a timeline per channel.
+ * TV guide inside the Live tab: preview and programme details at the top, below that a timeline per channel.
  * The grid is one focus target that moves a selection itself (much faster than a focusable cell per
  * programme with thousands of channels): left/right = previous/next programme, up/down = channel,
  * OK = watch live, or watch a finished programme again if the channel has an archive.
+ *
+ * The Live tab owns the player: [previewBox] marks where the preview goes, [onPreview] asks to play a channel
+ * there and [onWatchLive] opens it full screen.
  */
-@OptIn(UnstableApi::class)
 @Composable
-fun GuideTab(vm: AppViewModel, library: Library) {
+internal fun LiveGuide(
+    vm: AppViewModel,
+    channels: List<MediaItem>,
+    previewBox: Modifier,
+    onPreview: (MediaItem) -> Unit,
+    onWatchLive: (MediaItem) -> Unit,
+    /** Category chips above the timeline. */
+    categories: @Composable () -> Unit,
+) {
     val context = LocalContext.current
-    val app = context.applicationContext as App
-    if (vm.client == null) return
-    val scope = rememberCoroutineScope()
-    val favorites by vm.storage.favorites.collectAsState()
-    val all = vm.library ?: library
-
-    // ---------- Categories and channels ----------
-
-    val counts = remember(library) { library.live.groupingBy { it.categoryId }.eachCount() }
-    val favChannels = remember(favorites, all) { favorites.mapNotNull { all.byKey[it] }.filter { it.kind == Kind.LIVE } }
-    val categories = remember(library, favChannels, counts) {
-        buildList {
-            if (favChannels.isNotEmpty()) add(GUIDE_FAV to S.tabFavorites)
-            add(GUIDE_ALL to S.allChannels)
-            library.liveCategories.filter { (counts[it.id] ?: 0) > 0 }.forEach { add(it.id to TextMatch.displayTitle(it.name)) }
-        }
-    }
-    var selectedCat by rememberSaveable { mutableStateOf(GUIDE_ALL) }
-    val channels = remember(selectedCat, library, favChannels) {
-        when (selectedCat) {
-            GUIDE_FAV -> favChannels
-            GUIDE_ALL -> library.live
-            else -> library.live.filter { it.categoryId == selectedCat }
-        }
-    }
 
     // ---------- Selection ----------
 
@@ -175,6 +159,10 @@ fun GuideTab(vm: AppViewModel, library: Library) {
     var windowStart by rememberSaveable { mutableLongStateOf(defaultWindowStart(now)) }
     var gridFocused by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    LaunchedEffect(channels) {
+        selRow = 0
+        listState.scrollToItem(0)
+    }
 
     val row = selRow.coerceIn(0, (channels.size - 1).coerceAtLeast(0))
     val channel = channels.getOrNull(row)
@@ -183,13 +171,18 @@ fun GuideTab(vm: AppViewModel, library: Library) {
     val earliest = now - XtreamClient.GUIDE_PAST_MS
     val latest = now + XtreamClient.GUIDE_FUTURE_MS
 
+    // The key handlers read the selection when the key arrives, not as it was at the last frame: quick
+    // presses can come in before the screen has been redrawn.
+    fun currentRow() = selRow.coerceIn(0, (channels.size - 1).coerceAtLeast(0))
+    fun currentChannel() = channels.getOrNull(currentRow())
+
     fun moveRow(delta: Int) {
         if (channels.isEmpty()) return
-        selRow = (row + delta).coerceIn(0, channels.size - 1)
+        selRow = (currentRow() + delta).coerceIn(0, channels.size - 1)
     }
 
     fun moveRight() {
-        val list = channel?.let { vm.guide[it.id] }.orEmpty()
+        val list = currentChannel()?.let { vm.guide[it.id] }.orEmpty()
         val after = list.at(focusTime)?.end ?: (focusTime + 1)
         val t = list.firstOrNull { it.start >= after }?.start ?: (floorHalfHour(focusTime) + HALF_HOUR)
         if (t >= latest) return
@@ -199,12 +192,11 @@ fun GuideTab(vm: AppViewModel, library: Library) {
 
     /** False = already at the start of the guide (focus may then leave the grid). */
     fun moveLeft(): Boolean {
-        val list = channel?.let { vm.guide[it.id] }.orEmpty()
+        val list = currentChannel()?.let { vm.guide[it.id] }.orEmpty()
         val before = list.at(focusTime)?.start ?: focusTime
-        val prev = list.lastOrNull { it.start < before }
-        val t = prev?.start ?: (floorHalfHour(before - 1))
         if (before <= earliest) return false
-        val target = t.coerceAtLeast(earliest)
+        val prev = list.lastOrNull { it.start < before }
+        val target = (prev?.start ?: floorHalfHour(before - 1)).coerceAtLeast(earliest)
         if (target < windowStart) {
             // Show the end of a long programme rather than jumping hours back.
             val end = prev?.end ?: (target + HALF_HOUR)
@@ -216,17 +208,12 @@ fun GuideTab(vm: AppViewModel, library: Library) {
         return true
     }
 
-    fun backToNow() {
-        focusTime = now
-        windowStart = defaultWindowStart(now)
-    }
-
     fun activate() {
-        val ch = channel ?: return
-        val e = selected
+        val ch = currentChannel() ?: return
+        val e = vm.guide[ch.id]?.at(focusTime)
         when {
             e != null && canReplay(ch, e, now) -> vm.playCatchup(context, ch, e)
-            e == null || (e.start <= now && e.end > now) -> vm.playLive(context, channels, row)
+            e == null || (e.start <= now && e.end > now) -> onWatchLive(ch)
         }
     }
 
@@ -242,134 +229,44 @@ fun GuideTab(vm: AppViewModel, library: Library) {
         }
     }
 
-    BackHandler(enabled = gridFocused && (windowStart != defaultWindowStart(now) || focusTime !in now - HALF_HOUR..now + HALF_HOUR)) {
-        backToNow()
+    // Back first returns the timeline to now.
+    BackHandler(
+        enabled = gridFocused && !vm.liveFullscreen &&
+            (windowStart != defaultWindowStart(now) || focusTime !in now - HALF_HOUR..now + HALF_HOUR),
+    ) {
+        focusTime = now
+        windowStart = defaultWindowStart(now)
     }
 
-    // ---------- Preview player ----------
-
-    val player = remember {
-        val dataSource = OkHttpDataSource.Factory(app.http).setUserAgent(App.USER_AGENT)
-        ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
-            .setLoadControl(fastStartLoadControl())
-            .build()
-    }
-    var playingKey by remember { mutableStateOf<String?>(null) }
-    var playError by remember { mutableStateOf(false) }
-    var triedFallback by remember { mutableStateOf(false) }
-    val playingChannel by rememberUpdatedState(playingKey?.let { all.byKey[it] })
-
-    fun exoItem(url: String) = ExoItem.Builder().setUri(url)
-        .apply { if (url.endsWith(".m3u8")) setMimeType(MimeTypes.APPLICATION_M3U8) }
-        .build()
-
-    fun preview(ch: MediaItem) {
-        if (playingKey == ch.key && !playError) return
-        playingKey = ch.key
-        playError = false
-        triedFallback = false
-        player.setMediaItem(exoItem(vm.liveUrl(ch.id)))
-        player.prepare()
-        player.play()
-    }
-
-    DisposableEffect(player) {
-        val listener = object : Player.Listener {
-            override fun onPlayerError(error: PlaybackException) {
-                val ch = playingChannel ?: return
-                if (!triedFallback) {
-                    // The chosen format doesn't work: try the other one (ts <-> m3u8) once.
-                    triedFallback = true
-                    player.setMediaItem(exoItem(vm.liveUrl(ch.id, alternative = true)))
-                    player.prepare()
-                    player.play()
-                } else {
-                    playError = true
-                }
-            }
-        }
-        player.addListener(listener)
-        onDispose {
-            player.removeListener(listener)
-            player.release()
-        }
-    }
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { player.stop() }
-    LifecycleEventEffect(Lifecycle.Event.ON_START) {
-        if (player.mediaItemCount > 0) {
-            playError = false
-            player.prepare()
-            player.play()
-        }
-    }
-    // Only start the preview once you are in the guide and stay on a channel for a moment.
+    // The selected channel gets its guide first, and plays in the preview after a moment.
+    LaunchedEffect(channel?.id) { channel?.let { vm.loadGuide(it.id, priority = true) } }
     LaunchedEffect(channel?.key, gridFocused) {
         val ch = channel ?: return@LaunchedEffect
         if (!gridFocused) return@LaunchedEffect
         delay(PREVIEW_DELAY_MS)
-        preview(ch)
+        onPreview(ch)
     }
 
     // ---------- Layout ----------
 
-    Column(Modifier.fillMaxSize().padding(start = 32.dp, end = 32.dp, top = 4.dp)) {
-        Row(Modifier.fillMaxWidth().height(144.dp)) {
-            Box(
-                Modifier
-                    .width(256.dp)
-                    .fillMaxHeight()
-                    .background(Palette.video, RoundedCornerShape(12.dp))
-                    .clipToBounds(),
-            ) {
-                AndroidView(
-                    factory = { ctx ->
-                        PlayerView(ctx).apply {
-                            useController = false
-                            this.player = player
-                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                            setShutterBackgroundColor(android.graphics.Color.BLACK)
-                            isFocusable = false
-                            descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize(),
-                )
-                when {
-                    playError -> CenterNote(S.channelUnavailable)
-                    playingKey == null -> CenterNote(S.previewHint)
-                }
-            }
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().height(132.dp)) {
+            Box(previewBox.width(235.dp).fillMaxHeight().background(Palette.video, RoundedCornerShape(12.dp)))
             Spacer(Modifier.width(20.dp))
             if (channel != null) ProgrammeDetails(channel, row, selected, vm.guide.containsKey(channel.id), now)
         }
 
-        Spacer(Modifier.height(10.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(categories, key = { it.first }) { (id, name) ->
-                fun select() {
-                    if (selectedCat == id) return
-                    selectedCat = id
-                    selRow = 0
-                    scope.launch { listState.scrollToItem(0) }
-                }
-                ChipButton(
-                    text = name,
-                    selected = selectedCat == id,
-                    onClick = ::select,
-                    modifier = Modifier.onFocusChanged { if (it.isFocused) select() },
-                )
-            }
-        }
+        Spacer(Modifier.height(8.dp))
+        categories()
         Spacer(Modifier.height(8.dp))
 
         BoxWithConstraints(
             Modifier
                 .fillMaxSize()
                 .onPreviewKeyEvent { e ->
-                    if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    if (e.type != KeyEventType.KeyDown || vm.liveFullscreen) return@onPreviewKeyEvent false
                     when (e.key) {
-                        Key.DirectionUp -> if (row == 0) false else { moveRow(-1); true }
+                        Key.DirectionUp -> if (currentRow() == 0) false else { moveRow(-1); true }
                         Key.DirectionDown -> { moveRow(1); true }
                         Key.ChannelUp, Key.PageUp -> { moveRow(-PAGE_ROWS); true }
                         Key.ChannelDown, Key.PageDown -> { moveRow(PAGE_ROWS); true }
@@ -505,13 +402,13 @@ private fun ProgrammeDetails(channel: MediaItem, index: Int, entry: CatchupEntry
             )
         }
         Spacer(Modifier.weight(1f))
-        val hint = when {
+        val hint: String = when {
             isNow -> S.guideWatchLive
             canReplay(channel, entry, now) -> S.guideWatchArchive
             entry.start > now -> S.guideStartsAt(hhmm(entry.start))
-            else -> null
+            else -> S.guideNoReplay
         }
-        if (hint != null) Text(hint, style = MaterialTheme.typography.labelMedium, color = Palette.accent)
+        Text(hint, style = MaterialTheme.typography.labelMedium, color = if (hint == S.guideNoReplay) Palette.textMuted else Palette.accent)
     }
 }
 
@@ -577,7 +474,7 @@ private fun GuideRow(
                         width = Dp((to - from) * dpPerMs) - 3.dp,
                         selected = isSelectedRow && focusTime >= e.start && focusTime < e.end,
                         focused = gridFocused,
-                        past = e.end <= now,
+                        past = e.end <= now && !canReplay(channel, e, now),
                     )
                 }
             }
