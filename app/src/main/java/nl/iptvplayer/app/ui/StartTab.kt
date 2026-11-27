@@ -98,7 +98,7 @@ fun StartTab(vm: AppViewModel, library: Library) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 40.dp)) {
         latest?.let { p ->
             item(key = "hero") {
-                ContinueHero(p, onPlay = { vm.resume(context, p) }, buttonModifier = Modifier.restoreFocus(restorer, "hero"))
+                ContinueHero(vm, all, p, onPlay = { vm.resume(context, p) }, buttonModifier = Modifier.restoreFocus(restorer, "hero"))
             }
         }
 
@@ -148,16 +148,31 @@ fun StartTab(vm: AppViewModel, library: Library) {
     }
 }
 
-/** Large card at the top of Home: image on the right, title and "Continue watching" on the left. */
+/**
+ * Large card at the top of Home: image on the right, title and "Continue watching" on the left.
+ * The image is a wide backdrop (TMDB first, else the provider's). Without one, the saved poster or still is shown
+ * whole instead of stretched and cropped, which made it blurry.
+ */
 @Composable
-private fun ContinueHero(p: Progress, onPlay: () -> Unit, buttonModifier: Modifier = Modifier) {
+private fun ContinueHero(vm: AppViewModel, library: Library, p: Progress, onPlay: () -> Unit, buttonModifier: Modifier = Modifier) {
+    val context = LocalContext.current
     val shape = RoundedCornerShape(24.dp)
+    val item = remember(p.key, library) {
+        p.seriesId?.let { library.byKey[MediaItem.keyOf(Kind.SERIES, it)] } ?: library.byKey[p.key]
+    }
+    var backdrop by remember(p.key) { mutableStateOf(item?.backdrop) }
+    LaunchedEffect(p.key) {
+        if (item == null) return@LaunchedEffect
+        fetchTmdb(context, vm.client, series = p.seriesId != null, tmdbId = null, title = item.title, year = item.year)
+            ?.backdrop?.let { backdrop = it }
+    }
     Box(Modifier.fillMaxWidth().height(250.dp).padding(start = 56.dp, end = 56.dp, top = 8.dp)) {
         Box(Modifier.fillMaxSize().clip(shape).background(Palette.surface)) {
             AsyncImage(
-                model = p.image,
+                model = backdrop ?: p.image,
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentScale = if (backdrop != null) ContentScale.Crop else ContentScale.Fit,
+                alignment = Alignment.CenterEnd,
                 modifier = Modifier.fillMaxHeight().fillMaxWidth(0.62f).align(Alignment.CenterEnd),
             )
             Box(
