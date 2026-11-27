@@ -207,19 +207,6 @@ class Storage(private val context: Context, private val cipher: SecretCipher = K
         get() = profilePrefs.getString("appLanguage", null) ?: prefs.getString("appLanguage", null)
         set(value) { profilePrefs.edit().putString("appLanguage", value).apply() }
 
-    // ---------- Activation ----------
-
-    /** This device's own ID at the Gallo server; created once and always the same after that. */
-    val deviceId: String
-        get() = prefs.getString("deviceId", null) ?: java.util.UUID.randomUUID().toString().also {
-            prefs.edit().putString("deviceId", it).apply()
-        }
-
-    /** Last known status from the server, for when it can't be reached for a while. */
-    var license: License?
-        get() = License.fromJson(prefs.getString("license", null))
-        set(value) { prefs.edit().putString("license", value?.toJson()).apply() }
-
     // ---------- Languages of the catalogue ----------
 
     private val _languages = MutableStateFlow(profilePrefs.getStringSet("languages", emptySet())!!.toSet())

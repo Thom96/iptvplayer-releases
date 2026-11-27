@@ -8,7 +8,7 @@ import java.security.SecureRandom
 
 /**
  * A person who watches on this TV. Each profile has its own continue watching, favourites, history and languages
- * (see [Storage.useProfile]); login, device code and licence belong to the whole device.
+ * (see [Storage.useProfile]); the login belongs to the whole device.
  *
  * [kid]: only sees what the parental filter lets through ([ParentalFilter]).
  * [locked]: opening this profile asks for the PIN (so a child can't simply pick a parent's profile).

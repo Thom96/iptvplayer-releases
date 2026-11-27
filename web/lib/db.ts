@@ -19,56 +19,11 @@ export function hasDatabase(): boolean {
 }
 
 const SCHEMA = [
-  `CREATE TABLE IF NOT EXISTS devices (
-     id            TEXT PRIMARY KEY,
-     code          TEXT NOT NULL UNIQUE,
-     status        TEXT NOT NULL DEFAULT 'trial',
-     plan          TEXT,
-     trial_ends    TIMESTAMPTZ NOT NULL,
-     valid_until   TIMESTAMPTZ,
-     email         TEXT,
-     note          TEXT,
-     requested_plan TEXT,
-     requested_at  TIMESTAMPTZ,
-     app_version   TEXT,
-     model         TEXT,
-     linked_from   TEXT,
-     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-     last_seen     TIMESTAMPTZ NOT NULL DEFAULT now()
-   )`,
-  `CREATE TABLE IF NOT EXISTS payments (
-     id            SERIAL PRIMARY KEY,
-     device_code   TEXT NOT NULL,
-     amount_cents  INTEGER NOT NULL,
-     plan          TEXT NOT NULL,
-     method        TEXT NOT NULL DEFAULT 'handmatig',
-     note          TEXT,
-     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
-   )`,
-  `CREATE TABLE IF NOT EXISTS events (
-     id            SERIAL PRIMARY KEY,
-     device_code   TEXT,
-     type          TEXT NOT NULL,
-     text          TEXT NOT NULL,
-     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
-   )`,
-  `CREATE TABLE IF NOT EXISTS seen_days (
-     device_code   TEXT NOT NULL,
-     day           DATE NOT NULL,
-     PRIMARY KEY (device_code, day)
-   )`,
-  `CREATE TABLE IF NOT EXISTS settings (
-     key           TEXT PRIMARY KEY,
-     value         TEXT NOT NULL
-   )`,
   `CREATE TABLE IF NOT EXISTS meta_cache (
      key           TEXT PRIMARY KEY,
      data          TEXT,
      fetched_at    TIMESTAMPTZ NOT NULL DEFAULT now()
    )`,
-  `CREATE INDEX IF NOT EXISTS devices_created ON devices (created_at)`,
-  `CREATE INDEX IF NOT EXISTS payments_created ON payments (created_at)`,
-  `CREATE INDEX IF NOT EXISTS events_created ON events (created_at)`,
 ];
 
 async function ensureSchema(): Promise<void> {

@@ -20,7 +20,7 @@ data class TmdbMeta(
  * Fetches better posters, descriptions in the app language and ratings from TMDB through the Gallo server, which
  * holds the API key and caches every title. Any failure returns null, and the screen keeps the provider's data.
  */
-class MetadataClient(private val http: OkHttpClient, private val baseUrl: String = LicenseClient.SERVER) {
+class MetadataClient(private val http: OkHttpClient, private val baseUrl: String = SERVER) {
     private val cache = object : LinkedHashMap<String, TmdbMeta?>(64, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, TmdbMeta?>) = size > 200
     }
@@ -54,6 +54,9 @@ class MetadataClient(private val http: OkHttpClient, private val baseUrl: String
     }
 
     companion object {
+        /** The Gallo server (see `web/`), which holds the TMDB key. */
+        const val SERVER = "https://gallo-heermoes-13.vercel.app"
+
         fun parse(body: String): TmdbMeta? {
             val o = JSONObject(body)
             if (!o.optBoolean("found")) return null

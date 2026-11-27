@@ -26,7 +26,6 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import nl.iptvplayer.app.AppViewModel
 import nl.iptvplayer.app.data.Library
-import nl.iptvplayer.app.data.LicenseStatus
 import nl.iptvplayer.app.i18n.AppLanguage
 import nl.iptvplayer.app.i18n.I18n
 import nl.iptvplayer.app.i18n.S
@@ -164,24 +163,6 @@ fun SettingsTab(vm: AppViewModel, library: Library) {
                 if (account.maxConnections != null) {
                     InfoLine(S.connections, S.connectionsInUse(account.activeConnections ?: 0, account.maxConnections))
                 }
-            }
-        }
-
-        vm.license?.let { license ->
-            item {
-                Heading(S.licenseSection)
-                InfoLine(S.deviceCode, license.code)
-                InfoLine(
-                    S.status,
-                    when (license.status) {
-                        LicenseStatus.TRIAL -> S.licenseTrial
-                        LicenseStatus.ACTIVE -> S.licenseActive
-                        LicenseStatus.FREE -> S.licenseFree
-                        LicenseStatus.EXPIRED -> S.licenseExpired
-                        LicenseStatus.BLOCKED -> S.licenseBlocked
-                    },
-                )
-                InfoLine(S.validUntil, license.validUntil?.let { date.format(Date(it)) } ?: S.noEndDate)
             }
         }
 
