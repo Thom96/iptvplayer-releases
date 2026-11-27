@@ -18,15 +18,11 @@ Chromecast met Google TV en de Google TV Streamer (1920×1080). Hij is gericht o
 - **Favorieten** (houd OK ingedrukt op een poster) en een **taalfilter** voor het aanbod.
 - Lijsten worden lokaal bewaard en op de achtergrond ververst, zodat de app snel opstart.
 
-## Abonnement en activatie
+## Server
 
-De app meldt zich aan bij de eigen Gallo-server (`web/`, Next.js op Vercel:
-https://gallo-heermoes-13.vercel.app). Elk apparaat krijgt een code (`XXXX-XXXX`) en begint met een proefperiode.
-
-- Tijdens de proef toont de app bij het opstarten hoeveel dagen er nog over zijn.
-- Daarna, of als het apparaat geblokkeerd is, toont de app een activatiescherm met een QR-code naar
-  `/activeren?code=…`. Zodra er betaald is, gaat de app vanzelf verder.
-- In het admin panel (`/admin`) beheer je apparaten, betalingen, het aantal proefdagen en de prijzen.
+De kleine Gallo-server (`web/`, Next.js op Vercel: https://gallo-heermoes-13.vercel.app) haalt film- en
+seriegegevens op bij TMDB (`/api/meta`) voor de detailschermen. Zonder server toont de app de gegevens van de
+IPTV-aanbieder.
 
 ## Installeren op de tv
 

@@ -31,8 +31,6 @@ import nl.iptvplayer.app.data.AuthException
 import nl.iptvplayer.app.data.Credentials
 import nl.iptvplayer.app.data.Episode
 import nl.iptvplayer.app.data.Kind
-import nl.iptvplayer.app.data.LicenseClient
-import nl.iptvplayer.app.data.LicenseStatus
 import nl.iptvplayer.app.data.Library
 import nl.iptvplayer.app.data.MediaItem
 import nl.iptvplayer.app.data.ParentalFilter
@@ -69,9 +67,6 @@ sealed interface AppState {
 
 /** See [AppViewModel.profileScreen]: choosing who watches, or adding and changing profiles. */
 enum class ProfileMode { PICK, MANAGE }
-
-/** See [AppViewModel.gate]. */
-enum class Gate { NONE, TRIAL_NOTICE, LOCKED }
 
 sealed interface UpdateState {
     data object Idle : UpdateState
@@ -399,54 +394,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ---------- Activation (Gallo server) ----------
-
-    private val licenseClient = LicenseClient(app.http)
-    /** Last known status of this device; null = never had contact. */
-    var license by mutableStateOf(storage.license)
-        private set
-    var licenseChecking by mutableStateOf(false)
-        private set
-    /** The last check failed (no internet or server unreachable). */
-    var licenseError by mutableStateOf(false)
-        private set
-    /** The trial screen has already been dismissed during this start. */
-    var trialNoticeSeen by mutableStateOf(false)
-    private var lastLicenseCheck = 0L
-
-    val isDemo: Boolean get() = client?.creds?.server == XtreamClient.DEMO_SERVER
-
-    /** What must be shown in front of the app: nothing, the trial screen, or the activation screen that can't be closed. */
-    val gate: Gate
-        get() {
-            if (isDemo) return Gate.NONE
-            val now = System.currentTimeMillis()
-            val l = license ?: return Gate.LOCKED
-            if (!l.allowsUse(now) || !l.isFresh(now)) return Gate.LOCKED
-            if (l.status == LicenseStatus.TRIAL && !trialNoticeSeen) return Gate.TRIAL_NOTICE
-            return Gate.NONE
-        }
-
-    fun checkLicense() {
-        if (licenseChecking) return
-        licenseChecking = true
-        lastLicenseCheck = System.currentTimeMillis()
-        viewModelScope.launch {
-            try {
-                val l = licenseClient.check(storage.deviceId, BuildConfig.VERSION_NAME, android.os.Build.MODEL ?: "")
-                storage.license = l
-                license = l
-                licenseError = false
-            } catch (_: Exception) {
-                licenseError = true
-            } finally {
-                licenseChecking = false
-            }
-        }
-    }
-
     init {
-        checkLicense()
         storage.credentials?.let { connect(it) }
         // At startup, wait a bit and then check in the background whether there is an update.
         viewModelScope.launch {
@@ -577,7 +525,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * refresh old lists in the background and check for updates now and then.
      */
     fun onAppResumed() {
-        if (System.currentTimeMillis() - lastLicenseCheck > LICENSE_CHECK_INTERVAL_MS) checkLicense()
         val c = client
         if (state == AppState.Ready && c != null && c.cacheAgeMs > CACHE_MAX_AGE_MS) refreshInBackground()
         if (lastUpdateCheck != 0L && System.currentTimeMillis() - lastUpdateCheck > UPDATE_CHECK_INTERVAL_MS) {
@@ -800,8 +747,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         const val CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000L
         /** Check for updates at most this often when coming back to the app. */
         const val UPDATE_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000L
-        /** How often the app (if it stays open for a long time) checks with the Gallo server again. */
-        const val LICENSE_CHECK_INTERVAL_MS = 60 * 60 * 1000L
         /** Quick start: wait at most this long for the crow. */
         const val QUICK_FINISH_MAX_MS = 1_200L
         /** After downloading: wait at most this long for the rooster to eat the last grains and crow. */

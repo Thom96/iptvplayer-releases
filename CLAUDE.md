@@ -18,7 +18,7 @@ Android TV-app (Kotlin, Jetpack Compose for TV) voor een Xtream Codes IPTV-abonn
   commentaar, commitberichten, titels en beschrijvingen van pull requests, en branchnamen. Uitzonderingen: de
   teksten in de app staan per taal in `i18n/` (zie Talen), en de tekst na `[publiceren]` is voor de gebruiker.
   De namen in de code zijn al Engels. Ouder commentaar is nog deels Nederlands; vertaal het als je die code toch
-  aanpast. Webadressen in `web/` (zoals `/activeren`) blijven zoals ze zijn: die staan in QR-codes en links.
+  aanpast.
 - Publiceren als nieuwe versie (zie hieronder) is een aparte stap. Doe het als de eigenaar om een nieuwe versie
   of update op de tv vraagt.
 
@@ -67,16 +67,14 @@ standaard. Bij de eerste start kiest de gebruiker een taal; in Instellingen kan 
   Gebruik in de code `S.<naam>`, nooit een vaste tekst.
 - Nieuwe taal: kopieer `En.kt`, vertaal alles en voeg één regel toe aan `AppLanguage` met de naam in die taal zelf.
 
-## Server en admin panel (`web/`)
+## Server (`web/`)
 
 Next.js-app op Vercel (team "Heermoes 13", project `gallo`, root directory `web`), met een Neon-database
-(`DATABASE_URL`) en het admin-wachtwoord in `ADMIN_PASSWORD`. Vercel deployt `main` vanzelf naar productie:
-https://gallo-heermoes-13.vercel.app.
+(`DATABASE_URL`) als cache. Vercel deployt `main` vanzelf naar productie: https://gallo-heermoes-13.vercel.app.
+De app is gratis: er is geen activatie, proefperiode of admin panel meer.
 
-- `/api/device` (POST): de app meldt zich aan met een eigen apparaat-ID en krijgt een code (`XXXX-XXXX`), de status
-  (`trial`, `active`, `free`, `expired`, `blocked`) en tot wanneer die geldt.
-- `/activeren?code=…`: klantpagina (de QR-code op de tv wijst hierheen).
-- `/admin`: dashboard, apparaten, betalingen en instellingen (proefdagen, prijzen).
+- `/api/meta` (GET): film- en seriegegevens van TMDB voor de detailschermen (sleutel in `TMDB_API_KEY` of
+  `TMDB_READ_TOKEN`), per titel een week bewaard in `meta_cache`.
 - Tabellen worden bij de eerste aanvraag zelf aangemaakt (`web/lib/db.ts`).
 - Controleren: `cd web && npm ci && npx next build`.
 

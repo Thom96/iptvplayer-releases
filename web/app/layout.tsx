@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Gallo",
-  description: "Activeer Gallo op je tv",
+  description: "Gallo",
   robots: { index: false, follow: false },
 };
 
